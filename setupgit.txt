@@ -1,0 +1,13 @@
+echo "# sphagnumCUEmetabarcoding" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/danchurch/sphagnumCUEmetabarcoding.git
+git remote set-url origin git@github.com:danchurch/sphagnumCUEmetabarcoding.git
+git push -u origin main
+git config --global user.email "danchurchthomas@gmail.com"
+git config --global user.name "danchurch"
+
+git push -u origin main
+
