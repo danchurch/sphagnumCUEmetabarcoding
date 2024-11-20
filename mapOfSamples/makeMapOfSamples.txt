@@ -1,0 +1,59 @@
+## some software issues, plotter not working:
+
+sudo pip install PyQt5 ## this and QT6 also fail. 
+
+## for tkagg:
+sudo apt-get install python3-tk
+python3 -m pip install --upgrade Pillow
+
+## also have to change the matplotlibrc file. Made a local copy from to:
+cp  /usr/local/lib/python3.8/dist-packages/matplotlib/mpl-data/matplotlibrc /home/daniel/.config/matplotlib/matplotlibrc
+
+## then uncommented and edited 
+##backend: Agg 
+## to:
+backend: TkAgg
+
+
+## let's take a look at the spatial scales we are dealing with with Werner's samples:
+
+python3
+
+import pandas as pd
+import geopandas as gpd
+import os
+import matplotlib
+#matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt; plt.ion()
+
+df = pd.read_csv('Norway_2024_coordinates.csv')
+gdf = gpd.GeoDataFrame( df, geometry=gpd.points_from_xy(df.lon, df.lat, crs="EPSG:4326"))
+gdf.plot()
+gdf = gdf.to_crs("32634") ## UTM zone 34
+
+## which ones are ours?
+ourPlotNames=pd.Series(["AP1","AP2","AP3","AP4","AT1","AT2","AT3","AT5"])
+ourPlotNames=["AP1","AP2","AP3","AP4","AT1","AT2","AT3","AT5"]
+oneOfOurs = gdf.waypoint.str.replace('C','').isin( ourPlotNames )
+gdf = gdf[ oneOfOurs ]
+
+fig, ax = plt.subplots()
+ax = gdf.plot(ax=ax)
+
+## how far apart are these points?
+aa = gdf.geometry.apply(lambda g: gdf.distance(g))
+aa[aa > 0].max(axis=None) ## 106 m apart
+aa[aa > 0].min(axis=None) ## 3.7 m apart
+aa[aa > 0].mean(axis=None) ## 46 m apart
+
+for x,y,label in zip(gdf.geometry.x, gdf.geometry.y, gdf.plot_name):
+    ax.annotate(label, xy=(x, y), xytext=(3, 3), textcoords="offset points")
+
+
+for x, y, label in zip(cities.geometry.x, cities.geometry.y, cities.name):
+    ax.annotate(label, xy=(x, y), xytext=(3, 3), textcoords="offset points")
+
+
+for s, g in zip(stations, geometries):
+    xy = g.coords[0]
+    ax.text(xy[0], xy[1], s)

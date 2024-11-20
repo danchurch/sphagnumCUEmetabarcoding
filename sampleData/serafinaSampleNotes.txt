@@ -1,0 +1,11 @@
+- sphagnum was often not growing on the top of the pals, so other vegetation (especially mosses) was collected instead. 
+- the living above-ground tissue was taken, and also the ground-level mixture of soil/vegetation
+- no truly-floating mats of sphagnum, as in, un-rooted, but some sphagnum was growing through the water (rooted)
+- so they collected the living heads of sphagnum from thermokarsts above the surface of the water, and a bit 
+  of the underwater tissue, also. This would be all thermokarst samples. 
+
+"veg_top" = green top of non-sphagnum vegetation 
+"veg_below" = mix of soil and vegetation at base of collection site
+"Sph_top" = green top of sphagnum moss from thermokarst
+"Sph_below" = submerged (not rooted, not in soil) of thermokarst.
+
