@@ -4,8 +4,17 @@
 - so they collected the living heads of sphagnum from thermokarsts above the surface of the water, and a bit 
   of the underwater tissue, also. This would be all thermokarst samples. 
 
-"veg_top" = green top of non-sphagnum vegetation 
-"veg_below" = mix of soil and vegetation at base of collection site
-"Sph_top" = green top of sphagnum moss from thermokarst
-"Sph_below" = submerged (not rooted, not in soil) of thermokarst.
+"veg_top" = green top of non-sphagnum vegetation
+"veg_below" = mix of soil and vegetation at base of collection site. Labeled as "Dead Veg" in AP1, AP2, AP3, AP4
+"Sph_top" = green top of sphagnum moss from thermokarst. 
+"Sph_below" = submerged (not rooted, not in soil) of thermokarst.  Labeled as "Dead Sph" in AP1, AP3
+
+sph = sphagnum, on palses. Sphagnum on palses was always dead. In thermokarsts, still alive. 
+
+At2, At3, and At5 are all samples from the same large thermokarst in the south. 
+
+All thermokarsts samples that I have (1,2,3,5) are of the same developmental stage ("mature")
+
+Soil cores always from the very top of the palse.
+
 
