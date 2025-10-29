@@ -2,6 +2,10 @@
 ## = get an OTU table, check predictors  NMS/permanova etc. 
 ## if there is anything there, contact florian hartig and get serious with jsdm
 
+## pertinent other scripts (officecomp)
+/home/daniel/Documents/projects/mossSymbiosis/nostoc/totalCyanoCommunity/processIllumina16s.txt
+/home/daniel/Documents/teaching/funmic/FunctionalMicrobiomePractical/funmic2025/scripts/metabarcoding.txt
+
 ## wd
 cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis
 
@@ -55,14 +59,13 @@ for inputFastq in *; do
            ${inputFastq}
 done &> test.log
 
-## not run ##
-
 ## go to dada2 
 
 
 R
 library(dada2)
 library(phyloseq)
+library(Biostrings)
 
 ## where are our trimmed reads?
 
@@ -86,6 +89,140 @@ setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSampl
 
 err <- learnErrors(fileNames, multithread=TRUE)
 
-## not run ##
 save(err, file="../err.rda")
+
+plotErrors(err, nominalQ=TRUE)
+
+
+## this step defines our ASVs:
+dadaF <- dada(fileNames, err=err, pool=TRUE, multithread=TRUE)
+
+
+save(dadaF, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
+
+
+## this is taking forever. I think because I only have four cores on this machine.
+## Can we repeat it on the optiplex or nanoComp?
+## take a break, if it doesn't finish by then port it over. 
+
+## now that we have ASVs, we can make an OTU table:
+
+seqtab <- makeSequenceTable(dadaF)
+
+seqtab
+
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+
+save(seqtab.nochim, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/seqtab.nochimPeat.rda")
+
+load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/seqtab.nochimPeat.rda")
+
+## make row names pretty. Here we need our sample names, etc. 
+
+homedir="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/"
+## eco info here
+envData <- read.csv(paste0(homedir,"envDataPeat.csv"))
+sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
+## with this, can we clean up our row names?
+
+## actually, we don't need them:
+rownames(seqtab.nochim) <- gsub("trimmed_reads.*_S", "S", rownames(seqtab.nochim)) |> 
+gsub("_L.*fastq.gz","",x=_)
+
+path2silvaDB <- "/media/vol/phylo_dbs/silva/silva138.2/silva_nr99_v138.2_toGenus_trainset.fa"
+
+taxa <- assignTaxonomy(seqtab.nochim, path2silvaDB, multithread=TRUE)
+
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), tax_table(taxa))
+
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna)
+## give our ASVs pretty names instead of DNA sequences:
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+
+## let's add our "environmental data" (woefully incomplete at this point).
+sample_data
+
+envData <- read.csv(paste0(homedir,"envDataPeat.csv"))
+envData <- data.frame(envData, row.names = 3)
+sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
+sample_data(ps) = envData
+
+save(ps, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
+
+
+load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
+
+rank_names(ps)
+
+tax_table(ps)["ASV1",]
+
+tax_table(ps)["ASV1",]
+
+tax_table(ps)["ASV17",] 
+
+tax_table(ps)["ASV20",]
+
+tax_table(ps)[1:200,"Genus"]
+
+## our most common bacteria are Ralstonia, the first 20 or so. Seems fishy. 
+
+###### run alignment ######
+
+## let's get the alignment running overnight, another brain-free process we can do for free.
+
+## do it one the nanoComp:
+
+conda create -n ssu-align -c bioconda ssu-align 
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/")
+rs <- refseq(ps)
+writeXStringSet(rs,"wernerSphagnumRefSeqs.fa", format="fasta")
+
+
+## get this file 
+
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa
+putFile=/media/vol1/daniel/wernerPeat/
+rsync -auv $getFile test@132.180.112.115:$putFile
+
+cd /media/vol1/daniel/wernerPeat/
+
+conda activate ssu-align
+
+nohup ssu-align -n bacteria wernerSphagnumRefSeqs.fa wernerSphagnumRefSeqs_ali &
+
+## to check on this remotely:
+
+## not run ##
+
+## then a strict mask, don't trust any ambiguous calls, because we are forcing the bacterial model on archea
+ssu-mask --pf 0.9999 --pt 0.9999 wernerSphagnumRefSeqs_ali
+
+## to get a fasta output of the alignment (what we probably need)
+ssu-mask --stk2afa wernerSphagnumRefSeqs_ali
+
+ssuAlignOut="/media/vol1/daniel/wernerPeat/wernerSphagnumRefSeqs_ali/wernerSphagnumRefSeqs_ali.bacteria.afa"
+FastTree -gtr -nt < $ssuAlignOut > wernerPeatFastTree.nwk
+
+## get it local:
+getFile=/media/vol1/daniel/wernerPeat/wernerSphagnumRefSeqs_ali/wernerPeatFastTree.nwk
+putFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
+rsync -auv test@132.180.112.115:$getFile $putFile
+
+
+###### run alignment ######
+
+## in the meantime, what does this data look like?
+
+barplot(sample_sums(ps))
+
+
+
+barplot(sort(sample_sums(ps), decreasing=TRUE))
+
+barplot(sort(sample_sums(ps), decreasing=TRUE), cex.names=0.8, las=2)
+
+sort(sample_names(ps))
 
