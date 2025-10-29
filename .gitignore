@@ -2,3 +2,7 @@
 *.txt.sw*
 .*.txt.sw*
 soil cores
+sampleData/sequencingSamples/filteredReads/
+sampleData/sequencingSamples/originalSeqs/
+sampleData/sequencingSamples/trimmed_reads/
+sampleData/sequencingSamples/combinedSamps/

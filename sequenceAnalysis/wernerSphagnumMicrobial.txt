@@ -1,0 +1,91 @@
+## let's take a look at the sequences from Werner. 
+## = get an OTU table, check predictors  NMS/permanova etc. 
+## if there is anything there, contact florian hartig and get serious with jsdm
+
+## wd
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis
+
+## raw reads are here:
+cd /media/vol/wernerSphagnumSequences/
+
+## let's make symbolic links to these, see if we can avoid doubling storage
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/originalSeqs
+
+destinationDir="/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/originalSeqs/"
+originalSeqDir="/media/vol/wernerSphagnumSequences/"
+cd ${originalSeqDir}
+
+for i in *; do 
+  ln -s ${originalSeqDir}$i ${destinationDir}$i
+done
+
+## not sure if we can do everything via links, let's try 
+
+## we had two samples from moss cyanobacterial culture project, don't need these:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/originalSeqs/
+rm Oemik-002018* Oemik-002019*
+
+## how do the qualities look?:
+## let's combine them all:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/combinedSamps
+cat ${destinationDir}* > comboSphagnumRawReads.fastq.gz
+
+fastqc -o . -t 2 comboSphagnumRawReads.fastq.gz 
+
+## looks great, maybe trim off the final 5 bp or so
+
+## where is our sample metadata?
+/home/daniel/Documents/projects/wernerSphagnum/sampleData
+
+## let's trim the primers
+
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/originalSeqs/
+
+outputDir=/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/trimmed_reads
+for inputFastq in *; do
+    cutadapt --rc \
+        -g TCGTGYCAGCMGCCGCGGTAA \
+        --length 280 \
+        -a GGACTACNVGGGTWTCTAAT \
+        -o ${outputDir}${inputFastq} \
+           ${inputFastq}
+done &> test.log
+
+## not run ##
+
+## go to dada2 
+
+
+R
+library(dada2)
+library(phyloseq)
+
+## where are our trimmed reads?
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/trimmed_reads")
+
+fileNames <- list.files(pattern="fastq.gz")
+
+## do some quality filtering on these reads before denoising
+
+## where should we put these?
+filterPath <- "/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/filteredReads"
+
+out <- filterAndTrim(fileNames, filterPath,
+              maxN=0, maxEE=2, truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=TRUE)
+
+## we lose a lot
+sum(out[,2]) / sum(out[,1]) ## ~60% reads retained.
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/filteredReads")
+
+err <- learnErrors(fileNames, multithread=TRUE)
+
+## not run ##
+save(err, file="../err.rda")
+
