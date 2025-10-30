@@ -66,6 +66,9 @@ R
 library(dada2)
 library(phyloseq)
 library(Biostrings)
+library(ape)
+library(ggplot2)
+library(RColorBrewer)
 
 ## where are our trimmed reads?
 
@@ -121,6 +124,7 @@ load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/seqta
 
 homedir="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/"
 ## eco info here
+
 envData <- read.csv(paste0(homedir,"envDataPeat.csv"))
 sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
 ## with this, can we clean up our row names?
@@ -142,14 +146,19 @@ ps <- merge_phyloseq(ps, dna)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 
 ## let's add our "environmental data" (woefully incomplete at this point).
-sample_data
+## and our tree, also still really raw: 
 
 envData <- read.csv(paste0(homedir,"envDataPeat.csv"))
-envData <- data.frame(envData, row.names = 3)
-sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
-sample_data(ps) = envData
 
+envData <- data.frame(envData, row.names = "SampleName")
+envData$DepthSection <- as.numeric(envData$DepthSection)
+sample_data(ps) = envData
 save(ps, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
+
+sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
+
+str(envData)
+
 
 
 load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
@@ -157,6 +166,8 @@ load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat1
 rank_names(ps)
 
 tax_table(ps)["ASV1",]
+
+tax_table(ps)["ASV4927",]
 
 tax_table(ps)["ASV1",]
 
@@ -195,7 +206,6 @@ nohup ssu-align -n bacteria wernerSphagnumRefSeqs.fa wernerSphagnumRefSeqs_ali &
 
 ## to check on this remotely:
 
-## not run ##
 
 ## then a strict mask, don't trust any ambiguous calls, because we are forcing the bacterial model on archea
 ssu-mask --pf 0.9999 --pt 0.9999 wernerSphagnumRefSeqs_ali
@@ -211,6 +221,27 @@ getFile=/media/vol1/daniel/wernerPeat/wernerSphagnumRefSeqs_ali/wernerPeatFastTr
 putFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
 rsync -auv test@132.180.112.115:$getFile $putFile
 
+## to add this, in R:
+
+tax_table(ps)[,"Kingdom"]
+
+tax_table(ps)['ASV5788',]
+
+
+archFilter <- as.vector(tax_table(ps)[,"Kingdom"] == "Archaea")
+archFilter[is.na(archFilter)] <- FALSE
+
+archeaPS = prune_taxa(archFilter, ps)
+
+aa = ape::read.tree("wernerPeatFastTree.nwk")
+
+taxa_names(archeaPS)
+
+rooted_tree = root(aa, outgroup = taxa_names(archeaPS), resolve.root = TRUE)
+phy_tree(psCleanedUp) <- rooted_tree
+plot_tree(psCleanedUp, color="Kingdom")
+## meh, not working, looks like the archea didn't make it
+## onto the tree. Work on this later
 
 ###### run alignment ######
 
@@ -219,10 +250,82 @@ rsync -auv test@132.180.112.115:$getFile $putFile
 barplot(sample_sums(ps))
 
 
-
 barplot(sort(sample_sums(ps), decreasing=TRUE))
 
 barplot(sort(sample_sums(ps), decreasing=TRUE), cex.names=0.8, las=2)
 
 sort(sample_names(ps))
+
+## three samples essentially failed:
+
+sample_data(ps)[c("S27","S28","S33")] 
+## these are thermokarst:
+
+## S27  AT2_43-63 Thermokarst            1 
+## S28  AT2_63-83 Thermokarst            2 
+## S33 AT3_80-100 Thermokarst            2 
+
+
+## we want:
+
+## 1 - taxonomic overview
+## 2 - ordinations by the data we have
+
+## let's normalize abundances a bit:
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+
+plot_bar(ps.prop, fill = "Kingdom") + 
+  geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
+
+plot_richness(ps, measures=c("Chao1", "Shannon"))
+
+ps.prop.ord <- ordinate(ps.prop, "NMDS", "bray")
+
+aa <- plot_ordination(ps.prop, ps.prop.ord, color="Subsite")
+
+## let's also get rid of controls and low abundance samples, and check both variables:
+
+nonCfilt <- sample_data(ps.prop)$EcoCont != "Control"
+ps.prop.noC <- prune_samples(nonCfilt, ps.prop)
+nonLowAbuFilt <- !(sample_names(ps.prop.noC) %in% c("S27","S28","S33"))
+ps.prop.noC <- prune_samples(nonLowAbuFilt, ps.prop.noC)
+
+
+sample_data(ps)[c("S27","S28","S33")] 
+
+ps.prop.noC.ord <- ordinate(ps.prop.noC, "NMDS", "bray")
+
+bb <- plot_ordination(ps.prop.noC, ps.prop.noC.ord, 
+   color="DepthSection",
+   shape="Subsite",
+)
+
+lbs <- geom_text(label=sample_data(ps.prop.noC)$Core,
+                 color = "black",
+                 nudge_x = 0.05, nudge_y = 0.05,
+                 check_overlap = T)
+myPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(5, 0), trans="reverse")
+
+png("ordinationPeat.png", width=1000, height=1000)
+bb + sc + lbs + geom_point(size=5)
+dev.off()
+
+sessionInfo()
+
+## interesting. What else?
+
+## would be good to know where the methanogens are
+## and what taxa seem to be most important in each of these
+
+## use picrust to pick out the methanogens?
+## for that we need a better tree. I don't our methanogens made it on there.
+
+## can we do a quick differential abundance analysis? probably not. 
+## maybe the best thing we can do is set up a notebook, so werner can
+## see what's up as we go. 
+
+
+############################
+
 
