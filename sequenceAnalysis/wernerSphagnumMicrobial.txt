@@ -1,3 +1,7 @@
+## link to see notebook:
+
+https://nbviewer.org/github/danchurch/sphagnumCUEmetabarcoding/blob/main/sequenceAnalysis/firstLookPeat16s.ipynb
+
 ## let's take a look at the sequences from Werner. 
 ## = get an OTU table, check predictors  NMS/permanova etc. 
 ## if there is anything there, contact florian hartig and get serious with jsdm
@@ -34,7 +38,7 @@ rm Oemik-002018* Oemik-002019*
 ## how do the qualities look?:
 ## let's combine them all:
 
-cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/combinedSamps
+destinationDir=/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/combinedSamps
 cat ${destinationDir}* > comboSphagnumRawReads.fastq.gz
 
 fastqc -o . -t 2 comboSphagnumRawReads.fastq.gz 
@@ -179,6 +183,85 @@ tax_table(ps)[1:200,"Genus"]
 
 ## our most common bacteria are Ralstonia, the first 20 or so. Seems fishy. 
 
+## plan for today - clean up using negative and positive controls, and get taxonomic overview.
+
+## my little plotting function:
+
+rankAb <- function(phyObj, sampleName, ylimit=500, ntax=NULL, textatX=100, textatY=(ylimit-40)){
+    sampleNo0filter <- get_taxa(phyObj, sampleName) > 0
+    if(is.null(ntax)) ntax=sum(sampleNo0filter)
+    print(sum(sampleNo0filter)) ## let user know how many unique taxa are in sample
+    sampleNo0 <- get_taxa(phyObj, sampleName)[sampleNo0filter]
+    sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
+    sampleNo0 <- sampleNo0[1:ntax]
+    taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
+    nuASV <- paste("number of unique ASVs = ",sum(sampleNo0filter), sep="")
+    par(cex.axis = .75, mar=c(25,4,4,2))
+    barplot(sampleNo0,
+        ylim = c(0,ylimit),
+        main=sampleName,
+        cex.names=1.5,
+        las=2,
+        names.arg=taxaNames,
+           )
+    text(textatX, textatY,  nuASV, cex = 2, )
+}
+
+## lots to check. how do the mock communities, eco rep, and neg controls look?:
+
+dev.off(dev.list())
+
+sample_names(ps)
+
+sample_data(ps)
+
+## our ecological replicate looks pretty good:
+rankAb(ps,"S41",ylimit=800, ntax=50)
+dev.new()
+rankAb(ps,"S8",ylimit=1000, ntax=50)
+
+## our 
+
+rankAb(ps,"S42")
+
+rankAb(ps,"S43",ntaxa=50)
+
+sample="S43"
+notZeroFilt <- otu_table(ps)[sample] > 0
+abundances <- otu_table(ps)[sample, notZeroFilt]
+
+
+dev.off(dev.list())
+
+sample="S42"
+notZeroFilt <- otu_table(ps)[sample] > 0
+otu_table(ps)[sample, notZeroFilt]
+
+rankAb(ps,"S42")
+
+rankAb(ps,"S43",ntax=30)
+dev.new()
+
+rankAb(ps,"S44")
+
+rankAb(ps,"S44", ntax=30)
+
+rankAb(ps,"S1", ntax=20)
+
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+
+filt <- sample_data(ps)$Subsite %in% c("Mock_community_1","Mock_community_2","Negative_PCR")
+
+ps.controls <- prune_samples(filt, ps)
+
+plot_bar(ps.controls, fill = "Phylum") + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+
+
+## https://nbviewer.org/github/danchurch/fichtelgebirgeSoils/blob/main/spatialAnalysis/spatialAnalysisSulariData.ipynb
+
+barplot(sort(sample_sums(ps), decreasing=TRUE), cex.names=0.8, las=2)
+
+
 ###### run alignment ######
 
 ## let's get the alignment running overnight, another brain-free process we can do for free.
@@ -188,6 +271,7 @@ tax_table(ps)[1:200,"Genus"]
 conda create -n ssu-align -c bioconda ssu-align 
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/")
+
 rs <- refseq(ps)
 writeXStringSet(rs,"wernerSphagnumRefSeqs.fa", format="fasta")
 
@@ -223,27 +307,58 @@ rsync -auv test@132.180.112.115:$getFile $putFile
 
 ## to add this, in R:
 
-tax_table(ps)[,"Kingdom"]
-
-tax_table(ps)['ASV5788',]
-
 
 archFilter <- as.vector(tax_table(ps)[,"Kingdom"] == "Archaea")
 archFilter[is.na(archFilter)] <- FALSE
-
-archeaPS = prune_taxa(archFilter, ps)
+archaeaPS = prune_taxa(archFilter, ps)
 
 aa = ape::read.tree("wernerPeatFastTree.nwk")
 
-taxa_names(archeaPS)
+taxa_names(archaeaPS)
 
-rooted_tree = root(aa, outgroup = taxa_names(archeaPS), resolve.root = TRUE)
-phy_tree(psCleanedUp) <- rooted_tree
-plot_tree(psCleanedUp, color="Kingdom")
-## meh, not working, looks like the archea didn't make it
-## onto the tree. Work on this later
+rooted_tree = root(aa, outgroup = taxa_names(archaeaPS), resolve.root = TRUE)
 
-###### run alignment ######
+## these didn't make it into the tree:
+taxa_names(archaeaPS)[!(taxa_names(archaeaPS) %in% aa$tip.label)]
+
+## "ASV4652" "ASV4698" "ASV4701" "ASV5339"
+
+notInTree=c("ASV4652","ASV4698","ASV4701","ASV5339")
+
+tax_table(ps)[notInTree] ## Halobacteriota, Nanoarcheota
+
+otu_table(ps)[,notInTree]
+
+## these are pretty low abundances, in not many samples
+## ASV4652 ASV4701 (halobacterota) are present only in the moss negative
+## control. ASV4698 and ASV5339 (nanoarchaeota)
+
+## in general, the sequences that didn't align are in this file:
+getFile=/media/vol1/daniel/wernerPeat/wernerSphagnumRefSeqs_ali/wernerSphagnumRefSeqs_ali.nomatch
+putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
+rsync -auv test@132.180.112.115:$getFile $putHere
+
+## not sure how this will affect our pipeline. March on and find out.
+## for the moment, remove these four archaea ASVs that didn't align from
+## our analysis:
+
+notInTree = c("ASV4652","ASV4698","ASV4701","ASV5339")
+inTree = !(rownames(tax_table(ps)) %in% notInTree)
+ps.inTree <- prune_taxa(inTree, ps)
+
+## and repeat:
+aa = ape::read.tree("wernerPeatFastTree.nwk")
+archFilter <- as.vector(tax_table(ps.inTree)[,"Kingdom"] == "Archaea")
+archFilter[is.na(archFilter)] <- FALSE
+archaeaPS = prune_taxa(archFilter, ps.inTree)
+rooted_tree = root(aa, outgroup = taxa_names(archaeaPS), resolve.root = TRUE)
+phy_tree(ps.inTree) <- rooted_tree
+plot_tree(ps.inTree, color="Kingdom")
+
+## looks great. Now let's examine our positive controls and try 
+## to get an idea of proper otu clustering.
+
+
 
 ## in the meantime, what does this data look like?
 
@@ -290,8 +405,13 @@ ps.prop.noC <- prune_samples(nonCfilt, ps.prop)
 nonLowAbuFilt <- !(sample_names(ps.prop.noC) %in% c("S27","S28","S33"))
 ps.prop.noC <- prune_samples(nonLowAbuFilt, ps.prop.noC)
 
+unique(tax_table(ps)[,'Kingdom'])
 
 sample_data(ps)[c("S27","S28","S33")] 
+
+sample_data(ps)[c("S35","S36","S37","S40")] 
+
+sample_data(ps)[c("S4","S13","S14","S18")] 
 
 ps.prop.noC.ord <- ordinate(ps.prop.noC, "NMDS", "bray")
 
@@ -326,6 +446,30 @@ sessionInfo()
 ## see what's up as we go. 
 
 
-############################
+########### picrust2 #################
+
+## let's work on picrust today, just to make a larger net candidates for methanogens and methanotrophs
+## that we might miss through our more customized searches:
+
+## the goal is to use picrust and ggpicrust2 to summarize our results
+
+## https://huttenhower.sph.harvard.edu/picrust/
+
+conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.4.1
+
+conda activate picrust2
+ 
+picrust2_pipeline.py -h
+
+refSeqs="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa"
 
 
+picrust2_pipeline.py -s study_seqs.fna -i study_seqs.biom -o picrust2_out_pipeline -p 1
+
+
+###### dimitri 16s method ##########
+
+## dimitri also has a method, by looking for exact 16s matches with
+## GTDB genomes 
+
+## I'll ask him for his scripts
