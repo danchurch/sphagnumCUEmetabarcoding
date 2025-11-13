@@ -207,6 +207,16 @@ rankAb <- function(phyObj, sampleName, ylimit=500, ntax=NULL, textatX=100, texta
     text(textatX, textatY,  nuASV, cex = 2, )
 }
 
+
+## three samples essentially failed:
+
+sample_data(ps)[c("S27","S28","S33")] 
+## these are thermokarst:
+
+## S27  AT2_43-63 Thermokarst            1 
+## S28  AT2_63-83 Thermokarst            2 
+## S33 AT3_80-100 Thermokarst            2 
+
 ## lots to check. how do the mock communities, eco rep, and neg controls look?:
 
 dev.off(dev.list())
@@ -358,27 +368,80 @@ plot_tree(ps.inTree, color="Kingdom")
 ## looks great. Now let's examine our positive controls and try 
 ## to get an idea of proper otu clustering.
 
+sort(get_taxa(ps, "S42"))
+
+rankAb(ps,"S42")
+
+rankAb(ps,"S43",ntax=30)
+
+## get our non-zero taxa from the positive controls:
+
+sampleName <- "S43"
+#sampleName <- "S44"
+phyObj <- ps
+sampleNo0filter <- get_taxa(phyObj, sampleName) > 0
+sampleNo0 <- get_taxa(phyObj, sampleName)[sampleNo0filter]
+sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
+sampleNo0 <- sampleNo0[1:ntax]
+taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
+names(sampleNo0) <- taxaNames
+## our positive controls should have the following genera (Klebsiella ~ Enterobacter)
+mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
+## plot just these ASVs that non-contam members of the MC:
+onlyMCasvs <- prune_taxa(possibleMCasvs, phyObj)
+realMCs <- get_taxa(onlyMCasvs, sampleName)
+names(realMCs) <- taxaNames[names(realMCs)]
+
+unique(taxaNames)
+
+## did rhizobium get matched to some weird complex name like last time?:
+taxaNames[grep("obium",taxaNames)] ## sort of. mostly just "Rhizobium", but in MC2/S44 "bradyrhizobium"
+
+## just checking, an alternate name for Variovorax is:
+grep("Alcaligenes", taxaNames) ## nope
+
+unique(taxaNames[taxaNames %in% mcShould])
+
+possibleMCasvs
 
 
-## in the meantime, what does this data look like?
+length(possibleMCasvs) ## in MC1, 165 ASVs are potential members of our mock community
+## seems like a lot of splitting 
+## less in MC2, 55 asvs
 
-barplot(sample_sums(ps))
+unique(names(realMCs)) 
+## variovorax is extremely rare in MC1/S43, just one read:
+aa[names(aa) == "Variovorax"]
+## only six of the 11 members in MC2/S44. And again Variovorax is 
+## only present as one read. Weird. 
+
+rankAb(onlyMCasvs,sampleName,ntax=30)
+
+taxaNames[names(aa)]
+
+## so, what level of clustering do we need to get to 
+## get rid of most of this splitting?
+
+## for the moment, let's focus on MC1/P43, this has more 
+## information in it
+
+sampleName <- "S43"
+phyObj <- ps
+psControls = prune_samples(sampleName, phyObj)
+psControls = prune_taxa( colSums(otu_table(psControls)) > 0, psControls)
+
+## stop here for a minute 
+mcOTUs <- taxa_names(psControls)[colSums(otu_table(psControls)[c("C2.1","C2.2"),] > cutoffAbu) == 2]
+
+psControls = prune_taxa( c("ASV1", "ASV1315", mcOTUs), psControls)
+sample_data(psControls)$Plot.ID <- c("ss","ss","mc","mc")
+plot_tree(psControls, label.tips="Genus", color="Plot.ID", size="abundance", title="original Mock Community and E. coli")
 
 
-barplot(sort(sample_sums(ps), decreasing=TRUE))
 
-barplot(sort(sample_sums(ps), decreasing=TRUE), cex.names=0.8, las=2)
+possibleMCasvs
 
-sort(sample_names(ps))
-
-## three samples essentially failed:
-
-sample_data(ps)[c("S27","S28","S33")] 
-## these are thermokarst:
-
-## S27  AT2_43-63 Thermokarst            1 
-## S28  AT2_63-83 Thermokarst            2 
-## S33 AT3_80-100 Thermokarst            2 
 
 
 ## we want:
