@@ -164,6 +164,7 @@ sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
 str(envData)
 
 
+## start here to get original PS
 
 load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
 
@@ -365,6 +366,12 @@ rooted_tree = root(aa, outgroup = taxa_names(archaeaPS), resolve.root = TRUE)
 phy_tree(ps.inTree) <- rooted_tree
 plot_tree(ps.inTree, color="Kingdom")
 
+#save(ps.inTree, file="ps_inTree.rda")
+
+## start here to get the ps pruned to the tree
+load("peat16sPS.rda")
+load("ps_inTree.rda")
+
 ## looks great. Now let's examine our positive controls and try 
 ## to get an idea of proper otu clustering.
 
@@ -374,51 +381,70 @@ rankAb(ps,"S42")
 
 rankAb(ps,"S43",ntax=30)
 
-## get our non-zero taxa from the positive controls:
-
+########### this works ################
 sampleName <- "S43"
 #sampleName <- "S44"
-phyObj <- ps
+phyObj <- ps.inTree
 sampleNo0filter <- get_taxa(phyObj, sampleName) > 0
 sampleNo0 <- get_taxa(phyObj, sampleName)[sampleNo0filter]
 sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
-sampleNo0 <- sampleNo0[1:ntax]
 taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
 names(sampleNo0) <- taxaNames
 ## our positive controls should have the following genera (Klebsiella ~ Enterobacter)
 mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+(taxaNames[taxaNames %in% mcShould])
 possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
 ## plot just these ASVs that non-contam members of the MC:
 onlyMCasvs <- prune_taxa(possibleMCasvs, phyObj)
-realMCs <- get_taxa(onlyMCasvs, sampleName)
-names(realMCs) <- taxaNames[names(realMCs)]
+onlyMCasvs <- prune_samples(sampleName, onlyMCasvs)
+#############################################
 
-unique(taxaNames)
+
+
+## get a list of abundances our target taxa from the positive controls:
+getMCgenera <- function(sampleName, phyObj){
+  sampleNo0filter <- get_taxa(phyObj, sampleName) > 0
+  sampleNo0 <- get_taxa(phyObj, sampleName)[sampleNo0filter]
+  sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
+  taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
+  names(sampleNo0) <- taxaNames
+  mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+  possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
+  onlyMCasvs <- prune_taxa(possibleMCasvs, phyObj)
+  realMCs <- get_taxa(onlyMCasvs, sampleName)
+  genera <- realMCs
+  names(genera) <- taxaNames[names(realMCs)]
+  return(list(onlyMCasvs, realMCs, genera))
+}
+
+
+S43mcGenera <- getMCgenera("S43", ps.inTree)[[3]]
 
 ## did rhizobium get matched to some weird complex name like last time?:
-taxaNames[grep("obium",taxaNames)] ## sort of. mostly just "Rhizobium", but in MC2/S44 "bradyrhizobium"
+names(S43mcGenera)[grep("obium",names(S43mcGenera))] ## sort of. mostly just "Rhizobium", but in MC2/S44 "bradyrhizobium"
 
 ## just checking, an alternate name for Variovorax is:
-grep("Alcaligenes", taxaNames) ## nope
+grep("Alcaligenes", names(S43mcGenera)) ## nope
 
-unique(taxaNames[taxaNames %in% mcShould])
+mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
 
-possibleMCasvs
+unique(names(S43mcGenera)[names(S43mcGenera) %in% mcShould]) ## in MC/P43, all there
 
-
-length(possibleMCasvs) ## in MC1, 165 ASVs are potential members of our mock community
+length(names(S43mcGenera)[names(S43mcGenera) %in% mcShould])
+## in MC1, 165 ASVs are potential members of our mock community
 ## seems like a lot of splitting 
 ## less in MC2, 55 asvs
 
-unique(names(realMCs)) 
-## variovorax is extremely rare in MC1/S43, just one read:
-aa[names(aa) == "Variovorax"]
+## variovorax is extremely rare in MC1/S43, just one read in the controls:
+variovoraxFilt <- which(tax_table(ps.inTree)[,"Genus"] == "Variovorax")
+tax_table(ps.inTree)[variovoraxFilt,"Genus"]
+variovoraxASVs <- rownames(tax_table(ps.inTree)[variovoraxFilt,"Genus"])
+otu_table(ps.inTree)["S43",variovoraxASVs]
+
 ## only six of the 11 members in MC2/S44. And again Variovorax is 
 ## only present as one read. Weird. 
 
-rankAb(onlyMCasvs,sampleName,ntax=30)
-
-taxaNames[names(aa)]
+rankAb(ps.inTree,"S43",ntax=30)
 
 ## so, what level of clustering do we need to get to 
 ## get rid of most of this splitting?
@@ -426,23 +452,67 @@ taxaNames[names(aa)]
 ## for the moment, let's focus on MC1/P43, this has more 
 ## information in it
 
+
+phyObj <- ps.inTree
 sampleName <- "S43"
-phyObj <- ps
+mcASVs <- names(getMCgenera(sampleName, ps.inTree)[[2]])
 psControls = prune_samples(sampleName, phyObj)
-psControls = prune_taxa( colSums(otu_table(psControls)) > 0, psControls)
+psControls = prune_taxa(mcASVs, psControls)
 
-## stop here for a minute 
-mcOTUs <- taxa_names(psControls)[colSums(otu_table(psControls)[c("C2.1","C2.2"),] > cutoffAbu) == 2]
+plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
 
-psControls = prune_taxa( c("ASV1", "ASV1315", mcOTUs), psControls)
-sample_data(psControls)$Plot.ID <- c("ss","ss","mc","mc")
-plot_tree(psControls, label.tips="Genus", color="Plot.ID", size="abundance", title="original Mock Community and E. coli")
+## pretty. Now try some tip agglomerations, at different cophenetic distances:
+
+checkH <- function(phyObj, sampleName, distance){
+    tippedDownPS <- tip_glom(phyObj, h=distance)
+    sampleNo0filter <- get_taxa(tippedDownPS, sampleName) > 0
+    sampleNo0 <- get_taxa(tippedDownPS, sampleName)[sampleNo0filter]
+    sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
+    taxaNames=tax_table(tippedDownPS)[ names(sampleNo0), "Genus"]
+    names(sampleNo0) <- taxaNames
+    mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+    possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
+    psControls = prune_samples(sampleName, tippedDownPS)
+    psControls = prune_taxa(possibleMCasvs, psControls)
+    dev.new()
+    plot_tree(phyObj, title=distance, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
+    dev.new()
+    rankAb(tippedDownPS, sampleName, ylimit=10000) 
+    return(tippedDownPS)
+}
 
 
+phyObj <- ps.inTree
+sampleName <- "S43"
+distance <- "0.005"
+#distance <- "0.01"
+#distance <- "0.02"
+#distance <- "0.03"
+ps005 <- checkH(phyObj, sampleName, distance)
+#ps01 <- checkH(phyObj, sampleName, distance)
+#ps02 <- checkH(phyObj, sampleName, distance)
+#ps03 <- checkH(phyObj, sampleName, distance)
 
-possibleMCasvs
+mcASVs <- names(getMCgenera(sampleName, ps.inTree)[[2]])
+psControls = prune_samples(sampleName, phyObj)
+psControls = prune_taxa(mcASVs, psControls)
 
+psControlsGlommed = prune_samples(sampleName, ps005)
+psControlsGlommed = prune_taxa(mcASVs, psControlsGlommed)
 
+psControlsGlommed
+
+dev.new()
+## plot original
+plot_tree(psControls, title="unGlommed", color="Genus", label.tips="Genus", ladderize="left", text.size=3)
+
+dev.new()
+plot_tree(psControlsGlommed, title=distance, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
+    
+## at h=0.02 we still have too many pseudomonas, clostridium, but we start to lose some other species
+## 0.005 has a lot of splitting, still, but keeps all the genera. Try 0.008?
+
+## stopping here 15.11.25
 
 ## we want:
 
@@ -518,16 +588,42 @@ sessionInfo()
 
 ## https://huttenhower.sph.harvard.edu/picrust/
 
-conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.4.1
+## we need (1) our reference seqs:
+refSeqs="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa"
+
+## and (2) our otu table in biome or TSV. For the moment, let's just use the ecological samples: 
+
+ecoFilter <- sample_data(ps)$EcoCont == "Ecological"
+
+ps.Eco <- prune_samples(ecoFilter, ps)
+
+## write it as a TSV...
+aa <- as.data.frame(otu_table(ps.Eco))
+aa <-t(aa)
+write.table(aa, "sphagnumOTUtable.tsv", sep="\t", col.names=NA)
+
+## this may be best done on one of the more powerful computers
+## do this on the optiplex
+
+## give this to the optiplex:
+
+#getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/sphagnumOTUtable.tsv
+putHere=/home/daniel/Documents/projects/wernerSphagnum/picrust2/
+rsync -auv $getFile daniel@132.180.113.114:$putHere
+
+## and on optiplex
+
+cd /home/daniel/Documents/projects/wernerSphagnum/picrust2
+
+#conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.4.1
 
 conda activate picrust2
  
-picrust2_pipeline.py -h
+picrust2_pipeline.py -s wernerSphagnumRefSeqs.fa -i sphagnumOTUtable.tsv -o picrust2_out_pipeline -p 12
+## disowned it...
+## stopped here ##
 
-refSeqs="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa"
-
-
-picrust2_pipeline.py -s study_seqs.fna -i study_seqs.biom -o picrust2_out_pipeline -p 1
 
 
 ###### dimitri 16s method ##########
