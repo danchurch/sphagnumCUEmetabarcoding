@@ -369,6 +369,10 @@ plot_tree(ps.inTree, color="Kingdom")
 #save(ps.inTree, file="ps_inTree.rda")
 
 ## start here to get the ps pruned to the tree
+
+library(phyloseq)
+library(ggplot2)
+
 load("peat16sPS.rda")
 load("ps_inTree.rda")
 
@@ -381,23 +385,6 @@ rankAb(ps,"S42")
 
 rankAb(ps,"S43",ntax=30)
 
-########### this works ################
-sampleName <- "S43"
-#sampleName <- "S44"
-phyObj <- ps.inTree
-sampleNo0filter <- get_taxa(phyObj, sampleName) > 0
-sampleNo0 <- get_taxa(phyObj, sampleName)[sampleNo0filter]
-sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
-taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
-names(sampleNo0) <- taxaNames
-## our positive controls should have the following genera (Klebsiella ~ Enterobacter)
-mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
-(taxaNames[taxaNames %in% mcShould])
-possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
-## plot just these ASVs that non-contam members of the MC:
-onlyMCasvs <- prune_taxa(possibleMCasvs, phyObj)
-onlyMCasvs <- prune_samples(sampleName, onlyMCasvs)
-#############################################
 
 
 
@@ -426,6 +413,7 @@ names(S43mcGenera)[grep("obium",names(S43mcGenera))] ## sort of. mostly just "Rh
 ## just checking, an alternate name for Variovorax is:
 grep("Alcaligenes", names(S43mcGenera)) ## nope
 
+## these "should" be in our MCs:
 mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
 
 unique(names(S43mcGenera)[names(S43mcGenera) %in% mcShould]) ## in MC/P43, all there
@@ -438,6 +426,7 @@ length(names(S43mcGenera)[names(S43mcGenera) %in% mcShould])
 ## variovorax is extremely rare in MC1/S43, just one read in the controls:
 variovoraxFilt <- which(tax_table(ps.inTree)[,"Genus"] == "Variovorax")
 tax_table(ps.inTree)[variovoraxFilt,"Genus"]
+
 variovoraxASVs <- rownames(tax_table(ps.inTree)[variovoraxFilt,"Genus"])
 otu_table(ps.inTree)["S43",variovoraxASVs]
 
@@ -452,13 +441,11 @@ rankAb(ps.inTree,"S43",ntax=30)
 ## for the moment, let's focus on MC1/P43, this has more 
 ## information in it
 
-
 phyObj <- ps.inTree
 sampleName <- "S43"
 mcASVs <- names(getMCgenera(sampleName, ps.inTree)[[2]])
 psControls = prune_samples(sampleName, phyObj)
 psControls = prune_taxa(mcASVs, psControls)
-
 plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
 
 ## pretty. Now try some tip agglomerations, at different cophenetic distances:
@@ -474,58 +461,111 @@ checkH <- function(phyObj, sampleName, distance){
     possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
     psControls = prune_samples(sampleName, tippedDownPS)
     psControls = prune_taxa(possibleMCasvs, psControls)
-    dev.new()
-    plot_tree(phyObj, title=distance, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
-    dev.new()
-    rankAb(tippedDownPS, sampleName, ylimit=10000) 
+    #dev.new()
+    #plot_tree(phyObj, title=distance, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
+    #dev.new()
+    #rankAb(tippedDownPS, sampleName, ylimit=10000) 
     return(tippedDownPS)
 }
 
+## plot original
+dev.new()
+plot_tree(psControls, title="unGlommed", color="Genus", label.tips="Genus", ladderize="left", text.size=3)
 
 phyObj <- ps.inTree
 sampleName <- "S43"
-distance <- "0.005"
+#distance <- "0.005"
+distance <- "0.007"
+#distance <- "0.008"
 #distance <- "0.01"
 #distance <- "0.02"
 #distance <- "0.03"
-ps005 <- checkH(phyObj, sampleName, distance)
+#ps005 <- checkH(phyObj, sampleName, distance)
+ps007 <- checkH(phyObj, sampleName, distance)
+#ps008 <- checkH(phyObj, sampleName, distance)
 #ps01 <- checkH(phyObj, sampleName, distance)
 #ps02 <- checkH(phyObj, sampleName, distance)
 #ps03 <- checkH(phyObj, sampleName, distance)
 
+## in each case, get back down to just control sample and 
+## non-contaminate ASVs
 mcASVs <- names(getMCgenera(sampleName, ps.inTree)[[2]])
 psControls = prune_samples(sampleName, phyObj)
 psControls = prune_taxa(mcASVs, psControls)
-
-psControlsGlommed = prune_samples(sampleName, ps005)
+psControlsGlommed = prune_samples(sampleName, ps007)
 psControlsGlommed = prune_taxa(mcASVs, psControlsGlommed)
 
 psControlsGlommed
 
 dev.new()
-## plot original
-plot_tree(psControls, title="unGlommed", color="Genus", label.tips="Genus", ladderize="left", text.size=3)
-
-dev.new()
 plot_tree(psControlsGlommed, title=distance, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
     
 ## at h=0.02 we still have too many pseudomonas, clostridium, but we start to lose some other species
-## 0.005 has a lot of splitting, still, but keeps all the genera. Try 0.008?
+## 0.005 has a lot of splitting, still, but keeps all the genera. 
+## 0.008 we lose variovox
+## h = 0.007 seems fine. Still a lot of splitting, but less than the unglommed data,
+## and we retain at least a clade (tip) for each OTU, even though Enterobacter gets
+## lumped into an unnamed genus. 
+## Let's use this going forward.
 
-## stopping here 15.11.25
+## we can also use our positive and negative controls to clean things up a bit.
+## for simplicity, since there is always a risk of index-bleed, let's
+## subtract the maximum abundances in each OTU present in our controls from our
+## ecological samples (excluding our ecological replicate, S41). 
 
-## we want:
+## how do we do this?:
+
+## a ps object of just our controls:
+
+
+controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
+controlsNotEcoRep <- sample_data(ps007)$Subsite %in% controlsNotEcoRep
+ps007.controls <- prune_samples(controlsNotEcoRep, ps007) 
+
+ps007.controls
+
+sample_names(ps007.controls)
+
+aa <- otu_table(ps007.controls)
+
+bb <- otu_table(ps007)
+
+controlAbus <- apply(aa, 2, max)
+
+cc <- bb - controlAbus
+
+## is that reasonable?
+
+ASV="ASV600"
+
+otu_table(ps007)["S19",ASV]
+
+aa[,ASV]
+
+bb[,ASV]
+
+controlAbus[ASV]
+cc[,ASV]
+
+otu_table(ps007)[c("S42","S43","S44","S47"),"ASV600"]
+
+## no, something is wrong. Come back to this.
+
 
 ## 1 - taxonomic overview
 ## 2 - ordinations by the data we have
 
-## let's normalize abundances a bit:
-ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+## for a quick preliminary view, let's normalize abundances a bit:
 
-plot_bar(ps.prop, fill = "Kingdom") + 
-  geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
+ps.prop <- transform_sample_counts(ps007, function(otu) otu/sum(otu))
 
-plot_richness(ps, measures=c("Chao1", "Shannon"))
+plot_bar(ps.prop, fill = "Kingdom") + geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
+
+plot_richness(ps, measures=c("Chao1", "Shannon")) ## not that usefull
+
+## can we do this by palsa/thermokarst?:
+
+plot_richness(ps, measures=c("Chao1"), x="EcoCont") ## not that usefull
 
 ps.prop.ord <- ordinate(ps.prop, "NMDS", "bray")
 
@@ -591,44 +631,462 @@ sessionInfo()
 ## we need (1) our reference seqs:
 refSeqs="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa"
 
-## and (2) our otu table in biome or TSV. For the moment, let's just use the ecological samples: 
+## and (2) our otu table in biome or TSV. For the moment, let's just use the ecological samples,
+## from the cleaned-up ps object that has a 16s tree already:
 
-ecoFilter <- sample_data(ps)$EcoCont == "Ecological"
+library("phyloseq")
+library(Biostrings)
+#load("peat16sPS.rda")
+load("ps_inTree.rda")
 
-ps.Eco <- prune_samples(ecoFilter, ps)
+plot_tree(ps.inTree, color="Kingdom")
+
+ps.inTree.prop <- transform_sample_counts(ps.inTree, function(otu) otu/sum(otu))
+ecoFilter <- sample_data(ps.inTree.prop)$EcoCont == "Ecological"
+ps.Eco <- prune_samples(ecoFilter, ps.inTree.prop)
+save(ps.Eco, file="psEco.rda")
 
 ## write it as a TSV...
 aa <- as.data.frame(otu_table(ps.Eco))
 aa <-t(aa)
 write.table(aa, "sphagnumOTUtable.tsv", sep="\t", col.names=NA)
+rm(aa)
+
+## looks like we also need our metadata for ggpicrust, hopefully in the same
+## format as used by phyloseq:
+
+ps.Eco
+bb <- data.frame(sample_data(ps.Eco))
+cc <- subset(bb, select = -EcoCont)
+write.table(cc, "sphagnumMetadata.tsv", sep="\t", col.names=NA)
+
+## maybe best to only give this subset of refseqs:
+rs <- refseq(ps.Eco)
+writeXStringSet(rs,"wernerSphagnumRefSeqs_ecoInTree.fa", format="fasta")
+
 
 ## this may be best done on one of the more powerful computers
 ## do this on the optiplex
 
-## give this to the optiplex:
+## give all this to the optiplex:
 
-#getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs.fa
-getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/sphagnumOTUtable.tsv
+#getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/sphagnumOTUtable.tsv
+#getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/sphagnumMetadata.tsv
+#getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/wernerSphagnumRefSeqs_ecoInTree.fa
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/psEco.rda
 putHere=/home/daniel/Documents/projects/wernerSphagnum/picrust2/
 rsync -auv $getFile daniel@132.180.113.114:$putHere
 
 ## and on optiplex
+cd /home/daniel/Documents/projects/wernerSphagnum/picrust2
+
+#conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.4.1 
+## oops, there is a newer version, rerun with this:
+#conda env remove -n picrust2 
+conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.6.2
+
+conda activate picrust2
+
+picrust2_pipeline.py -s wernerSphagnumRefSeqs_ecoInTree.fa -i sphagnumOTUtable.tsv -o picrust2_out_pipeline -p 12 
+
+## and can we repeat this for just the ANME archea? How do we find them?
+
+## our alignments from picrust2/epa-ng are here
+cd /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/intermediate/place_seqs_arc
+
+## the tree with the archeal sequences is here:
+arcTree=/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/arc_reduced.tre
+## look at this with arb or TOI
+
+## the filtered alignment is split into two files:
+/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/intermediate/place_seqs_arc/*hmmalign.fasta
+
+#getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/intermediate/place_seqs_arc/*hmmalign.fasta
+getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/arc_reduced.tre
+putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
+rsync -auv daniel@132.180.113.114:$getFile $putHere
+
+## we should be able to make a tree on arb with these
+
+cat study_seqs_hmmalign.fasta ref_seqs_hmmalign.fasta > archea_hmmalign.fa
+## seems like it was successful. How to explore these results?
+## how do we identify the ANME clades on this?
+
+## how can we identify the anme clades? these are all just accession numbers
+## according to Orphan et al. 2023
+
+## all methanophagales genomes should be ANME-1
+## Methanosarcinales contains ANME-2 and ANME-3, but isn't limited to them
+
+## for some reason, only anme1s are specifically noted in the GTDB archaea taxonomy file.
+
+wget https://data.gtdb.aau.ecogenomic.org/releases/latest/ar53_taxonomy.tsv
+
+grep "ANME" ar53_taxonomy.tsv | cut 
+
+grep "ANME" ar53_taxonomy.tsv | cut -f1
+
+## and none of these appear to be in our tree. Odd. 
+
+## how can we locate the anme clades?
+## we may need to do this the old fashioned way, 
+## run an alignment with our reads, silva, with sina. 
+
+## anyway, I think we don't have time before thursday
+## let's try to get an idea of the abundances of 
+## archeal mcrA and Bacterial PMOA in our samples.
+
+####### try ggpicrust2 ############
+
+install.packages("devtools")
+devtools::install_github("cafferychen777/ggpicrust2", force = TRUE)
+install.packages("tidyverse")
+install.packages("BiocManager")
+install.packages("GGally")
+BiocManager::install(version = "3.22")
+## this mess with ggpicrust potentially, so forced reinstall above)
+
+BiocManager::install('ALDEx2')
+
+BiocManager::install('KEGGREST')
+
+## let's try the new GGpicrust package,
+## following: https://github.com/cafferychen777/ggpicrust2?tab=readme-ov-file#workflow
+
+mkdir /home/daniel/Documents/projects/wernerSphagnum/picrust2/ggpicrust2
 
 cd /home/daniel/Documents/projects/wernerSphagnum/picrust2
 
-#conda create -n picrust2 -c bioconda -c conda-forge picrust2=2.4.1
+library(tidyverse)
+library(readr)
+library(ggpicrust2)
+library(tibble)
+library(ggprism)
+library(patchwork)
+library(ALDEx2)
+library(GGally)
 
-conda activate picrust2
+# If you want to analyze the abundance of KEGG pathways instead of KO within the pathway, please set `ko_to_kegg` to TRUE.
+# KEGG pathways typically have more descriptive explanations.
+
+abundance_file <- "/home/daniel/Documents/projects/wernerSphagnum/picrust2/sphagnumOTUtable.tsv"
+
+metadata <- read_delim(
+    "/home/daniel/Documents/projects/wernerSphagnum/picrust2/sphagnumMetadata.tsv",
+    delim = "\t",
+    escape_double = FALSE,
+    trim_ws = TRUE
+)
+
+results_file_input <- ggpicrust2(file = abundance_file,
+                                 metadata = metadata,
+                                 group = "Subsite", # For example dataset, group = "Environment"
+                                 pathway = "KO",
+                                 daa_method = "LinDA",
+                                 ko_to_kegg = TRUE,
+                                 order = "pathway_class",
+                                 p_values_bar = TRUE,
+                                 x_lab = "pathway_name")
+
+## the single, home-run entire-pipeline command above doesn't work, I think just because
+## the file architecture of picrust2 has changed, since they began using GTDB
+
+## so run it piece by piece:
+## can it read the gzipped files? nope...
+
+## in bash ##
+zcat "/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz" > \
+/home/daniel/Documents/projects/wernerSphagnum/picrust2/ggpicrust2/KO_pred_metagenome_unstrat.tsv
+## ^in bash ##
+
+pred_KOmetagenome="/home/daniel/Documents/projects/wernerSphagnum/picrust2/ggpicrust2/KO_pred_metagenome_unstrat.tsv"
+kegg_abundance <- ko2kegg_abundance(pred_KOmetagenome) ## works...
+
+# Perform pathway differential abundance analysis (DAA) using ALDEx2 method
+
+daa_results_df <- pathway_daa(abundance = kegg_abundance, 
+                              metadata = metadata, 
+                              group = "Subsite", 
+                              daa_method = "ALDEx2", 
+                              select = NULL, reference = NULL)
+
+daa_sub_method_results_df <- daa_results_df[daa_results_df$method == "ALDEx2_Wilcoxon rank test", ]
+## don't understand this ^^, seems to denote a categorical shift in the DA results...
+
+daa_annotated_sub_method_results_df <- pathway_annotation(pathway = "KO", daa_results_df = daa_sub_method_results_df, ko_to_kegg = TRUE)
+
+## too many results to visualize, crop to stat sig ones:
+daa_annotated_sub_method_results_df %>% filter(p_adjust < 0.05) %>% select(c("feature","p_adjust")) -> sigDaa_annotated_sub_method_results_df
+## this didn't change anything.
+
+daa_annotated_sub_method_results_df 
+
+p <- pathway_errorbar(abundance = kegg_abundance,
+                     daa_results_df = daa_annotated_sub_method_results_df,
+                     Group = metadata$Subsite,
+                     p_values_threshold = 0.05, 
+                     order = "pathway_class",
+                     select = NULL,
+                     ko_to_kegg = TRUE,
+                     p_value_bar = TRUE,
+                     colors = NULL,
+                     max_features = Inf,
+                     x_lab = "pathway_name")
+
+
+## nope. start over
+
+pred_KOmetagenome="/home/daniel/Documents/projects/wernerSphagnum/picrust2/ggpicrust2/KO_pred_metagenome_unstrat.tsv"
+kegg_abundance <- ko2kegg_abundance(pred_KOmetagenome) ## works...
+
+daa_results_df <- pathway_daa(abundance = kegg_abundance, 
+                              metadata = metadata, 
+                              group = "Subsite", 
+                              daa_method = "ALDEx2", 
+                              select = NULL, reference = NULL)
+
+dim(daa_results_df) ## 1014, but how many are statsig?
+
+#daa_sub_method_results_df <- daa_results_df[daa_results_df$method == "ALDEx2_Wilcoxon rank test", ]
+## not sure why they do this, skip it for the moment
+
+daa_sub_method_results_df <- daa_results_df[daa_results_df$p_adjust < 0.05,]
+
+daa_annotated_sub_method_results_df <- pathway_annotation(pathway = "KO", 
+                                                          daa_results_df = daa_sub_method_results_df,
+                                                          ko_to_kegg = TRUE)
+
+#save(daa_annotated_sub_method_results_df, file = "daa_annotated_sub_method_results_df.rda")
+#load("daa_annotated_sub_method_results_df.rda")
+
+## not useful. Methane metabolism isn't even mentioned anywhere in this
+## ugh, how can we find organisms predicted to have mcrA (methanogens)
+## and pmoA from this data?
+
+########### end ggpicrust2 ###################
+
+## notes from Dimitri
+## if Pmoa is found in archea, it is usually actually AMO, some sort of archeal nitrifier
+## mcrA usually means methanogen, but anaerobic methanotrophs are archeal, and use mcrA in reverse
+## methanotrophy in archea is rare, only occurs in with anaerobic methanotrophy. But these taxa
+## are of interest. 
+
+## let's back up and just look at the mcrA and PMOA numbers from our picrust results directly.
+
+## we can find mcrA in the data from picrust2 here:
+
+zcat /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz > \
+     /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/KO_metagenome_out/pred_metagenome_unstrat.tsv
+
+zcat /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/EC_metagenome_out/pred_metagenome_unstrat.tsv.gz > \
+     /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/EC_metagenome_out/pred_metagenome_unstrat.tsv
+
+R
+setwd("/home/daniel/Documents/projects/wernerSphagnum/picrust2")
+library("phyloseq")
+library(Biostrings)
+library(ggplot2)
+library(RColorBrewer)
+#load("peat16sPS.rda")
+load("psEco.rda")
+
+KOpicrust <- read.table("/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/KO_metagenome_out/pred_metagenome_unstrat.tsv", 
+                  header=TRUE, sep="\t", row.names=1)
+
+ECpicrust <- read.table("/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/EC_metagenome_out/pred_metagenome_unstrat.tsv",
+                  header=TRUE, sep="\t", row.names=1)
+
+## KO number for mcrA = KM00399. EC= 2.8.4.1    
+
+## but searching for these I get a different abundances.. 
+rbind(KOpicrust["ko:K00399",], ECpicrust["2.8.4.1",])
+
+## the EC number is always 3x the KO number 
+
+rbind(KOpicrust["ko:K00399",] * 3 , ECpicrust["2.8.4.1",] )
+
+## which should I use? I guess it doesn't matter, as long as the 
+## 3x relationship is constant.
+
+## what about pmoA?
+## KO K10944
+## EC 1.14.18.3
+
+rbind(KOpicrust["ko:K10944",], ECpicrust["1.14.18.3",])
+
+## this is only for bacteria. In archea it serves as amo...
+ps.Bact <- subset_taxa(ps.Eco, Kingdom == "Bacteria")
+
+ps.Arch <- subset_taxa(ps.Eco, Kingdom == "Archaea")
+
+sum(otu_table(ps.Bact))/( sum(otu_table(ps.Bact)) + sum(otu_table(ps.Arch)) ) ## our reads are ~95% bacteria
+sum(otu_table(ps.Arch))/( sum(otu_table(ps.Bact)) + sum(otu_table(ps.Arch)) ) ## ~5% archaea
+
+## are a lot of archeal OTUs showing pMOA?
+## archeal ASV annotations are here:
+ls /home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/arc_KO_predicted.tsv
+KO_byASV_arc <- read.table("/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/arc_KO_predicted.tsv",
+                  header=TRUE, sep="\t", row.names=1)
+
+taxa_names(ps.Arch) %in% rownames(KO_byASV_arc)
+
+sum(taxa_names(ps.Arch) %in% rownames(KO_byASV_arc))
+
+dim(KO_byASV_arc)
+
+KO_byASV_arc[1:3,1:3]
+
+KO_byASV_arc[21:22,5390:5391]
+
+KO_byASV_arc[1:30,1:30]
+
+KO_byASV_arc[,"ko.K10944"]
+
+sum(KO_byASV_arc[,"ko.K10944"] > 0)  ## 4
+
+
+KO_byASV_bac <- read.table("/home/daniel/Documents/projects/wernerSphagnum/picrust2/picrust2_out_pipeline/bac_KO_predicted.tsv",
+                  header=TRUE, sep="\t", row.names=1)
+
+## yes, there are some predicted archeal ammonia oxidizers. 
+## not sure how abundant they are...
+
+## compare this to 
+sum(KO_byASV_bac[,"ko.K10944"] > 0) ## 47.
+
+## just curious, do we find mcrA in our Bacteria?
+KO_byASV_bac[,"ko.K00399"]
+grep("ko.K00399", colnames(KO_byASV_bac)) ## not in there. Makes sense. 
+
+## there doesn't seem to be a way to separate this out just 
+## post-facto, we need to rerun picrust2 pipelines for 
+## bacteria and archaea, and compare abundances of pmoA
+## to the total we have here. 
+
+## probably do that tomorrow
+
+sample_data(ps.Eco)
+
+## so, if we accept some error in terms of archeal reverse methanogens and
+## archaeal nitrifiers (to be corrected), this can be entered as additional 
+## environmental data for our ps object
+
+## mcrA abundances for our sample sites:
+
+mcrA <- t(ECpicrust["2.8.4.1",])
+colnames(mcrA) <- "mcrA"
+sample_data(ps.Eco)$mcrA <- mcrA
+
+pmoA <- t(ECpicrust["1.14.18.3",])
+colnames(pmoA) <- "pmoA"
+sample_data(ps.Eco)$pmoA <- pmoA
+
+save(ps.Eco, file="psEco.rda")
+
+## 
+
+ps.Eco.ord <- ordinate(ps.Eco, "NMDS", "bray") 
+
+bb <- plot_ordination(ps.Eco, ps.Eco.ord, 
+   color="DepthSection",
+   shape="Subsite",
+)
+
+lbs <- geom_text(label=sample_data(ps.Eco)$Core,
+                 color = "black",
+                 nudge_x = 0.05, nudge_y = 0.05,
+                 check_overlap = T)
+
+myPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(5, 0), trans="reverse")
+bb + sc + lbs + geom_point(size=3.5)
+
+dev.new()
+
+bb + sc + lbs + geom_point(size=3.5) + xlim(0,2) + ylim(-2,0)
+
+dev.new()
+
+cc <- plot_ordination(ps.Eco, ps.Eco.ord, 
+   color="mcrA",
+   shape="Subsite",
+)
+
+lbs <- geom_text(label=sample_data(ps.Eco)$Core,
+                 color = "black",
+                 nudge_x = 0.05, nudge_y = 0.05,
+                 check_overlap = T)
+
+myPalette <- colorRampPalette(rev(brewer.pal(8, "Blues")))
+sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(0,0.45), trans="reverse")
+cc + sc + lbs + geom_point(size=3.5)
+
+
+dev.new()
+cc + sc + lbs + geom_point(size=3.5) + xlim(0,2) + ylim(-2,0)
+
+## seems like pretty much only thermokarst. What is the relationship there?
+
+
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point()
+
+# Change the point size, and shape
+
+sampData <- data.frame(sample_data(ps.Eco))
+
+thermokarstData <- sampData[sampData$Subsite == "Thermokarst",]
+
+bb <- ggplot(thermokarstData, aes(x=DepthSection, y=mcrA))
+
+thermokarstData
+
+bb + geom_point(size=2)
+
+## we need a heat map of mcrA by core and depth segment...
+
+## matrix for this would be:
+
+sampData = sample_data(ps.Eco)
+
+
+library(ggplot2)
+
+# Dummy data
+
+x <- LETTERS[1:20]
+y <- paste0("var", seq(1,20))
+data <- expand.grid(X=x, Y=y)
+data$Z <- runif(400, 0, 5)
  
-picrust2_pipeline.py -s wernerSphagnumRefSeqs.fa -i sphagnumOTUtable.tsv -o picrust2_out_pipeline -p 12
-## disowned it...
-## stopped here ##
+sample_data(ps.Eco)
+
+x <- sampData$Core
+y <- sampData$DepthSection
+z <- sampData$mcrA
+data <- expand.grid(X=x, Y=y)
+
+Z <- numeric()
+for (i in x){
+  print(i)
+  for (j in y){
+    indexForZ <- which(sampData$Core == i & sampData$DepthSection == j )
+    if (length(indexForZ) != 0){
+    Z[iter] <- sampData[indexForZ,]
+    print(sampData[which(sampData$Core == i & sampData$DepthSection == j ),"mcrA"])
+}}
 
 
+i <- "AP1"; j <- 1 
 
-###### dimitri 16s method ##########
+i <- "AP1"; j <- 0
 
-## dimitri also has a method, by looking for exact 16s matches with
-## GTDB genomes 
+aa <- which(sampData$Core == i & sampData$DepthSection == j )
 
-## I'll ask him for his scripts
+
+data$Z <- runif(400, 0, 5)
+
+# Heatmap 
+ggplot(data, aes(X, Y, fill= Z)) + 
+  geom_tile()
+
+
