@@ -1019,18 +1019,14 @@ lbs <- geom_text(label=sample_data(ps.Eco)$Core,
 
 myPalette <- colorRampPalette(rev(brewer.pal(8, "Blues")))
 sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(0,0.45), trans="reverse")
-cc + sc + lbs + geom_point(size=3.5)
+cc + sc + lbs + geom_point(size=3.5) 
+
 
 
 dev.new()
 cc + sc + lbs + geom_point(size=3.5) + xlim(0,2) + ylim(-2,0)
 
 ## seems like pretty much only thermokarst. What is the relationship there?
-
-
-ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point()
-
-# Change the point size, and shape
 
 sampData <- data.frame(sample_data(ps.Eco))
 
@@ -1046,47 +1042,47 @@ bb + geom_point(size=2)
 
 ## matrix for this would be:
 
-sampData = sample_data(ps.Eco)
+sampData <- data.frame(sample_data(ps.Eco))
+
+corenames <- sort(unique(sampData$Core))
+x <- rep(corenames, each=6)
+y <- rep(0:5, length(corenames))
+data <- data.frame(x,y)
 
 
-library(ggplot2)
+Z <- numeric(nrow(data))
+for (i in rownames(data)){
+  indexForZ <- which(sampData$Core == data[i,"x"] & sampData$DepthSection == data[i,"y"] )
+  if (length(indexForZ) != 0){
+    Z[as.numeric(i)] <- sampData[indexForZ,"mcrA"]} else {
+      Z[as.numeric(i)] <- NA }
+}
+  
+aa <- data.frame(x,y,Z)
 
-# Dummy data
 
-x <- LETTERS[1:20]
-y <- paste0("var", seq(1,20))
-data <- expand.grid(X=x, Y=y)
-data$Z <- runif(400, 0, 5)
+# Heatmap, to make the blocks for map of mcr2 genes:
+
+#svg(filename="heatmap_mcrA.svg")
+
+heatmap <- ggplot(aa, aes(x, y, fill= Z)) 
+
+dev.new()
+heatmap + geom_tile() + scale_fill_gradient(low = "#ffffffff",
+                                            high = "#09855c",
+                                           guide = "colorbar") +
+
  
-sample_data(ps.Eco)
+getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/heatmap_mcrA.svg
+putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
+rsync -auv daniel@132.180.113.114:$getFile $putHere
 
-x <- sampData$Core
-y <- sampData$DepthSection
-z <- sampData$mcrA
-data <- expand.grid(X=x, Y=y)
+##### need some better phylogeny summaries ####
 
-Z <- numeric()
-for (i in x){
-  print(i)
-  for (j in y){
-    indexForZ <- which(sampData$Core == i & sampData$DepthSection == j )
-    if (length(indexForZ) != 0){
-    Z[iter] <- sampData[indexForZ,]
-    print(sampData[which(sampData$Core == i & sampData$DepthSection == j ),"mcrA"])
-}}
+## we need some good old fashioned summaries by phylum, etc, and differential abundance analysis
 
+## start making a presentable bar graph of phylum
 
-i <- "AP1"; j <- 1 
+## if time (won't be) differential abundance analysis of phyla by thermokarst vs. palsa, and depth.
 
-i <- "AP1"; j <- 0
-
-aa <- which(sampData$Core == i & sampData$DepthSection == j )
-
-
-data$Z <- runif(400, 0, 5)
-
-# Heatmap 
-ggplot(data, aes(X, Y, fill= Z)) + 
-  geom_tile()
-
-
+## update notebook for tomorrow. 
