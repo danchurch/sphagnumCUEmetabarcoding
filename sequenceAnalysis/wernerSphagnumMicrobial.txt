@@ -1087,11 +1087,20 @@ rsync -auv daniel@132.180.113.114:$getFile $putHere
 
 ## update notebook for tomorrow. 
 
+R
+library("phyloseq")
+library(Biostrings)
+library(ggplot2)
+library(RColorBrewer)
+#load("peat16sPS.rda")
+load("psEco.rda")
+
 ## bacteria/archea
+png("graphics/archeaBySubsite.png", width=1200, height=1000)
 plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
   geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
   facet_grid(~Subsite, scales = "free_x", space = "free_x")
-
+dev.off()
 
 ## subset to n most abundant phylum/family/genera etc...
 
