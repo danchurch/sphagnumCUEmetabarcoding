@@ -1097,6 +1097,7 @@ plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
 
 ps.Eco.phylums <- tax_glom(ps.Eco, taxrank="Phylum", NArm=TRUE)
 
+png("ps.Eco_10phyla.png", width=1000, height=1000)
 n=10
 topPhyASVs <- names(sort(taxa_sums(ps.Eco.phylums), decreasing = TRUE)[1:n])
 topPhy <- data.frame(tax_table(ps.Eco.phylums)[topPhyASVs,"Phylum"])$Phylum
@@ -1105,6 +1106,7 @@ psOnlyTopPhy <- prune_taxa(inTopPhy, ps.Eco)
 plot_bar(psOnlyTopPhy, x="SampleID", fill = "Phylum") +
   geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
   facet_grid(~Subsite, scales = "free_x", space = "free_x")
+dev.off()
 
 
 
@@ -1113,5 +1115,9 @@ plot(phy_tree(ex1), show.node.label = TRUE)
 plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
   geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
   facet_grid(~Subsite, scales = "free_x", space = "free_x")
+
+getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/ps.Eco_10phyla.png
+putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
+rsync -auv daniel@132.180.113.114:$getFile $putHere
 
 ## can we order our sites by
