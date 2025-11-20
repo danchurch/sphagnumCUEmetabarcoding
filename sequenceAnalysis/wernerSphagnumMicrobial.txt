@@ -1086,3 +1086,32 @@ rsync -auv daniel@132.180.113.114:$getFile $putHere
 ## if time (won't be) differential abundance analysis of phyla by thermokarst vs. palsa, and depth.
 
 ## update notebook for tomorrow. 
+
+## bacteria/archea
+plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
+  geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+  facet_grid(~Subsite, scales = "free_x", space = "free_x")
+
+
+## subset to n most abundant phylum/family/genera etc...
+
+ps.Eco.phylums <- tax_glom(ps.Eco, taxrank="Phylum", NArm=TRUE)
+
+n=10
+topPhyASVs <- names(sort(taxa_sums(ps.Eco.phylums), decreasing = TRUE)[1:n])
+topPhy <- data.frame(tax_table(ps.Eco.phylums)[topPhyASVs,"Phylum"])$Phylum
+inTopPhy <- tax_table(ps.Eco)[,"Phylum"] %in% topPhy
+psOnlyTopPhy <- prune_taxa(inTopPhy, ps.Eco)
+plot_bar(psOnlyTopPhy, x="SampleID", fill = "Phylum") +
+  geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+  facet_grid(~Subsite, scales = "free_x", space = "free_x")
+
+
+
+plot(phy_tree(ex1), show.node.label = TRUE)
+
+plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
+  geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+  facet_grid(~Subsite, scales = "free_x", space = "free_x")
+
+## can we order our sites by
