@@ -1,0 +1,65 @@
+## let's try to use the sJSDM software to detect patterns
+## in werner's peatland study
+
+## github repo is here: https://github.com/TheoreticalEcology/s-jSDM
+## has a tutorial there, we can start by running this.
+
+## get the package. Let's start with just the desktop, see how it performs:
+
+install.packages("sjSDM") 
+
+## dependencies
+
+sjSDM::install_sjSDM(version = "cpu")
+
+library(sjSDM)
+
+## didn't really work, no pytorch. As per their installation instructions:
+
+conda create --name r-sjsdm python=3.7
+
+conda activate r-sjsdm
+
+conda install pytorch torchvision cpuonly -c pytorch
+
+python -m pip install pyro-ppl torch_optimizer madgrad
+
+## make some data:
+
+library(sjSDM)
+
+set.seed(42)
+
+community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+
+Env <- community$env_weights
+
+Occ <- community$response
+
+SP <- matrix(rnorm(200, 0, 0.3), 100, 2)
+
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1:X2), 
+               se = TRUE, family=binomial("probit"), 
+               sampling = 100L, 
+               verbose = FALSE)
+
+summary(model)
+
+plot(model)
+
+image(getCor(model))
+
+an = anova(model, verbose = FALSE)
+
+plot(an)
+
+results = internalStructure(an)
+
+plot(results)
+
+plotAssemblyEffects(results)
+
+## okay. Looks pretty simple. Can we run werners data through this? 
+

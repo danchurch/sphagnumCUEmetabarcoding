@@ -30,6 +30,10 @@ done
 
 ## not sure if we can do everything via links, let's try 
 
+## also perhaps we should back these up somewhere. There is still a bit of room on vol1 on the nanoComp:
+
+#rsync -auv --progress /media/vol/wernerSphagnumSequences test@132.180.112.115:/media/vol1/daniel/wernerPeat
+
 ## we had two samples from moss cyanobacterial culture project, don't need these:
 
 cd /home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/originalSeqs/

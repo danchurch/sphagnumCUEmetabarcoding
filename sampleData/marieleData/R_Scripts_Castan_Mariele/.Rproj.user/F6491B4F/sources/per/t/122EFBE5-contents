@@ -1,0 +1,693 @@
+library(car)
+library(stats)
+
+
+####Creating subsets for palsa and thermokarst
+Palsa <- subset(Daten, Daten$site == "P")
+Palsa_O2 <- subset(Palsa, Palsa$oxygen == "O2")
+Thermokarst <- subset(Daten, Daten$site == "T")
+Thermokarst_N2 <- subset(Thermokarst, Thermokarst$oxygen == "N2")
+
+
+
+
+
+############################-----------CUE--------------###############################
+# Use of cuet --> cue transformed via square root
+
+########## two-sample t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Normality
+      mod_sub <- lm(cuet ~ oxygen, data = df_sub)
+      sw_resid<- shapiro.test(residuals(mod_sub))
+      sw_groups <- by(df_sub$cuet, df_sub$oxygen, shapiro.test)
+      
+      # Homogeneity of variances
+      lev_res <- leveneTest(cuet ~ oxygen, data = df_sub)
+      
+      # two-sample t-test
+      tt <- t.test(cuet ~ oxygen,
+                   data = df_sub,
+                   var.equal = TRUE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+# Showing results from Shapiro Wilk test and Levene test 
+for (name in names(assump)) {
+  cat(">>> Annahmen für", name, "<<<\n")
+  
+  cat("-- Shapiro-Wilk (Residuen):\n")
+  print(assump[[name]]$shapiro_overall)
+  cat("\n")
+  
+  cat("-- Shapiro-Wilk je Gruppe (oxygen):\n")
+  print(assump[[name]]$shapiro_by)
+  cat("\n")
+  
+  cat("-- Levene-Test:\n")
+  print(assump[[name]]$levene)
+  cat("\n\n")
+}
+
+
+
+############ If homogeneity of variances was not given: Welch t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # two-sample t-test
+      tt <- t.test(cuet ~ oxygen,
+                   data = df_sub,
+                   var.equal = FALSE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+
+
+########### If normality of data was not given: Wilcoxon-Mann-Whitney-test
+results_w <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Wilcoxon-Mann-Whitney-Test
+      wt <- wilcox.test(
+        cue ~ oxygen,
+        data = df_sub,
+        exact = FALSE,
+        alternative = "two.sided",
+        correct = TRUE
+      )
+      
+      results_w[[key]] <- wt
+    }
+  }
+}
+
+
+# Showing results from Wilcoxon tests
+for (name in names(results_w)) {
+  cat(">>> Wilcoxon-Test für", name, "<<<\n")
+  print(results_w[[name]])
+  cat("\n")
+}
+
+
+
+
+
+###########################--------------Respiration---------########################
+#Use of respirationat2 --> respiration transformed via natural logarithm
+
+
+########## two-sample t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Normality
+      mod_sub <- lm(respirationat2 ~ oxygen, data = df_sub)
+      sw_resid<- shapiro.test(residuals(mod_sub))
+      sw_groups <- by(df_sub$respirationat2, df_sub$oxygen, shapiro.test)
+      
+      # Homogeneity of variances
+      lev_res <- leveneTest(respirationat2 ~ oxygen, data = df_sub)
+      
+      # two-sample t-test
+      tt <- t.test(respirationat2 ~ oxygen,
+                   data = df_sub,
+                   var.equal = TRUE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+# Showing results from Shapiro Wilk test and Levene test 
+for (name in names(assump)) {
+  cat(">>> Annahmen für", name, "<<<\n")
+  
+  cat("-- Shapiro-Wilk (Residuen):\n")
+  print(assump[[name]]$shapiro_overall)
+  cat("\n")
+  
+  cat("-- Shapiro-Wilk je Gruppe (oxygen):\n")
+  print(assump[[name]]$shapiro_by)
+  cat("\n")
+  
+  cat("-- Levene-Test:\n")
+  print(assump[[name]]$levene)
+  cat("\n\n")
+}
+
+
+
+############ If homogeneity of variances was not given: Welch t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # two-sample t-test
+      tt <- t.test(respirationat2 ~ oxygen,
+                   data = df_sub,
+                   var.equal = FALSE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+
+
+########### If normality of data was not given: Wilcoxon-Mann-Whitney-test
+results_w <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Wilcoxon-Mann-Whitney-Test
+      wt <- wilcox.test(
+        respirationa ~ oxygen,
+        data = df_sub,
+        exact = FALSE,
+        alternative = "two.sided",
+        correct = TRUE
+      )
+      
+      results_w[[key]] <- wt
+    }
+  }
+}
+
+
+# Showing results from Wilcoxon tests
+for (name in names(results_w)) {
+  cat(">>> Wilcoxon-Test für", name, "<<<\n")
+  print(results_w[[name]])
+  cat("\n")
+}
+
+
+
+
+########################----------MBC------------#######################################
+# Use of mbcugat --> mbc transformed via square root
+
+########## two-sample t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Normality
+      mod_sub <- lm(mbcugat ~ oxygen, data = df_sub)
+      sw_resid<- shapiro.test(residuals(mod_sub))
+      sw_groups <- by(df_sub$mbcugat, df_sub$oxygen, shapiro.test)
+      
+      # Homogeneity of variances
+      lev_res <- leveneTest(mbcugat ~ oxygen, data = df_sub)
+      
+      # two-sample t-test
+      tt <- t.test(mbcugat ~ oxygen,
+                   data = df_sub,
+                   var.equal = TRUE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+# Showing results from Shapiro Wilk test and Levene test 
+for (name in names(assump)) {
+  cat(">>> Annahmen für", name, "<<<\n")
+  
+  cat("-- Shapiro-Wilk (Residuen):\n")
+  print(assump[[name]]$shapiro_overall)
+  cat("\n")
+  
+  cat("-- Shapiro-Wilk je Gruppe (oxygen):\n")
+  print(assump[[name]]$shapiro_by)
+  cat("\n")
+  
+  cat("-- Levene-Test:\n")
+  print(assump[[name]]$levene)
+  cat("\n\n")
+}
+
+
+
+############ If homogeneity of variances was not given: Welch t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # two-sample t-test
+      tt <- t.test(mbcugat ~ oxygen,
+                   data = df_sub,
+                   var.equal = FALSE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+
+
+########### If normality of data was not given: Wilcoxon-Mann-Whitney-test
+results_w <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Wilcoxon-Mann-Whitney-Test
+      wt <- wilcox.test(
+        mbcuga ~ oxygen,
+        data = df_sub,
+        exact = FALSE,
+        alternative = "two.sided",
+        correct = TRUE
+      )
+      
+      results_w[[key]] <- wt
+    }
+  }
+}
+
+
+# Showing results from Wilcoxon tests
+for (name in names(results_w)) {
+  cat(">>> Wilcoxon-Test für", name, "<<<\n")
+  print(results_w[[name]])
+  cat("\n")
+}
+
+
+
+
+
+#########################----------Growth------------------##########################
+# Use of cprodugt2 --> grwoth transformed via natural logarithm
+
+
+########## two-sample t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Normality
+      mod_sub <- lm(cprodugt2 ~ oxygen, data = df_sub)
+      sw_resid<- shapiro.test(residuals(mod_sub))
+      sw_groups <- by(df_sub$cprodugt2, df_sub$oxygen, shapiro.test)
+      
+      # Homogeneity of variances
+      lev_res <- leveneTest(cprodugt2 ~ oxygen, data = df_sub)
+      
+      # two-sample t-test
+      tt <- t.test(cprodugt2 ~ oxygen,
+                   data = df_sub,
+                   var.equal = TRUE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+# Showing results from Shapiro Wilk test and Levene test 
+for (name in names(assump)) {
+  cat(">>> Annahmen für", name, "<<<\n")
+  
+  cat("-- Shapiro-Wilk (Residuen):\n")
+  print(assump[[name]]$shapiro_overall)
+  cat("\n")
+  
+  cat("-- Shapiro-Wilk je Gruppe (oxygen):\n")
+  print(assump[[name]]$shapiro_by)
+  cat("\n")
+  
+  cat("-- Levene-Test:\n")
+  print(assump[[name]]$levene)
+  cat("\n\n")
+}
+
+
+
+############ If homogeneity of variances was not given: Welch t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # two-sample t-test
+      tt <- t.test(cprodugt2 ~ oxygen,
+                   data = df_sub,
+                   var.equal = FALSE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+
+
+########### If normality of data was not given: Wilcoxon-Mann-Whitney-test
+results_w <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Wilcoxon-Mann-Whitney-Test
+      wt <- wilcox.test(
+        cprodug ~ oxygen,
+        data = df_sub,
+        exact = FALSE,
+        alternative = "two.sided",
+        correct = TRUE
+      )
+      
+      results_w[[key]] <- wt
+    }
+  }
+}
+
+
+# Showing results from Wilcoxon tests
+for (name in names(results_w)) {
+  cat(">>> Wilcoxon-Test für", name, "<<<\n")
+  print(results_w[[name]])
+  cat("\n")
+}
+
+
+
+
+#########################----------Turnover------------------##########################
+# Using turnovert --> Turnover transformed via square root
+
+
+########## two-sample t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Normality
+      mod_sub <- lm(turnovert ~ oxygen, data = df_sub)
+      sw_resid<- shapiro.test(residuals(mod_sub))
+      sw_groups <- by(df_sub$turnovert, df_sub$oxygen, shapiro.test)
+      
+      # Homogeneity of variances
+      lev_res <- leveneTest(turnovert ~ oxygen, data = df_sub)
+      
+      # two-sample t-test
+      tt <- t.test(turnovert ~ oxygen,
+                   data = df_sub,
+                   var.equal = TRUE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+# Showing results from Shapiro Wilk test and Levene test 
+for (name in names(assump)) {
+  cat(">>> Annahmen für", name, "<<<\n")
+  
+  cat("-- Shapiro-Wilk (Residuen):\n")
+  print(assump[[name]]$shapiro_overall)
+  cat("\n")
+  
+  cat("-- Shapiro-Wilk je Gruppe (oxygen):\n")
+  print(assump[[name]]$shapiro_by)
+  cat("\n")
+  
+  cat("-- Levene-Test:\n")
+  print(assump[[name]]$levene)
+  cat("\n\n")
+}
+
+
+
+############ If homogeneity of variances was not given: Welch t-test
+results_t <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # two-sample t-test
+      tt <- t.test(turnovert ~ oxygen,
+                   data = df_sub,
+                   var.equal = FALSE,
+                   paired = FALSE)
+      
+      results_t[[key]] <- tt
+      assump[[key]] <- list(
+        shapiro_overall = sw_resid,
+        shapiro_by = sw_groups,
+        levene = lev_res
+      )
+    }
+  }
+}
+
+
+# Showing results from t-tests
+for (name in names(results_t)) {
+  cat(">>> t-Test für", name, "<<<\n")
+  print(results_t[[name]])
+  cat("\n")
+}
+
+
+
+########### If normality of data was not given: Wilcoxon-Mann-Whitney-test
+results_w <- list()
+assump <- list()
+
+for (d in c("4", "5")) {
+  for (s in c("P", "T")) {
+    df_sub <- subset(Daten, depth == d & site == s)
+    key <- paste("Depth", d, "Site", s)
+    {
+      
+      # Wilcoxon-Mann-Whitney-Test
+      wt <- wilcox.test(
+        turnover ~ oxygen,
+        data = df_sub,
+        exact = FALSE,
+        alternative = "two.sided",
+        correct = TRUE
+      )
+      
+      results_w[[key]] <- wt
+    }
+  }
+}
+
+
+# Showing results from Wilcoxon tests
+for (name in names(results_w)) {
+  cat(">>> Wilcoxon-Test für", name, "<<<\n")
+  print(results_w[[name]])
+  cat("\n")
+}
+
+
+

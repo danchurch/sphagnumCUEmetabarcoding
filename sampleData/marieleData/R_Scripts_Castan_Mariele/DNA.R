@@ -1,0 +1,259 @@
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+
+
+###############Testing normality of data
+shapiro.test(Daten$dnam)
+shapiro.test(Daten$dnadan)
+shapiro.test(Daten$dnadan2)
+
+
+
+
+########################----------DNApp-MBC----------################################
+
+# Statistics
+spearman_test <- cor.test(Daten$dnam, Daten$mbcug, method = "spearman")
+rho_all <- spearman_test$estimate
+p_all <- spearman_test$p.value
+
+
+# Plot
+stats_label <- sprintf("Spearman's rho = %.2f\np = %.3f", rho_all, p_all)
+
+x_pos <- max(Daten$dnam, na.rm = TRUE) * 0.5
+y_pos <- max(Daten$mbcug, na.rm = TRUE) * 0.9
+
+
+farben <- c("P" = "#92D050", "T" = "#FFC000")
+
+ggplot(Daten, aes(x = dnam, y = mbcug, fill = site, color = site)) +
+  geom_point(shape = 21, size = 3, color = "black", alpha = 0.8) +
+  geom_smooth(
+    aes(group = 1),
+    method = "lm",
+    se = FALSE,
+    linetype = "dotted",
+    color = "black",
+    linewidth = 1
+  ) +
+  annotate(
+    "text",
+    x = x_pos,
+    y = y_pos,
+    label = stats_label,
+    hjust = 0,
+    vjust = 1,
+    size = 4,
+    colour = "black"
+  ) +
+  scale_fill_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  scale_color_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  labs(
+    x = expression(DNA[PP]~(mu*g~g~"peat"^{-1})),
+    y= expression(MBC~(mu~g~C~g~"peat"^{-1})),
+    fill = "Site",
+    color = "Site"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
+
+
+
+
+
+
+########################----------DNApp-DNApq----------################################
+
+# Statistics
+spearman_test <- cor.test(Daten$dnadan, Daten$dnam, method = "spearman")
+rho_all <- spearman_test$estimate
+p_all <- spearman_test$p.value
+
+
+# Plot
+stats_label <- sprintf("Spearman's rho = %.2f\np = %.3f", rho_all, p_all)
+
+x_pos <- max(Daten$dnadan, na.rm = TRUE) * 0.05
+y_pos <- max(Daten$dnam, na.rm = TRUE) * 0.9
+
+
+farben <- c("P" = "#92D050", "T" = "#FFC000")
+
+DNA_plot1 <- ggplot(Daten, aes(x = dnadan, y = dnam, fill = site, color = site)) +
+  
+  geom_point(shape = 21, size = 3, color = "black", alpha = 0.8) +
+  geom_smooth(
+    aes(group = 1),
+    method = "lm",
+    se = FALSE,
+    linetype = "dotted",
+    color = "black",
+    linewidth = 1
+  ) +
+  annotate(
+    "text",
+    x = x_pos,
+    y = y_pos,
+    label = stats_label,
+    hjust = 0,
+    vjust = 1,
+    size = 4,
+    colour = "black"
+  ) +
+  scale_fill_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  scale_color_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  labs(
+    x = expression(DNA[PQ]~(mu*g~g~"peat"^{-1})),
+    y= expression(DNA[PP]~(mu*g~g~"peat"^{-1})),
+    fill = "Site",
+    color = "Site"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
+
+
+print(DNA_plot1)
+
+
+
+
+
+
+########################----------DNApp-DNAsq----------################################
+
+# Statistics
+spearman_test <- cor.test(Daten$dnadan2, Daten$dnam, method = "spearman")
+rho_all <- spearman_test$estimate
+p_all <- spearman_test$p.value
+
+
+# Plot
+stats_label <- sprintf("Spearman's rho = %.2f\np = %.3f", rho_all, p_all)
+
+x_pos <- max(Daten$dnadan2, na.rm = TRUE) * 0.05
+y_pos <- max(Daten$dnam, na.rm = TRUE) * 0.9
+
+
+farben <- c("P" = "#92D050", "T" = "#FFC000")
+
+DNA_plot2 <- ggplot(Daten, aes(x = dnadan2, y = dnam, fill = site, color = site)) +
+  
+  geom_point(shape = 21, size = 3, color = "black", alpha = 0.8) +
+  geom_smooth(
+    aes(group = 1),
+    method = "lm",
+    se = FALSE,
+    linetype = "dotted",
+    color = "black",
+    linewidth = 1
+  ) +
+  annotate(
+    "text",
+    x = x_pos,
+    y = y_pos,
+    label = stats_label,
+    hjust = 0,
+    vjust = 1,
+    size = 4,
+    colour = "black"
+  ) +
+  scale_fill_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  scale_color_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  labs(
+    x = expression(DNA[SQ]~(mu*g~g~"peat"^{-1})),
+    y= expression(DNA[PP]~(mu*g~g~"peat"^{-1})),
+    fill = "Site",
+    color = "Site"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
+
+
+print(DNA_plot2)
+
+
+
+
+
+
+########################----------DNApp-DNAsq----------################################
+
+# Statistics
+spearman_test <- cor.test(Daten$dnadan2, Daten$dnadan, method = "spearman")
+rho_all <- spearman_test$estimate
+p_all <- spearman_test$p.value
+
+
+# Plot
+stats_label <- sprintf("Spearman's rho = %.2f\np = %.3f", rho_all, p_all)
+
+x_pos <- max(Daten$dnadan2, na.rm = TRUE) * 0.05
+y_pos <- max(Daten$dnadan, na.rm = TRUE) * 0.9
+
+
+farben <- c("P" = "#92D050", "T" = "#FFC000")
+
+DNA_plot3 <- ggplot(Daten, aes(x = dnadan2, y = dnadan, fill = site, color = site)) +
+  
+  geom_point(shape = 21, size = 3, color = "black", alpha = 0.8) +
+  geom_smooth(
+    aes(group = 1),
+    method = "lm",
+    se = FALSE,
+    linetype = "dotted",
+    color = "black",
+    linewidth = 1
+  ) +
+  annotate(
+    "text",
+    x = x_pos,
+    y = y_pos,
+    label = stats_label,
+    hjust = 0,
+    vjust = 1,
+    size = 4,
+    colour = "black"
+  ) +
+  scale_fill_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  scale_color_manual(values = farben, labels = c("P" = "Palsa", "T" = "Thermokarst")) +
+  labs(
+    x = expression(DNA[SQ]~(mu*g~g~"peat"^{-1})),
+    y= expression(DNA[PQ]~(mu*g~g~"peat"^{-1})),
+    fill = "Site",
+    color = "Site"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
+
+
+print(DNA_plot3)
+
+
+
+
+#################--------------Combining all------------------######################
+
+(DNA_plot1 + DNA_plot2)/ (DNA_plot3 + plot_spacer ())
+
+
+
+
