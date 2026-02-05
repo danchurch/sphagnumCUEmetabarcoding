@@ -421,55 +421,27 @@ names(S42mcGenera)[grep("obium",names(S42mcGenera))] ## no. mostly just "Rhizobi
 grep("Alcaligenes", names(S43mcGenera)) ## nope
 
 ## these "should" be in our MCs:
-mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
 
 unique(names(S42mcGenera)[names(S42mcGenera) %in% mcShould]) 
-mcShould %in% names(S42mcGenera) ## in MC/P42, all there
+mcShould[!(mcShould %in% names(S42mcGenera))] ## in MC/P42, missing Rhizobium and Variovorax
 
 unique(names(S43mcGenera)[names(S43mcGenera) %in% mcShould]) 
+
 mcShould %in% names(S43mcGenera) ## in MC/P43, all there
-
-length(names(S42mcGenera)[names(S42mcGenera) %in% mcShould])
-length(names(S43mcGenera)[names(S43mcGenera) %in% mcShould])
-
+mcShould[!(mcShould %in% names(S43mcGenera))]
 
 ## variovorax is extremely rare in MC1/S43, just one read in the controls:
+aa <- subset_taxa(ps, Genus=="Variovorax") |> subset_samples(physeq=_, Subsite %in% c("Mock_community_1","Mock_community_2"))
 
-tax_table(ps)
-
-data(GlobalPatterns)
-
-subset_taxa(GlobalPatterns, Phylum=="Bacteroidetes") |>
-subset
-
-subset_taxa(ps, Genus=="Variovorax") |> subset_samples(physeq=_, Subsite="Mock_community_1") 
-
-"Variovorax" %in% tax_table(ps)[,"Genus"]
+## great. So that member of our positive controls was essentially lost. 
 
 
-"Variovax")
-
-colnames(tax_table(ps))
-
-unique(tax_table(ps)[,"Phylum"])
-
-
-variovoraxFilt <- which(tax_table(ps.inTree)[,"Genus"] == "Variovorax")
-
-tax_table(ps.inTree)[variovoraxFilt,"Genus"]
-
-variovoraxASVs <- rownames(tax_table(ps.inTree)[variovoraxFilt,"Genus"])
-otu_table(ps.inTree)["S43",variovoraxASVs]
-
-## only six of the 11 members in MC2/S44. And again Variovorax is 
-## only present as one read. Weird. 
-
-rankAb(ps.inTree,"S43",ntax=30)
 
 ## so, what level of clustering do we need to get to 
 ## get rid of most of this splitting?
 
-## for the moment, let's focus on MC1/P43, this has more 
+## for the moment, let's focus on MC2/P43, this has more 
 ## information in it
 
 phyObj <- ps.inTree
@@ -548,8 +520,14 @@ plot_tree(psControlsGlommed, title=distance, color="Genus", label.tips="Genus", 
 
 ## a ps object of just our controls:
 
+ps007 <- tip_glom(ps.inTree, h=0.007)
 
 controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
+ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
+
+## stopped here feb5 ##
+
+
 controlsNotEcoRep <- sample_data(ps007)$Subsite %in% controlsNotEcoRep
 ps007.controls <- prune_samples(controlsNotEcoRep, ps007) 
 
