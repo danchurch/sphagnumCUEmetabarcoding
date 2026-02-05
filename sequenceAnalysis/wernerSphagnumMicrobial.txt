@@ -372,6 +372,7 @@ plot_tree(ps.inTree, color="Kingdom")
 
 #save(ps.inTree, file="ps_inTree.rda")
 
+
 ## start here to get the ps pruned to the tree
 
 library(phyloseq)
@@ -388,8 +389,6 @@ sort(get_taxa(ps, "S42"))
 rankAb(ps,"S42")
 
 rankAb(ps,"S43",ntax=30)
-
-
 
 
 ## get a list of abundances our target taxa from the positive controls:
@@ -411,8 +410,12 @@ getMCgenera <- function(sampleName, phyObj){
 
 S43mcGenera <- getMCgenera("S43", ps.inTree)[[3]]
 
+S42mcGenera <- getMCgenera("S42", ps.inTree)[[3]]
+
 ## did rhizobium get matched to some weird complex name like last time?:
-names(S43mcGenera)[grep("obium",names(S43mcGenera))] ## sort of. mostly just "Rhizobium", but in MC2/S44 "bradyrhizobium"
+names(S43mcGenera)[grep("obium",names(S43mcGenera))] ## no. mostly just "Rhizobium"
+
+names(S42mcGenera)[grep("obium",names(S42mcGenera))] ## no. mostly just "Rhizobium"
 
 ## just checking, an alternate name for Variovorax is:
 grep("Alcaligenes", names(S43mcGenera)) ## nope
@@ -420,15 +423,39 @@ grep("Alcaligenes", names(S43mcGenera)) ## nope
 ## these "should" be in our MCs:
 mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
 
-unique(names(S43mcGenera)[names(S43mcGenera) %in% mcShould]) ## in MC/P43, all there
+unique(names(S42mcGenera)[names(S42mcGenera) %in% mcShould]) 
+mcShould %in% names(S42mcGenera) ## in MC/P42, all there
 
+unique(names(S43mcGenera)[names(S43mcGenera) %in% mcShould]) 
+mcShould %in% names(S43mcGenera) ## in MC/P43, all there
+
+length(names(S42mcGenera)[names(S42mcGenera) %in% mcShould])
 length(names(S43mcGenera)[names(S43mcGenera) %in% mcShould])
-## in MC1, 165 ASVs are potential members of our mock community
-## seems like a lot of splitting 
-## less in MC2, 55 asvs
+
 
 ## variovorax is extremely rare in MC1/S43, just one read in the controls:
+
+tax_table(ps)
+
+data(GlobalPatterns)
+
+subset_taxa(GlobalPatterns, Phylum=="Bacteroidetes") |>
+subset
+
+subset_taxa(ps, Genus=="Variovorax") |> subset_samples(physeq=_, Subsite="Mock_community_1") 
+
+"Variovorax" %in% tax_table(ps)[,"Genus"]
+
+
+"Variovax")
+
+colnames(tax_table(ps))
+
+unique(tax_table(ps)[,"Phylum"])
+
+
 variovoraxFilt <- which(tax_table(ps.inTree)[,"Genus"] == "Variovorax")
+
 tax_table(ps.inTree)[variovoraxFilt,"Genus"]
 
 variovoraxASVs <- rownames(tax_table(ps.inTree)[variovoraxFilt,"Genus"])
