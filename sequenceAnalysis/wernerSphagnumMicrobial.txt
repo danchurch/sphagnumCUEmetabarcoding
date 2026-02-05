@@ -520,48 +520,52 @@ plot_tree(psControlsGlommed, title=distance, color="Genus", label.tips="Genus", 
 
 ## a ps object of just our controls:
 
-ps007 <- tip_glom(ps.inTree, h=0.007)
+#ps007 <- tip_glom(ps.inTree, h=0.007)
+#save(ps007, file="ps007.rda")
+
+load("ps007.rda")
 
 controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
 ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
 
-## stopped here feb5 ##
-
-
-controlsNotEcoRep <- sample_data(ps007)$Subsite %in% controlsNotEcoRep
-ps007.controls <- prune_samples(controlsNotEcoRep, ps007) 
-
 ps007.controls
-
 sample_names(ps007.controls)
 
+## for every OTU observed in the controls, 
+## subtract the maximum number of reads observed in the 
+##  
+
 aa <- otu_table(ps007.controls)
-
 bb <- otu_table(ps007)
-
 controlAbus <- apply(aa, 2, max)
-
 cc <- bb - controlAbus
+## because we are only allowed to subtract columns...
+cc <- t(t(bb) - controlAbus)
 
-## is that reasonable?
+## do some sanity checks:
+asv = "ASV4847"
+controlAbus[asv]
+aa[,asv]
+cbind(bb[,asv], cc[,asv])
 
-ASV="ASV600"
+## get rid of negatives
+cc[cc < 0 ] <- 0
 
-otu_table(ps007)["S19",ASV]
 
-aa[,ASV]
+## now plug that back in:
+otu_table(ps007) <- cc
 
-bb[,ASV]
+otu_table(ps007)
 
-controlAbus[ASV]
-cc[,ASV]
+## check it, should have zeroed out the controls:
+controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
+ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
+sum(otu_table(ps007.controls)) ## yup
 
-otu_table(ps007)[c("S42","S43","S44","S47"),"ASV600"]
-
-## no, something is wrong. Come back to this.
-
+## stopped here 5 feb 26 ##
 
 ## 1 - taxonomic overview
+
 ## 2 - ordinations by the data we have
 
 ## for a quick preliminary view, let's normalize abundances a bit:
