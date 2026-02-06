@@ -80,7 +80,8 @@ library(RColorBrewer)
 
 ## where are our trimmed reads?
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/trimmed_reads")
+wd <- "/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSamples/trimmed_reads"
+setwd(wd)
 
 fileNames <- list.files(pattern="fastq.gz")
 
@@ -108,6 +109,7 @@ plotErrors(err, nominalQ=TRUE)
 ## this step defines our ASVs:
 dadaF <- dada(fileNames, err=err, pool=TRUE, multithread=TRUE)
 
+## stopping here 6 Feb
 
 save(dadaF, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
 
@@ -521,15 +523,12 @@ plot_tree(psControlsGlommed, title=distance, color="Genus", label.tips="Genus", 
 ## a ps object of just our controls:
 
 #ps007 <- tip_glom(ps.inTree, h=0.007)
-#save(ps007, file="ps007.rda")
-
 load("ps007.rda")
 
 controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
 ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
 
 ps007.controls
-sample_names(ps007.controls)
 
 ## for every OTU observed in the controls, 
 ## subtract the maximum number of reads observed in the 
@@ -551,26 +550,155 @@ cbind(bb[,asv], cc[,asv])
 ## get rid of negatives
 cc[cc < 0 ] <- 0
 
+## but we want to keep our original controls?
 
 ## now plug that back in:
-otu_table(ps007) <- cc
+ps007_cleaned <- ps007
+otu_table(ps007_cleaned) <- cc
 
-otu_table(ps007)
 
 ## check it, should have zeroed out the controls:
 controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
-ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
-sum(otu_table(ps007.controls)) ## yup
+ps007.cleaned.controls <- subset_samples(ps007_cleaned, Subsite %in% controlsNotEcoRep)
+sum(otu_table(ps007.cleaned.controls)) ## yup
 
-## stopped here 5 feb 26 ##
+#save(ps007_cleaned, file="ps007_cleaned.rda")
+load("ps007_cleaned.rda")
 
+## further cleaning steps?
+
+
+## 0 - transformations
 ## 1 - taxonomic overview
 
 ## 2 - ordinations by the data we have
 
-## for a quick preliminary view, let's normalize abundances a bit:
+##### transformations #####
+
+## coming back to this in feb 2026...
+## looking at our mock community controls,
+## after melting the tips to .007:
+
+barplot(sort(sample_sums(ps), decreasing=TRUE), 
+        ylab="number of reads",
+        xlab="Sample number",
+        cex.names=1.2, 
+        las=2)
+
+
+barplot(sort(sample_sums(ps007), decreasing=TRUE), 
+        ylab="number of reads",
+        xlab="Sample number",
+        cex.names=1.2, 
+        las=2)
+
+rankAb(ps,"S42",ylimit=2000, ntax = 30)
+dev.new()
+rankAb(ps007,"S42",ylimit=1500, ntax = 30)
+
+
+plot_tree(psControls, title="unGlommed", color="Genus", label.tips="Genus", ladderize="left", text.size=3)
+
+## the differential abundances are hard to estimate, given the splitting. 
+## if we merge the genera:
+
+rank_names(ps)
+
+ps007
+
+ps.007.genus <- tax_glom(ps007, taxrank="Genus")
+
+rankAb(ps.007.genus,"S42",ylimit=5000, ntax = 30)
+## this looks much better. Is there any reason not to do the analysis at this level?
+## we would lose precision in picrust, I think. 
+## so use the genera level glomming for graphics etc,
+## but conduct the picrust with the unglommed data
+
+
+dev.off()
+
+rankAb(ps007,"S42",ylimit=1500, ntax = 30)
+
+dev.new()
+
+rankAb(ps.007.genus,"S42",ylimit=5000, ntax = 30)
+
+dev.new()
+rankAb(ps.007.genus,"S43",ylimit=5000, ntax = 30)
+
+## in the data that is glommed to genus level, we see a range of 
+## ~500 to ~4000. So one order of magnitude difference in what
+## should be ~same abundances, in terms of DNA concentration. 
+## so let's add a log transformation, then do relative 
+## abundances. 
+
+?transform_sample_counts
+
+ps007_cleaned_log <- transform_sample_counts(ps007_cleaned, log)
+ps007_cleaned_sqrt <- transform_sample_counts(ps007_cleaned, sqrt)
+
+ps007_sqrt <- transform_sample_counts(ps007, sqrt)
+
+ps.007.genus.sqrt <- transform_sample_counts(ps.007.genus, sqrt)
+
+## sqrt seems like a nice solution 
+## after this convert to relative abundance
+## so the pipeline from raw reads to ecological community matrix abundances is:
+
+## glom tips to c=.007 
+## remove all OTUs present in our controls, to the maximum amount present in the controls
+## take square root of remaining abundances
+## convert to relative abundances:
+## so start over from here:
+
+R 
+
+library("phyloseq")
+load("ps_inTree.rda")
+
+ps007 <- tip_glom(ps.inTree, h=0.007)
+
+controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
+
+ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
+aa <- otu_table(ps007.controls)
+bb <- otu_table(ps007)
+controlAbus <- apply(aa, 2, max)
+cc <- bb - controlAbus
+cc <- t(t(bb) - controlAbus)
+cc[cc < 0 ] <- 0
+ps007_cleaned <- ps007
+otu_table(ps007_cleaned) <- cc
+ps007_cleaned_sqrt <- transform_sample_counts(ps007_cleaned, sqrt)
+ps007_cleaned_sqrt_prop <- transform_sample_counts(ps007_cleaned_sqrt, function(otu) otu/sum(otu))
+
+## let's update the notebook with this:
+
+dev.off()
+
+rankAb(ps.007.genus,"S42",ylimit=2000, ntax = 30)
+dev.new()
+rankAb(ps.007.genus.sqrt,"S42",ylimit=100, ntax = 30)
+
+dev.new()
+rankAb(ps007_cleaned_log,"S10",ylimit=10, ntax = 30)
 
 ps.prop <- transform_sample_counts(ps007, function(otu) otu/sum(otu))
+
+dev.off()
+
+
+sampleName="S42"
+aa <- prune_samples(sampleName, ps007_cleaned)
+
+rankAb(aa, sampleName, ylimit=5000, ntax = 30)
+
+rankAb(ps007,"S43",ylimit=2000, ntax = 30)
+dev.new()
+rankAb(aa,"S43",ylimit=5000, ntax = 30)
+
+
+
 
 plot_bar(ps.prop, fill = "Kingdom") + geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
 
@@ -1130,8 +1258,6 @@ plot_bar(psOnlyTopPhy, x="SampleID", fill = "Phylum") +
   facet_grid(~Subsite, scales = "free_x", space = "free_x")
 dev.off()
 
-
-
 plot(phy_tree(ex1), show.node.label = TRUE)
 
 plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
@@ -1142,4 +1268,4 @@ getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/ps.Eco_10phyla.p
 putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
 rsync -auv daniel@132.180.113.114:$getFile $putHere
 
-## can we order our sites by
+
