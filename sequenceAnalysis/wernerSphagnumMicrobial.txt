@@ -389,7 +389,6 @@ plot_tree(ps.inTree, color="Kingdom")
 
 #save(ps.inTree, file="ps_inTree.rda")
 
-
 ## start here to get the ps pruned to the tree
 
 library(phyloseq)
@@ -468,6 +467,14 @@ psControls = prune_samples(sampleName, phyObj)
 psControls = prune_taxa(mcASVs, psControls)
 plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=3)
 
+plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=3) + 
+theme( legend.text = element_text(size=20)) #change legend text font size
+
+plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=3) + 
+theme(legend.key.size = unit(1, 'cm'), #change legend key size
+        legend.title = element_text(size=14), #change legend title font size
+        legend.text = element_text(size=10)) #change legend text font size
+
 ## pretty. Now try some tip agglomerations, at different cophenetic distances:
 
 checkH <- function(phyObj, sampleName, distance){
@@ -477,7 +484,7 @@ checkH <- function(phyObj, sampleName, distance){
     sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
     taxaNames=tax_table(tippedDownPS)[ names(sampleNo0), "Genus"]
     names(sampleNo0) <- taxaNames
-    mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+    mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax")
     possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
     psControls = prune_samples(sampleName, tippedDownPS)
     psControls = prune_taxa(possibleMCasvs, psControls)
@@ -579,6 +586,7 @@ sum(otu_table(ps007.cleaned.controls)) ## yup
 
 #save(ps007_cleaned, file="ps007_cleaned.rda")
 load("ps007_cleaned.rda")
+load("ps007.rda")
 
 ## further cleaning steps?
 
@@ -609,6 +617,7 @@ barplot(sort(sample_sums(ps007), decreasing=TRUE),
 
 rankAb(ps,"S42",ylimit=2000, ntax = 30)
 dev.new()
+
 rankAb(ps007,"S42",ylimit=1500, ntax = 30)
 
 
@@ -621,9 +630,18 @@ rank_names(ps)
 
 ps007
 
+load("ps_inTree.rda")
+
+ps.inTree.genus <- tax_glom(ps.inTree, taxrank="Genus")
+
 ps.007.genus <- tax_glom(ps007, taxrank="Genus")
 
-rankAb(ps.007.genus,"S42",ylimit=5000, ntax = 30)
+rankAb(ps.inTree.genus,"S42",ylimit=5000, ntax = 30)
+
+rankAb(ps.inTree.genus,"S42",ylimit=5000, ntax = 30)
+
+rankAb(ps.007.genus,"S43",ylimit=5000, ntax = 30)
+
 ## this looks much better. Is there any reason not to do the analysis at this level?
 ## we would lose precision in picrust, I think. 
 ## so use the genera level glomming for graphics etc,
