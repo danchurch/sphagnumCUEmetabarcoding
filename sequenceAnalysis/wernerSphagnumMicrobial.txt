@@ -71,6 +71,7 @@ done &> test.log
 
 
 R
+
 library(dada2)
 library(phyloseq)
 library(Biostrings)
@@ -101,6 +102,7 @@ setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData/sequencingSampl
 
 err <- learnErrors(fileNames, multithread=TRUE)
 
+
 save(err, file="../err.rda")
 
 plotErrors(err, nominalQ=TRUE)
@@ -109,10 +111,12 @@ plotErrors(err, nominalQ=TRUE)
 ## this step defines our ASVs:
 dadaF <- dada(fileNames, err=err, pool=TRUE, multithread=TRUE)
 
-## stopping here 6 Feb
+## here ##
+
 
 save(dadaF, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
 
+load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
 
 ## this is taking forever. I think because I only have four cores on this machine.
 ## Can we repeat it on the optiplex or nanoComp?
@@ -125,6 +129,8 @@ seqtab <- makeSequenceTable(dadaF)
 seqtab
 
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+
+## here ##
 
 save(seqtab.nochim, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/seqtab.nochimPeat.rda")
 
@@ -158,12 +164,20 @@ taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ## let's add our "environmental data" (woefully incomplete at this point).
 ## and our tree, also still really raw: 
 
-envData <- read.csv(paste0(homedir,"envDataPeat.csv"))
+homedir="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/"
 
-envData <- data.frame(envData, row.names = "SampleName")
+?read.csv
+
+envData <- read.csv(paste0(homedir,"envDataPeat.csv"), row.names="SampleName")
+
 envData$DepthSection <- as.numeric(envData$DepthSection)
+
 sample_data(ps) = envData
-save(ps, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
+
+
+#save(ps, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
+
+load(file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/peat16sPS.rda")
 
 sampleLabels <- read.csv(paste0(homedir,"sampleNames.csv"))
 
@@ -344,7 +358,8 @@ notInTree=c("ASV4652","ASV4698","ASV4701","ASV5339")
 
 tax_table(ps)[notInTree] ## Halobacteriota, Nanoarcheota
 
-otu_table(ps)[,notInTree]
+notInTreeAbund <- otu_table(ps)[,notInTree]
+notInTreeAbund[rowSums(notInTreeAbund) > 0,]
 
 ## these are pretty low abundances, in not many samples
 ## ASV4652 ASV4701 (halobacterota) are present only in the moss negative
