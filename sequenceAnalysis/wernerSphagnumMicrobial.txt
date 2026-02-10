@@ -656,7 +656,8 @@ barplot(sort(sample_sums(ps007), decreasing=TRUE),
         cex.names=1.2, 
         las=2)
 
-rankAb(ps,"S42",ylimit=2000, ntax = 30)
+rankAb(ps007,"S42",ylimit=2000, ntax = 30)
+
 dev.new()
 
 rankAb(ps007,"S42",ylimit=1500, ntax = 30)
@@ -687,7 +688,6 @@ rankAb(ps.007.genus,"S43",ylimit=5000, ntax = 30)
 ## we would lose precision in picrust, I think. 
 ## so use the genera level glomming for graphics etc,
 ## but conduct the picrust with the unglommed data
-
 
 dev.off()
 
@@ -733,18 +733,42 @@ load("ps_inTree.rda")
 ps007 <- tip_glom(ps.inTree, h=0.007)
 
 controlsNotEcoRep <- c("Mock_community_1","Mock_community_2","Negative_PCR","Moss_Negative_PCR")
-
 ps007.controls <- subset_samples(physeq=ps007, Subsite %in% controlsNotEcoRep)
 aa <- otu_table(ps007.controls)
 bb <- otu_table(ps007)
 controlAbus <- apply(aa, 2, max)
-cc <- bb - controlAbus
-cc <- t(t(bb) - controlAbus)
+cc <- t(t(bb) - controlAbus) ## this is how you subtract a row from a matrix in R
 cc[cc < 0 ] <- 0
 ps007_cleaned <- ps007
 otu_table(ps007_cleaned) <- cc
+## get rid of controls and ecological duplicate:
+ps007_cleaned <- subset_samples(ps007_cleaned, EcoCont != "Control") 
+## and get rid of the low abundance samples:
+ps007_cleaned <- prune_samples(sample_sums(ps007_cleaned)>=1000, ps007_cleaned)
+
+
+
+## then the transformations:
+
+ps007_sqrt <- transform_sample_counts(ps007, sqrt)
+
+ps007_sqrt_genus <- tax_glom(ps007_sqrt, taxrank="Genus")
+
+dev.off()
+
+rankAb(ps007, "S43", ylimit=2000, ntax=30)
+dev.new()
+rankAb(ps007_sqrt, "S43", ylimit=100, ntax=30)
+dev.new()
+rankAb(ps007_sqrt_genus, "S43", ylimit=1000, ntax=30)
+
+
 ps007_cleaned_sqrt <- transform_sample_counts(ps007_cleaned, sqrt)
 ps007_cleaned_sqrt_prop <- transform_sample_counts(ps007_cleaned_sqrt, function(otu) otu/sum(otu))
+
+par(mfrow = c(1,2))
+rankAb(ps007_sqrt, "S43", ylimit=100, ntax=30)
+rankAb(ps007_sqrt, "S43", ylimit=100, ntax=30)
 
 ## let's update the notebook with this:
 
@@ -752,6 +776,32 @@ dev.off()
 
 rankAb(ps.007.genus,"S42",ylimit=2000, ntax = 30)
 dev.new()
+
+## just checking negative controls:
+
+dev.new()
+rankAb(ps007,"S44",ylimit=1500, ntax = 30)
+dev.new()
+rankAb(ps007,"S47",ylimit=1500, ntax = 30)
+
+## funny, S47  is supposedly dominated by Enhydrobacter, a rare microbe, anaerobic
+## which otu is that?
+
+## four OTUs, ASV1255 ASV2041 ASV1036 ASV1155
+## they are most abundant in the moss negative control.
+
+
+aa <- subset_taxa(ps007, Genus == "Enhydrobacter")
+head(as.data.frame(refseq(aa)))
+
+## blasting these, yeah the closest match is a skin-associated 
+## bacteria identified as in an automated pipeline as Enhydrobacter 
+## so yeah, contaminant. 
+
+## okay, that lends more credence to the method of just subtracting
+## out all abundances from our controls.  
+
+
 rankAb(ps.007.genus.sqrt,"S42",ylimit=100, ntax = 30)
 
 dev.new()
