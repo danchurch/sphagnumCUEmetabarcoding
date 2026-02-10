@@ -111,7 +111,6 @@ plotErrors(err, nominalQ=TRUE)
 ## this step defines our ASVs:
 dadaF <- dada(fileNames, err=err, pool=TRUE, multithread=TRUE)
 
-## here ##
 
 
 save(dadaF, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
@@ -129,8 +128,6 @@ seqtab <- makeSequenceTable(dadaF)
 seqtab
 
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
-
-## here ##
 
 save(seqtab.nochim, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/seqtab.nochimPeat.rda")
 
@@ -414,7 +411,7 @@ getMCgenera <- function(sampleName, phyObj){
   sampleNo0 <- sort(sampleNo0, decreasing=TRUE)
   taxaNames=tax_table(phyObj)[ names(sampleNo0), "Genus"]
   names(sampleNo0) <- taxaNames
-  mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax", "Escherichia-Shigella")
+  mcShould <- c("Bacillus", "Chryseobacterium", "Clostridium", "Enterobacter", "Klebsiella", "Franconibacter", "Glycomyces", "Pseudomonas", "Rhizobium ", "Rhizobium", "Streptomyces", "Variovorax")
   possibleMCasvs <- rownames(taxaNames[taxaNames %in% mcShould])
   onlyMCasvs <- prune_taxa(possibleMCasvs, phyObj)
   realMCs <- get_taxa(onlyMCasvs, sampleName)
@@ -513,6 +510,50 @@ ps007 <- checkH(phyObj, sampleName, distance)
 #ps01 <- checkH(phyObj, sampleName, distance)
 #ps02 <- checkH(phyObj, sampleName, distance)
 #ps03 <- checkH(phyObj, sampleName, distance)
+
+#ps05 <- tip_glom(ps.inTree, h=0.05)
+#ps03 <- tip_glom(ps.inTree, h=0.03)
+#ps01 <- tip_glom(ps.inTree, h=0.01)
+#ps008 <- tip_glom(ps.inTree, h=0.008)
+#ps007 <- tip_glom(ps.inTree, h=0.007)
+ps003 <- tip_glom(ps.inTree, h=0.003)
+
+dev.off()
+
+#phyObj <- ps05 ## just four otus, but no splitting. Two pseudomonas OTUs.
+#phyName <- deparse(substitute(ps05))
+
+#phyObj <- ps03 ## Still only four OTUs but already splitting Pseudomonas into 4, Clostridium into 3
+#phyName <- deparse(substitute(ps03))
+
+#phyObj <- ps01 ## We recover a 9 OTUs, (2 hidden in Pseudomonas), still missing streptomyces, enterobacter
+#phyName <- deparse(substitute(ps01))
+
+#phyObj <- ps008 ## 10 OTUs, still missing enterobacter
+#phyName <- deparse(substitute(ps008))
+#rankAb(ps008, "S43", ylimit=1000, ntax=30)
+#ps.008.genus <- tax_glom(ps008, taxrank="Genus")
+#rankAb(ps.008.genus, "S43", ylimit=5000, ntax=30) nope, completely lost.
+
+phyObj <- ps007 ## still missing enterobacter! And so much splitting...
+phyName <- deparse(substitute(ps007))
+
+## if we melt by genus:
+#ps.007.genus <- tax_glom(ps007, taxrank="Genus")
+
+rankAb(ps007, "S43", ylimit=1000, ntax=30)
+rankAb(ps.007.genus, "S43", ylimit=5000, ntax=30)
+## still not there. 
+
+
+dev.new()
+sampleName <- "S43"
+mcASVs <- names(getMCgenera(sampleName, phyObj)[[2]])
+psControls = prune_samples(sampleName, phyObj)
+psControls = prune_taxa(mcASVs, psControls)
+plot_tree(psControls, color="Genus", label.tips="Genus", ladderize="left", text.size=4) +  
+theme( legend.text = element_text(size=20))  +
+ggtitle(phyName)
 
 ## in each case, get back down to just control sample and 
 ## non-contaminate ASVs
