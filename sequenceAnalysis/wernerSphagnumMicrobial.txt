@@ -1,5 +1,7 @@
 ## link to see notebook:
 
+devtools::install_github("thomasp85/patchwork")
+
 https://nbviewer.org/github/danchurch/sphagnumCUEmetabarcoding/blob/main/sequenceAnalysis/firstLookPeat16s.ipynb
 
 ## let's take a look at the sequences from Werner. 
@@ -110,8 +112,6 @@ plotErrors(err, nominalQ=TRUE)
 
 ## this step defines our ASVs:
 dadaF <- dada(fileNames, err=err, pool=TRUE, multithread=TRUE)
-
-
 
 save(dadaF, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/dadaPeat.rda")
 
@@ -728,6 +728,9 @@ ps.007.genus.sqrt <- transform_sample_counts(ps.007.genus, sqrt)
 R 
 
 library("phyloseq")
+library("patchwork")
+library("ggplot2")
+
 load("ps_inTree.rda")
 
 ps007 <- tip_glom(ps.inTree, h=0.007)
@@ -764,7 +767,9 @@ rankAb(ps007_sqrt_genus, "S43", ylimit=1000, ntax=30)
 
 
 ps007_cleaned_sqrt <- transform_sample_counts(ps007_cleaned, sqrt)
+
 ps007_cleaned_sqrt_prop <- transform_sample_counts(ps007_cleaned_sqrt, function(otu) otu/sum(otu))
+#save(ps007_cleaned_sqrt_prop, file="ps007_cleaned_sqrt_prop.rda")
 
 par(mfrow = c(1,2))
 rankAb(ps007_sqrt, "S43", ylimit=100, ntax=30)
@@ -822,9 +827,95 @@ dev.new()
 rankAb(aa,"S43",ylimit=5000, ntax = 30)
 
 
+## student needs some data:
+aa <- as.data.frame(as.matrix(sample_data(ps007_cleaned_sqrt_prop)))
+write.csv(aa, file="example_environmentalMatrix.csv")
+
+write.csv(otu_table(ps007_cleaned_sqrt_prop), file="example_communityMatrix.csv")
 
 
-plot_bar(ps.prop, fill = "Kingdom") + geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
+
+
+plot_bar(ps007_cleaned_sqrt_prop, fill = "Kingdom") +
+  geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+  theme(axis.text=element_text(size=12))
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+## if we want to split our plots by thermokarst/Palsa:
+
+phylumPalTherm <- plot_bar(ps007_cleaned_sqrt_prop, fill = "Kingdom", facet_grid=~Subsite) +
+                    geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+                    theme(axis.text=element_text(size=12))
+
+phylumPalTherm
+
+## pretty obvious that the archea are mostly in the water. 
+
+## maybe better split up the phyloseq object:
+
+library("phyloseq")
+library("patchwork")
+library("ggplot2")
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps.justPalsa <- subset_samples(ps007_cleaned_sqrt_prop, Subsite=="Palsa")
+ps.justThermokarst <- subset_samples(ps007_cleaned_sqrt_prop, Subsite=="Thermokarst")
+
+phylumPal <- plot_bar(ps.justPalsa, fill = "Kingdom") +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12))
+
+
+phylumThermokarst <- plot_bar(ps.justThermokarst, fill = "Kingdom") +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12))
+
+## works^^ ##
+
+phylumPal <- plot_bar(ps.justPalsa, fill = "Kingdom", facet_grid=~Core ) +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12))
+
+phylumPal
+
+
+phylumThermokarst <- plot_bar(ps.justThermokarst, fill = "Kingdom", facet_grid=~Core) +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12))
+
+phylumThermokarst
+
+phylumPal + phylumThermokarst ## almost works...
+
+## need to change the order to reflect depth
+## and need to eleminate the redundant, zero samples
+
+## also checkout this feature: facet_grid=SeqTech~Enterotype
+
+## S10 has a surprising amount of archea, what is it?
+
+sample_data(ps007_cleaned_sqrt_prop)["S10",]
+## deep, depth section 5
+
+## and surprisingly few in this thermokarst:
+
+sample_data(ps007_cleaned_sqrt_prop)["S21",] ## depth zero
+
+
+## would be good to order and label by depth 
+
+## we can save this out:
+ggsave("raw_phylumPalTherm.svg", 
+        device = svg,
+        plot = phylumPalTherm, 
+        width = 10, 
+        height = 6)
+
+## seems like it would be good hand edit
+
+
+
 
 plot_richness(ps, measures=c("Chao1", "Shannon")) ## not that usefull
 
