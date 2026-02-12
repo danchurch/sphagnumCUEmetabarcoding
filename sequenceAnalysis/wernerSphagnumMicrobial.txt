@@ -1019,12 +1019,9 @@ https://books.gw-project.org/groundwater-microbiology/chapter/redox-conditions/
 
 ## let's check the archeal diversity of each of these:
 
-rm(ps.Archea)
-
 ps.Archaea <- subset_taxa(ps007_cleaned_sqrt_prop, Kingdom == "Archaea")
 psObject <- ps.Archaea
 howManyPhyla <- 10
-## and if we allow the top phyla to vary between pal and tk sites?
 ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
 ps.justPalsa.Phyla <- tax_glom(ps.justPalsa, taxrank="Phylum")
 ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
@@ -1033,13 +1030,11 @@ topPhyla_palsa <- names(sort(colSums(otu_table(ps.justPalsa.Phyla)), decreasing=
 topPhyla_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.Phyla)), decreasing=TRUE)[1:howManyPhyla])
 ps.justPalsa_topPhyla <- prune_taxa(topPhyla_palsa, ps.justPalsa.Phyla)
 ps.justThermokarst_topPhyla <- prune_taxa(topPhyla_Thermokarst, ps.justThermokarst.Phyla)
-
 phylumTop.Pal <- plot_bar(ps.justPalsa_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
                           geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
                           theme(axis.text=element_text(size=12),
                                 legend.text=element_text(size=20)) +
                           labs(title='Palsa Archea') + theme(plot.title = element_text(hjust = 0.5))
-
 phylumTop.tk  <- plot_bar(ps.justThermokarst_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
                                 geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
                                 theme(axis.text=element_text(size=12)) +
@@ -1048,8 +1043,41 @@ phylumTop.tk  <- plot_bar(ps.justThermokarst_topPhyla, x="DepthSection", fill = 
                                        legend.text=element_text(size=20) ) +
                                 ylab(NULL) +
                                 labs(title='Thermokarst Archea') + theme(plot.title = element_text(hjust = 0.5))
+phylumTop.Pal + phylumTop.tk ## lots of halobacteria, not that useful because of the confusing state of archaeal taxonomy
 
-phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokarst systems
+## break this down by order:
+
+ps.Archaea <- subset_taxa(ps007_cleaned_sqrt_prop, Kingdom == "Archaea")
+psObject <- ps.Archaea
+howManyOTUs <- 10
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.Order <- tax_glom(ps.justPalsa, taxrank="Order")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.Order <- tax_glom(ps.justThermokarst, taxrank="Order")
+topOrder_palsa <- names(sort(colSums(otu_table(ps.justPalsa.Order)), decreasing=TRUE)[1:howManyOTUs])
+topOrder_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.Order)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topOrder <- prune_taxa(topOrder_palsa, ps.justPalsa.Order)
+ps.justThermokarst_topOrder <- prune_taxa(topOrder_Thermokarst, ps.justThermokarst.Order)
+orderTop.Pal <- plot_bar(ps.justPalsa_topOrder, x="DepthSection", fill = "Order", facet_grid=~Core ) +
+                          geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa Archea') + theme(plot.title = element_text(hjust = 0.5))
+orderTop.tk  <- plot_bar(ps.justThermokarst_topOrder, x="DepthSection", fill = "Order", facet_grid=~Core ) +
+                                geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst Archea') + theme(plot.title = element_text(hjust = 0.5))
+orderTop.Pal + orderTop.tk 
+
+
+
+
+
+
 
 ## where would Methanomicrobiales be? in the Halobacteriales, methinks:
 
@@ -1066,7 +1094,6 @@ tax_table(aa)
 ## 
 aa <- subset_taxa(ps.Archaea, Order=="Methanomicrobiales")
 tax_table(aa)
-
 ps.Methanomicrobiales <- subset_taxa(ps007_cleaned_sqrt_prop, Order=="Methanomicrobiales")
 psObject <- ps.Methanomicrobiales
 tLevel <- "Order"
@@ -1080,21 +1107,11 @@ topPhyla_palsa <- names(sort(colSums(otu_table(ps.justPalsa.OTUs)), decreasing=T
 topPhyla_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.OTUs)), decreasing=TRUE)[1:howManyOTUs])
 ps.justPalsa_topOTUs <- prune_taxa(topPhyla_palsa, ps.justPalsa.OTUs)
 ps.justThermokarst_topOTUs <- prune_taxa(topPhyla_Thermokarst, ps.justThermokarst.OTUs)
-
-
-
-tax_table(ps.justPalsa_topOTUs)
-
-tax_table(ps.justThermokarst_topOTUs)
-
-
-
 phylumTop.Pal <- plot_bar(ps.justPalsa_topOTUs, x="DepthSection", fill = tLevel, facet_grid=~Core ) +
                           geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
                           theme(axis.text=element_text(size=12),
                                 legend.text=element_text(size=20)) +
                           labs(title='Palsa Archea') + theme(plot.title = element_text(hjust = 0.5))
-
 phylumTop.tk  <- plot_bar(ps.justThermokarst_topOTUs, x="DepthSection", fill = tLevel, facet_grid=~Core ) +
                                 geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
                                 theme(axis.text=element_text(size=12)) +
@@ -1104,7 +1121,12 @@ phylumTop.tk  <- plot_bar(ps.justThermokarst_topOTUs, x="DepthSection", fill = t
                                 ylab(NULL) +
                                 labs(title='Thermokarst Archea') + theme(plot.title = element_text(hjust = 0.5))
 
-phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokarst systems
+phylumTop.Pal + phylumTop.tk ## The methanogens are pretty important here, especially in the thermokarst system
+
+
+## we need to track down the ANME groups.
+## looks like 
+
 
 
 ## check the alpha diversity:
