@@ -871,27 +871,66 @@ phylumThermokarst <- plot_bar(ps.justThermokarst, fill = "Kingdom") +
                geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
                theme(axis.text=element_text(size=12))
 
-## works^^ ##
+## works^^, but this is better vv ##
 
-phylumPal <- plot_bar(ps.justPalsa, fill = "Kingdom", facet_grid=~Core ) +
+phylumPal <- plot_bar(ps.justPalsa, x="DepthSection", fill = "Kingdom", facet_grid=~Core ) +
                geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
                theme(axis.text=element_text(size=12))
 
 phylumPal
 
 
-phylumThermokarst <- plot_bar(ps.justThermokarst, fill = "Kingdom", facet_grid=~Core) +
+phylumThermokarst <- plot_bar(ps.justThermokarst, x="DepthSection", fill = "Kingdom", facet_grid=~Core) +
                geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
                theme(axis.text=element_text(size=12))
 
+dev.new()
+
 phylumThermokarst
 
-phylumPal + phylumThermokarst ## almost works...
+splitGraphicPhyla <- phylumPal + phylumThermokarst ## almost works...
 
-## need to change the order to reflect depth
-## and need to eleminate the redundant, zero samples
+ggsave("splitGraphicPhyla.svg", 
+        device = svg,
+        plot = splitGraphicPhyla, 
+        width = 10, 
+        height = 6)
 
-## also checkout this feature: facet_grid=SeqTech~Enterotype
+## but that is too huge and isn't available for editing in inkscape.
+## try reducing melting all OTUs with a phyla to one OTU:
+
+
+ps.justPalsa <- subset_samples(ps007_cleaned_sqrt_prop, Subsite=="Palsa")
+ps.justPalsa.Kingdom <- tax_glom(ps.justPalsa, taxrank="Kingdom")
+ps.justThermokarst <- subset_samples(ps007_cleaned_sqrt_prop, Subsite=="Thermokarst")
+ps.justThermokarst.Kingdom <- tax_glom(ps.justThermokarst, taxrank="Kingdom")
+
+kingdomPal <- plot_bar(ps.justPalsa.Kingdom, x="DepthSection", fill = "Kingdom", facet_grid=~Core ) +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12)) +
+               theme(legend.position="none") +
+               labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+kingdomThermokarst <- plot_bar(ps.justThermokarst.Kingdom, x="DepthSection", fill = "Kingdom", facet_grid=~Core) +
+               geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack") +
+               theme(axis.text=element_text(size=12)) +
+               theme( axis.text.y=element_blank(),
+                      axis.ticks.y=element_blank() ) +
+               ylab(NULL) +
+               labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+splitGraphicKingdom <- kingdomPal + kingdomThermokarst 
+splitGraphicKingdom
+
+ggsave("splitGraphicKingdom.svg", 
+        device = svg,
+        plot = splitGraphicKingdom, 
+        width = 10, 
+        height = 6)
+
+getFile="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/splitGraphicPhyla.svg"
+putHere="/home/daniel/Documents/projects/wernerSphagnum/graphics/"
+rsync -auv $getFile daniel@132.180.113.114:$putHere
+
 
 ## S10 has a surprising amount of archea, what is it?
 
@@ -899,29 +938,178 @@ sample_data(ps007_cleaned_sqrt_prop)["S10",]
 ## deep, depth section 5
 
 ## and surprisingly few in this thermokarst:
-
 sample_data(ps007_cleaned_sqrt_prop)["S21",] ## depth zero
-
 
 ## would be good to order and label by depth 
 
 ## we can save this out:
-ggsave("raw_phylumPalTherm.svg", 
+#ggsave("raw_phylumPalTherm.svg", 
         device = svg,
         plot = phylumPalTherm, 
         width = 10, 
         height = 6)
 
-## seems like it would be good hand edit
+## let's also get a nice, (sub?)phylum level graphic 
+## also need a breakdown of archea, after this:
+
+
+## top taxa, shared by palsa and tk:
+psObject <- ps007_cleaned_sqrt_prop_phyla
+howManyPhyla <- 10
+
+## get overall (Bact and Arch) ps object
+psObject_phyla <- tax_glom(psObject, taxrank="Phylum")
+topSharedPhyla <- names(sort(colSums(otu_table(psObject_phyla)), decreasing=TRUE)[1:howManyPhyla])
+psObject_topSharedPhyla <- prune_taxa(topSharedPhyla, psObject_phyla)
+psObject_topSharedPhyla.palsa <- subset_samples(psObject_topSharedPhyla, Subsite=="Palsa")
+psObject_topSharedPhyla.thermokarst <- subset_samples(psObject_topSharedPhyla, Subsite=="Thermokarst")
+phylumTopShared.Pal <- plot_bar(psObject_topSharedPhyla.palsa, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                       geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                       theme(axis.text=element_text(size=12)) +
+                       theme(legend.position="none") +
+                       labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+phylumTopShared.tk  <- plot_bar(psObject_topSharedPhyla.thermokarst, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                       geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                       theme(axis.text=element_text(size=12)) +
+                       theme( axis.text.y=element_blank(),
+                              axis.ticks.y=element_blank() ) +
+                       ylab(NULL) +
+                       labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+dev.off()
+
+dev.new()
+
+phylumTopShared.Pal + phylumTopShared.tk
+
+#psObject <- ps007_cleaned_sqrt_prop_phyla
+psObject <- ps007_cleaned_sqrt_prop
+howManyPhyla <- 10
+## and if we allow the top phyla to vary between pal and tk sites?
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.Phyla <- tax_glom(ps.justPalsa, taxrank="Phylum")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.Phyla <- tax_glom(ps.justThermokarst, taxrank="Phylum")
+topPhyla_palsa <- names(sort(colSums(otu_table(ps.justPalsa.Phyla)), decreasing=TRUE)[1:howManyPhyla])
+topPhyla_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.Phyla)), decreasing=TRUE)[1:howManyPhyla])
+ps.justPalsa_topPhyla <- prune_taxa(topPhyla_palsa, ps.justPalsa.Phyla)
+ps.justThermokarst_topPhyla <- prune_taxa(topPhyla_Thermokarst, ps.justThermokarst.Phyla)
+
+phylumTop.Pal <- plot_bar(ps.justPalsa_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                          geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+phylumTop.tk  <- plot_bar(ps.justThermokarst_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                                geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( axis.text.y=element_blank(),
+                                       axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokarst systems
+## I guess these would be potential symbiotes for the ANME bacteria if they are in there.   
+
+
+## good review/reminder, for oxygen levels etc.
+https://books.gw-project.org/groundwater-microbiology/chapter/redox-conditions/
+
+## here ##
+
+## let's check the archeal diversity of each of these:
+
+rm(ps.Archea)
+
+ps.Archaea <- subset_taxa(ps007_cleaned_sqrt_prop, Kingdom == "Archaea")
+psObject <- ps.Archaea
+howManyPhyla <- 10
+## and if we allow the top phyla to vary between pal and tk sites?
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.Phyla <- tax_glom(ps.justPalsa, taxrank="Phylum")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.Phyla <- tax_glom(ps.justThermokarst, taxrank="Phylum")
+topPhyla_palsa <- names(sort(colSums(otu_table(ps.justPalsa.Phyla)), decreasing=TRUE)[1:howManyPhyla])
+topPhyla_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.Phyla)), decreasing=TRUE)[1:howManyPhyla])
+ps.justPalsa_topPhyla <- prune_taxa(topPhyla_palsa, ps.justPalsa.Phyla)
+ps.justThermokarst_topPhyla <- prune_taxa(topPhyla_Thermokarst, ps.justThermokarst.Phyla)
+
+phylumTop.Pal <- plot_bar(ps.justPalsa_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                          geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa Archea') + theme(plot.title = element_text(hjust = 0.5))
+
+phylumTop.tk  <- plot_bar(ps.justThermokarst_topPhyla, x="DepthSection", fill = "Phylum", facet_grid=~Core ) +
+                                geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( axis.text.y=element_blank(),
+                                       axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst Archea') + theme(plot.title = element_text(hjust = 0.5))
+
+phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokarst systems
+
+## where would Methanomicrobiales be? in the Halobacteriales, methinks:
+
+ps.Archaea
+
+aa <- subset_taxa(ps.Archaea, Phylum=="Methanobacteriota")
+tax_table(aa)
+
+aa <- subset_taxa(ps.Archaea, Order=="Methanomicrobiales")
+tax_table(aa)
+## halobacteria has Methanomicrobiales, the largest group of methanogens
+
+## plot the relative abundance of this group?:
+## 
+aa <- subset_taxa(ps.Archaea, Order=="Methanomicrobiales")
+tax_table(aa)
+
+ps.Methanomicrobiales <- subset_taxa(ps007_cleaned_sqrt_prop, Order=="Methanomicrobiales")
+psObject <- ps.Methanomicrobiales
+tLevel <- "Order"
+howManyOTUs <- 10
+## and if we allow the top phyla to vary between pal and tk sites?
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.OTUs <- tax_glom(ps.justPalsa, taxrank=tLevel)
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.OTUs <- tax_glom(ps.justThermokarst, taxrank=tLevel)
+topPhyla_palsa <- names(sort(colSums(otu_table(ps.justPalsa.OTUs)), decreasing=TRUE)[1:howManyOTUs])
+topPhyla_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.OTUs)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topOTUs <- prune_taxa(topPhyla_palsa, ps.justPalsa.OTUs)
+ps.justThermokarst_topOTUs <- prune_taxa(topPhyla_Thermokarst, ps.justThermokarst.OTUs)
 
 
 
+tax_table(ps.justPalsa_topOTUs)
 
-plot_richness(ps, measures=c("Chao1", "Shannon")) ## not that usefull
+tax_table(ps.justThermokarst_topOTUs)
 
-## can we do this by palsa/thermokarst?:
 
-plot_richness(ps, measures=c("Chao1"), x="EcoCont") ## not that usefull
+
+phylumTop.Pal <- plot_bar(ps.justPalsa_topOTUs, x="DepthSection", fill = tLevel, facet_grid=~Core ) +
+                          geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa Archea') + theme(plot.title = element_text(hjust = 0.5))
+
+phylumTop.tk  <- plot_bar(ps.justThermokarst_topOTUs, x="DepthSection", fill = tLevel, facet_grid=~Core ) +
+                                geom_bar(aes(color=Order, fill=Order), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst Archea') + theme(plot.title = element_text(hjust = 0.5))
+
+phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokarst systems
+
+
+## check the alpha diversity:
+
+plot_richness(ps, measures=c("Chao1"), x="EcoCont") ## not that useful
 
 ps.prop.ord <- ordinate(ps.prop, "NMDS", "bray")
 
@@ -962,7 +1150,7 @@ dev.off()
 
 sessionInfo()
 
-## interesting. What else?
+## interesting. What else? Repeat this with unifrac. 
 
 ## would be good to know where the methanogens are
 ## and what taxa seem to be most important in each of these
@@ -1087,6 +1275,10 @@ grep "ANME" ar53_taxonomy.tsv | cut -f1
 ## how can we locate the anme clades?
 ## we may need to do this the old fashioned way, 
 ## run an alignment with our reads, silva, with sina. 
+
+## Dimitri comes to the rescue - silvaDB online can be searched
+## using the "Taxonomy" field, with the term ANME
+## (not "Organism name")
 
 ## anyway, I think we don't have time before thursday
 ## let's try to get an idea of the abundances of 
