@@ -1157,19 +1157,52 @@ load("ps007_cleaned_sqrt_prop.rda")
 rs <- refseq(ps007_cleaned_sqrt_prop)
 writeXStringSet(rs,"ps007_cleaned_sqrt_prop_RefSeqs.fa", format="fasta")
 
-## get these onto optiplex:
 
-getFile=
-putHere=
-daniel@132.180.113.114:
+cd /home/daniel/Documents/databases/silva/
 
-## here ##
 
-sina [options] -i <unaligned> -r <reference> -o <aligned>
+conda activate sina
 
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis
+
+############### runSinaOnRefSeqs.sh ###########################
+#!/usr/bin/env bash
+arbSilvaDB=/home/daniel/Documents/databases/silva/silva.arb
+outFolder=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/
+sina  -i ps007_cleaned_sqrt_prop_RefSeqs.fa -r $arbSilvaDB -o $outFolder/refSeqsInSilva.afa
+###############################################################
+
+conda activate sina
+
+chmod 777 runSinaOnRefSeqs.sh 
+
+./runSinaOnRefSeqs.sh &> sinaLog.txt &
+
+## this is big, maybe zip it up for git:
+
+gzip refSeqsInSilva.afa
+
+gunzip refSeqsInSilva.afa
+
+############### fastreeOnSinaRefSeqs.sh ###########################
+#!/usr/bin/env bash
+
+outDir="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/"
+alignment="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refSeqsInSilva.afa"
+
+FastTree -gtr -nt < ${alignment} > ${alignment/afa/nwk}
+##################################################################
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/
+
+chmod 777 fastreeOnSinaRefSeqs.sh
+
+nohup ./fastreeOnSinaRefSeqs.sh &
 
 
 ## check the alpha diversity:
+
+## here ##
 
 plot_richness(ps, measures=c("Chao1"), x="EcoCont") ## not that useful
 
