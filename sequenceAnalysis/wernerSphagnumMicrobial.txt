@@ -1015,7 +1015,6 @@ phylumTop.Pal + phylumTop.tk ## Thermodesulfobacteriota pops up in the thermokar
 ## good review/reminder, for oxygen levels etc.
 https://books.gw-project.org/groundwater-microbiology/chapter/redox-conditions/
 
-## here ##
 
 ## let's check the archeal diversity of each of these:
 
@@ -1083,9 +1082,6 @@ orderTop.Pal + orderTop.tk
 
 ps.Archaea
 
-aa <- subset_taxa(ps.Archaea, Phylum=="Methanobacteriota")
-tax_table(aa)
-
 aa <- subset_taxa(ps.Archaea, Order=="Methanomicrobiales")
 tax_table(aa)
 ## halobacteria has Methanomicrobiales, the largest group of methanogens
@@ -1124,8 +1120,52 @@ phylumTop.tk  <- plot_bar(ps.justThermokarst_topOTUs, x="DepthSection", fill = t
 phylumTop.Pal + phylumTop.tk ## The methanogens are pretty important here, especially in the thermokarst system
 
 
+##### finding ANME groups #####
+
 ## we need to track down the ANME groups.
-## looks like 
+
+## plan - run an alignment of our 16s reads, into the silva phylogeny
+## highlight ANME known ANME sequences 
+## can find them with the SILVA online search tool ("taxonomy == ANME")
+
+## which computer would be most appropriate here? try it with the optiplex:
+
+## following: https://sina.readthedocs.io/en/latest/commandline.html
+
+conda create -n sina sina
+
+conda activate  sina
+
+
+## the reference has to be in arb format. Surely we already 
+## have the arb silva db somewhere?
+
+## maybe not. how can we get it? 
+## probably: https://www.arb-silva.de/arb-files
+
+(wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb.gz \
+  -O /home/daniel/Documents/databases/silva/silva.arb.gz &) &
+
+## our unaligned references would be our reference sequences from our phyloseq 
+## object:
+
+R
+library("phyloseq")
+library("Biostrings")
+
+load("ps007_cleaned_sqrt_prop.rda")
+rs <- refseq(ps007_cleaned_sqrt_prop)
+writeXStringSet(rs,"ps007_cleaned_sqrt_prop_RefSeqs.fa", format="fasta")
+
+## get these onto optiplex:
+
+getFile=
+putHere=
+daniel@132.180.113.114:
+
+## here ##
+
+sina [options] -i <unaligned> -r <reference> -o <aligned>
 
 
 
