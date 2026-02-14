@@ -1130,6 +1130,8 @@ phylumTop.Pal + phylumTop.tk ## The methanogens are pretty important here, espec
 
 ## which computer would be most appropriate here? try it with the optiplex:
 
+## manual for sina: https://www.arb-silva.de/fileadmin/silva_databases/SINA/1.2.8/sina-manual.pdf
+
 ## following: https://sina.readthedocs.io/en/latest/commandline.html
 
 conda create -n sina sina
@@ -1143,8 +1145,7 @@ conda activate  sina
 ## maybe not. how can we get it? 
 ## probably: https://www.arb-silva.de/arb-files
 
-(wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb.gz \
-  -O /home/daniel/Documents/databases/silva/silva.arb.gz &) &
+wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb.gz 
 
 ## our unaligned references would be our reference sequences from our phyloseq 
 ## object:
@@ -1158,7 +1159,13 @@ rs <- refseq(ps007_cleaned_sqrt_prop)
 writeXStringSet(rs,"ps007_cleaned_sqrt_prop_RefSeqs.fa", format="fasta")
 
 
-cd /home/daniel/Documents/databases/silva/
+## on laptop:
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+
+## database here on laptop:
+/home/daniel/Documents/databases/silva/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb
+
+## following the tutorials from arb, #2 and #3
 
 
 conda activate sina
@@ -1191,6 +1198,7 @@ outDir="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/
 alignment="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refSeqsInSilva.afa"
 
 FastTree -gtr -nt < ${alignment} > ${alignment/afa/nwk}
+
 ##################################################################
 
 cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/
@@ -1201,7 +1209,18 @@ nohup ./fastreeOnSinaRefSeqs.sh &
 
 ## for some reason, the silva sequences are not in the tree...hmmm.
 
+## I guess this is normal. Next step would be to load the silvaDB and tree
+## into arb, and import the sequences
 
+## how to load the silva db into arb...
+
+## loaded into arb, sequences imported. 
+## too big for github, move it around with rsync.
+## put this on the office comp:
+
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sivawithrefseqs.*
+putHere=/media/vol/wernerSphagnumBackups/arb/findANME/
+rsync -auv $getFile daniel@132.180.112.24:$putHere
 
 ## here ##
 
