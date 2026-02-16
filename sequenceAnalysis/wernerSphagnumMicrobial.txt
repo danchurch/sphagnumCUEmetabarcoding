@@ -1138,7 +1138,6 @@ conda create -n sina sina
 
 conda activate  sina
 
-
 ## the reference has to be in arb format. Surely we already 
 ## have the arb silva db somewhere?
 
@@ -1155,9 +1154,18 @@ library("phyloseq")
 library("Biostrings")
 
 load("ps007_cleaned_sqrt_prop.rda")
+
 rs <- refseq(ps007_cleaned_sqrt_prop)
 writeXStringSet(rs,"ps007_cleaned_sqrt_prop_RefSeqs.fa", format="fasta")
 
+## or focus this to just archaea, since we are just trying to find 
+## the ANME sequences:
+
+ps.archaea <- subset_taxa(ps007_cleaned_sqrt_prop, Kingdom=="Archaea")
+rs <- refseq(ps.archaea)
+writeXStringSet(rs,"ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa", format="fasta")
+
+## here ##
 
 ## on laptop:
 cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
@@ -1165,12 +1173,25 @@ cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/seque
 ## database here on laptop:
 /home/daniel/Documents/databases/silva/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb
 
-## following the tutorials from arb, #2 and #3
+## following the tutorials from arb, #2 and #3 of ARB Workshop at C-MORE (2009)
+## get them here: https://hahana.soest.hawaii.edu/cmoreserver/education/grads-postdocs/arb_workshop.htm
 
 
-conda activate sina
+## taking this up on the desktop, can this old machine do it?:
 
-cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis
+cd /media/vol/wernerSphagnumBackups/arb/findANME/ && arb
+
+## seems okay. 
+## However, it looks like we may need to split up by bacteria vs. archaea.
+
+## at least, there are two "filters" for adding species to the 16s tree.
+## since we are only interested in ANME for the moment, can we use the
+## archaeal filter
+
+## for the full methanogens, if we need to do this again, split up the
+## alignment process, etc.. 
+
+## and failed. All my sequences cluster together. Hmmm...
 
 ############### runSinaOnRefSeqs.sh ###########################
 #!/usr/bin/env bash
@@ -1221,8 +1242,6 @@ nohup ./fastreeOnSinaRefSeqs.sh &
 getFile=/home/daniel/Documents/projects/wernerSphagnum/sivawithrefseqs.*
 putHere=/media/vol/wernerSphagnumBackups/arb/findANME/
 rsync -auv $getFile daniel@132.180.112.24:$putHere
-
-## here ##
 
 ## check the alpha diversity:
 
@@ -1794,4 +1813,6 @@ plot_bar(ps.Eco, x="SampleID", fill = "Kingdom") +
 getFile=/home/daniel/Documents/projects/wernerSphagnum/picrust2/ps.Eco_10phyla.png
 putHere=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/
 rsync -auv daniel@132.180.113.114:$getFile $putHere
+
+
 
