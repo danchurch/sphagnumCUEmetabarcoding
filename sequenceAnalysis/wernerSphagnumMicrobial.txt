@@ -1144,7 +1144,10 @@ conda activate  sina
 ## maybe not. how can we get it? 
 ## probably: https://www.arb-silva.de/arb-files
 
-wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb.gz 
+#arbSilvaDB=/home/daniel/Documents/databases/silva/silva.arb.gz ## laptop?
+arbSilvaDB=/media/vol/phylo_dbs/silva/arb/silva.arb.gz ## desktop 
+wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb.gz \
+  -O $arbSilvaDB
 
 ## our unaligned references would be our reference sequences from our phyloseq 
 ## object:
@@ -1152,9 +1155,7 @@ wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/ARB_files/
 R
 library("phyloseq")
 library("Biostrings")
-
 load("ps007_cleaned_sqrt_prop.rda")
-
 rs <- refseq(ps007_cleaned_sqrt_prop)
 writeXStringSet(rs,"ps007_cleaned_sqrt_prop_RefSeqs.fa", format="fasta")
 
@@ -1165,90 +1166,50 @@ ps.archaea <- subset_taxa(ps007_cleaned_sqrt_prop, Kingdom=="Archaea")
 rs <- refseq(ps.archaea)
 writeXStringSet(rs,"ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa", format="fasta")
 
-## here ##
-
 ## on laptop:
-cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
-
-## database here on laptop:
-/home/daniel/Documents/databases/silva/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb
+#cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+## database on laptop:
+#/home/daniel/Documents/databases/silva/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb
 
 ## following the tutorials from arb, #2 and #3 of ARB Workshop at C-MORE (2009)
 ## get them here: https://hahana.soest.hawaii.edu/cmoreserver/education/grads-postdocs/arb_workshop.htm
 
+## do the alignments, on optiplex:
 
-## taking this up on the desktop, can this old machine do it?:
-
-cd /media/vol/wernerSphagnumBackups/arb/findANME/ && arb
-
-## seems okay. 
-## However, it looks like we may need to split up by bacteria vs. archaea.
-
-## at least, there are two "filters" for adding species to the 16s tree.
-## since we are only interested in ANME for the moment, can we use the
-## archaeal filter
-
-## for the full methanogens, if we need to do this again, split up the
-## alignment process, etc.. 
-
-## and failed. All my sequences cluster together. Hmmm...
-
-############### runSinaOnRefSeqs.sh ###########################
-#!/usr/bin/env bash
 arbSilvaDB=/home/daniel/Documents/databases/silva/silva.arb
 outFolder=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/
-sina  -i ps007_cleaned_sqrt_prop_RefSeqs.fa -r $arbSilvaDB -o $outFolder/refSeqsInSilva.afa
-###############################################################
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis
 
 conda activate sina
 
-chmod 777 runSinaOnRefSeqs.sh 
-
-./runSinaOnRefSeqs.sh &> sinaLog.txt &
-
-## this is big, maybe zip it up for git:
-
-gzip refSeqsInSilva.afa
-
-gunzip refSeqsInSilva.afa
-
-############### fastreeOnSinaRefSeqs.sh ###########################
-#!/usr/bin/env bash
-
-outDir="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/"
-alignment="/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refSeqsInSilva.afa"
-
-FastTree -gtr -nt < ${alignment} > ${alignment/afa/nwk}
-
-##################################################################
-
-cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/
-
-chmod 777 fastreeOnSinaRefSeqs.sh
-
-nohup ./fastreeOnSinaRefSeqs.sh &
-
-## for some reason, the silva sequences are not in the tree...hmmm.
-
-## I guess this is normal. Next step would be to load the silvaDB and tree
-## into arb, and import the sequences
-
-## how to load the silva db into arb...
-
-## loaded into arb, sequences imported. 
-## too big for github, move it around with rsync.
-## put this on the office comp:
-
-getFile=/home/daniel/Documents/projects/wernerSphagnum/sivawithrefseqs.*
-putHere=/media/vol/wernerSphagnumBackups/arb/findANME/
-rsync -auv $getFile daniel@132.180.112.24:$putHere
-
-## check the alpha diversity:
+sina  -i ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa -r $arbSilvaDB -o $outFolder/refArchSeqsInSilva.afa
 
 
+## and back on desktop, do the merge in ARB again.
+
+## save the merged archive here:
+
+cd /media/vol/wernerSphagnumBackups/arb/
+
+## and again, adding it in arb, does not look good. 
+## as far as I can see, it disagrees totally with our
+## rdb/silva taxonomic assignments. Says there 
+## are just two tight clades of archea, in Nitrosphaera
+## sortof, and all rest off by themselves, in Thermoplasmata. 
+## something didn't work. 
+
+## here ##
+
+## maybe we should have checked the direction of the reads?
+
+## think I have to give this a break. 
+
+## when I get back, maybe get silva archeael tree only, and
+## associated sequences. Then do a denovo alignment with SSU-Align?
 
 
-plot_richness(ps, measures=c("Chao1"), x="EcoCont") ## not that useful
+## ordination ##
 
 ps.prop.ord <- ordinate(ps.prop, "NMDS", "bray")
 
