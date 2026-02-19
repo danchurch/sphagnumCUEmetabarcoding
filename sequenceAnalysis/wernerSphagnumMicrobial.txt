@@ -1199,14 +1199,88 @@ cd /media/vol/wernerSphagnumBackups/arb/
 ## sortof, and all rest off by themselves, in Thermoplasmata. 
 ## something didn't work. 
 
-## here ##
+
 
 ## maybe we should have checked the direction of the reads?
 
-## think I have to give this a break. 
 
-## when I get back, maybe get silva archeael tree only, and
+## on optiplex, just check on set of reads:
+silvaDB=/home/daniel/Documents/databases/silva/silva_nr99_v138.2_toGenus_trainset.fa
+reads=/home/daniel/Documents/projects/wernerSphagnum/wernerSphagnumSequences/
+vsearch \
+   --orient ${reads}Oemik-002011_S38_L001_R1_001.fastq.gz \
+   --db $silvaDB \
+   --fastaout  oriented.fa \
+   --notmatched ogHylo_strongNostocMatches_NotOriented.fa
+
+## nope, that is not the issue, all are correctly oriented. 
+
+## maybe get silva archeael tree only, and
 ## associated sequences. Then do a denovo alignment with SSU-Align?
+
+## mark the archaea group
+## File --> Export --> export to external format --> compress all gaps, fasta_wacc.eft, 
+## stored it here:
+
+less /media/vol/wernerSphagnumBackups/arb/silvaOnlyArchea.fasta
+
+## lots of weird white space. Get rid of it, go to DNA
+seqtk seq -S -l 0 silvaOnlyArchea.fasta |
+sed '/^[^>]/ y/uU/tT/' |
+sed '/>/ s/rna//g' > archea.fa 
+
+## but accession information not retained here. why not?
+## it looks like it ANME are best identified using the tax_slv 
+## field with "*ANME*"
+## but this is still only ~400 sequences. Either the 
+## ARB database is out of sync (behind) with the normal silva 
+## database. There are ~6000 sequences with "ANME" in the
+## taxonomy field on the online silva db. 
+
+## try combining:
+## 1. all the ANME sequences from silva
+## 2. archea from the ARB database
+## 3. our archeal sequences    
+
+## then find all of our ASVs and see if they are near the ANME 
+## sequences?
+
+## alternatively, take our archeal sequences from SILVA? this is 
+## 347,000 sequences, of course way too large. 
+
+## or, download the archaea sequences with gaps, and use silva to 
+## add ours again using sina. Try this first. This should essentially
+## be an MSA for all of archaea.
+
+## requested arb db of all archea sequences from silva online db
+
+conda activate sina
+
+myRefSeqs=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa
+outFolder=/media/vol/wernerSphagnumBackups/arb
+archaeaArb=/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.arb 
+sina  -i $myRefSeqs -r $archaeaArb -o $outFolder/refArchSeqsInArchaeaSilva.afa
+
+
+cd /media/vol/wernerSphagnumBackups/arb
+
+## import in arb, then export it and all the other sequences from the Archaea-only arb DB
+## as an alignment, still in the same folder
+
+less /media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
+
+## not working, can't seem to find a way to export it that keeps all the data
+## we need. 
+
+## stopping here Feb19 ##
+
+## make a tree with it:
+
+## here ##
+
+alignOut="refArchSeqsInArchaeaSilva.afa"
+FastTree -gtr -nt < $alignOut > refArchaeaSilvaArchaea.nwk
+
 
 
 ## ordination ##
