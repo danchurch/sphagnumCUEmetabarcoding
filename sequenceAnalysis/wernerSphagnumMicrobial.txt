@@ -1195,7 +1195,6 @@ conda activate sina
 
 sina  -i ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa -r $arbSilvaDB -o $outFolder/refArchSeqsInSilva.afa
 
-
 ## and back on desktop, do the merge in ARB again.
 
 ## save the merged archive here:
@@ -1281,11 +1280,34 @@ less /media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
 ## not working, can't seem to find a way to export it that keeps all the data
 ## we need. 
 
-## stopping here Feb19 ##
-
-## make a tree with it:
-
 ## here ##
+
+## can we recreate this with the laptop? We need:
+
+
+## arb directory of all archea from silva
+## on office comp:
+/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.arb
+/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.sidx
+
+## our archeal reads aligned to this using Silva.
+## on office comp:
+/media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
+
+## to get these:
+
+#getFile=/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.*
+getFile=/media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
+putDir=/home/daniel/Documents/projects/wernerSphagnum/arb/
+rsync -auv --progress daniel@132.180.112.24:$getFile $putDir
+
+## and now try to combine these again, with arb 
+
+## so on the laptop, use the following dir:
+cd /home/daniel/Documents/projects/wernerSphagnum/arb
+
+## not run ##
+## make a tree with it:
 
 alignOut="refArchSeqsInArchaeaSilva.afa"
 FastTree -gtr -nt < $alignOut > refArchaeaSilvaArchaea.nwk
