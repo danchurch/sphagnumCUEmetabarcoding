@@ -1273,17 +1273,16 @@ sina  -i $myRefSeqs -r $archaeaArb -o $outFolder/refArchSeqsInArchaeaSilva.afa
 cd /media/vol/wernerSphagnumBackups/arb
 
 ## import in arb, then export it and all the other sequences from the Archaea-only arb DB
-## as an alignment, still in the same folder
+## as an alignment, 
 
 less /media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
 
 ## not working, can't seem to find a way to export it that keeps all the data
 ## we need. 
 
-## here ##
 
+##### 
 ## can we recreate this with the laptop? We need:
-
 
 ## arb directory of all archea from silva
 ## on office comp:
@@ -1293,7 +1292,6 @@ less /media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
 ## our archeal reads aligned to this using Silva.
 ## on office comp:
 /media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
-
 ## to get these:
 
 #getFile=/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.*
@@ -1301,16 +1299,67 @@ getFile=/media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
 putDir=/home/daniel/Documents/projects/wernerSphagnum/arb/
 rsync -auv --progress daniel@132.180.112.24:$getFile $putDir
 
-## and now try to combine these again, with arb 
-
 ## so on the laptop, use the following dir:
 cd /home/daniel/Documents/projects/wernerSphagnum/arb
 
-## not run ##
+######
+
+## we can export all these with ARB, but I cannot seem to retain the really important 
+## info about whether or not a species is an ANME archaea.
+
+## for the moment, export the alignment, and also a list of names of ANME archea
+
+## the ANME archaea accession names are here, on officeComp
+
+less /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/silvaANMEarchaea.csv
+
+## AB239077...no mention of ANME in the NCBI accession. But somehow, silva is calling it a ANME archaea.
+## wonder how they decide...
+
+## 
+## the full alignment of our archaeal reads withina all the silva Archaea is here, on officeComp
+ls /media/vol/wernerSphagnumBackups/arb/silvaArchea_ourArchea.afa 
+
+## lots of weird white space. Get rid of it, go to DNA
+seqtk seq -S -l 0 silvaArchea_ourArchea.afa |
+sed '/^[^>]/ y/uU/tT/' |
+sed '/>/ s/rna//g' > silvaArchea_ourArchea_cleaned.afa 
+
+## didn't really work. let's see if we can do without a cleaning step.
+
+## stopping here Feb24
+## next step is try to change the labels for these to note whether they
+## are ANME.  
+
+## this is probably to large to make a tree on our desktop? Try it: 
+alignOut=/media/vol/wernerSphagnumBackups/arb/silvaArchea_ourArchea.afa 
+FastTree -gtr -nt < $alignOut > refArchaeaSilvaArchaea.nwk
+
+## yup, too big. And can't load it into memory on my desktop on python script below
+## so put this file onto the optiplex.
+## nope optiplex is updating firmware. 
+
+#getFile=/media/vol/wernerSphagnumBackups/arb/silvaArchea_ourArchea.afa 
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/silvaANMEarchaea.csv
+putDir=/media/vol1/daniel/wernerPeat/looking4ANME/
+rsync -auv --progress $getFile test@132.180.112.115:$putDir
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME
+
+python3
+
+import os
+import Bio.Seq
+import Bio.SeqRecord 
+import Bio.AlignIO 
+
+alignment = Bio.AlignIO.read("silvaArchea_ourArchea.afa", "fasta")
+
+for record in alignment:
+    print(record)
+
 ## make a tree with it:
 
-alignOut="refArchSeqsInArchaeaSilva.afa"
-FastTree -gtr -nt < $alignOut > refArchaeaSilvaArchaea.nwk
 
 
 
