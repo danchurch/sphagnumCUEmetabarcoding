@@ -833,7 +833,17 @@ write.csv(aa, file="example_environmentalMatrix.csv")
 
 write.csv(otu_table(ps007_cleaned_sqrt_prop), file="example_communityMatrix.csv")
 
+load("ps007_cleaned_sqrt_prop.rda")
 
+## think she also needs the reference sequences.
+
+aa <- as.data.frame(as.matrix(sample_data(ps007_cleaned_sqrt_prop)))
+
+rs <- refseq(ps007_cleaned_sqrt_prop)
+
+writeXStringSet(rs,"reference16Ssequences_exampleCommunity.fa", format="fasta")
+
+dim(otu_table(ps007_cleaned_sqrt_prop))
 
 
 plot_bar(ps007_cleaned_sqrt_prop, fill = "Kingdom") +
@@ -1260,7 +1270,6 @@ myRefSeqs=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_
 outFolder=/media/vol/wernerSphagnumBackups/arb
 archaeaArb=/media/vol/phylo_dbs/silva/arb/arb-silva.de_2026-02-19_id1467113_trunc.arb 
 sina  -i $myRefSeqs -r $archaeaArb -o $outFolder/refArchSeqsInArchaeaSilva.afa
-
 
 cd /media/vol/wernerSphagnumBackups/arb
 
