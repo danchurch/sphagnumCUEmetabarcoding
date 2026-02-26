@@ -1440,7 +1440,10 @@ nohup bash -c 'FastTreeMP -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refAr
 
 ## here ##
 
-## nanoComp can't handle it.
+## nanoComp can't handle it, at least the multithreaded version.
+## optiplex can't handle it, either.
+
+## try the single thread version. It can run  
 
 ## move it to the optiplex:
 
