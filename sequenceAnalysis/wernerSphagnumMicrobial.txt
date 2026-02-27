@@ -1443,8 +1443,6 @@ nohup bash -c 'FastTreeMP -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refAr
 nohup bash -c 'FastTree -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refArchaeaSilvaArchaea.nwk' &
 ## started on opti at 12:53, Thurs
 
-## here ##
-
 ## nanoComp can't handle it, at least the multithreaded version.
 ## optiplex can't handle it, either.
 
@@ -1515,7 +1513,7 @@ sina  -i $myRefSeqs -r $archaeaArb -o $outFolder/refArchSeqsInArchaeaSilva.afa
 ## second (if #1 doesn't work) try an alignment with the smaller 
 ## archaeal sequence database with SSU-align, then rebuild tree. 
 
-mv sinaOurArchaeaSilva.afa.fasta ourArchaea_SilvaArchaea_combo.afa
+mv ourArchaea_SilvaArchaea_combo.fasta ourArchaea_SilvaArchaea_combo.afa
 #pigz ourArchaea_SilvaArchaea_combo.afa
 
 ## number 1 - export combo alignment, (cleanup?), and try making a tree:
@@ -1528,6 +1526,106 @@ rsync -auvz $getFile daniel@132.180.113.114:$putDir
 cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
 
 nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo.afa > refArchaeaSilvaArchaea.nwk' &
+
+## and done. Check the results:
+
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
+putDir=/media/vol/wernerSphagnumBackups/arb/
+rsync -auvz daniel@132.180.113.114:$getFile $putDir
+
+arb refArchSeqsInArchaeaSilva.afa refArchaeaSilvaArchaea.nwk 
+
+## actually looks like it worked. But the information about which of these 
+## are ANME is lost...
+
+## so, change names to be unique, but with both NCBI accession and if it is 
+## a known ANME:
+
+cd /media/vol/wernerSphagnumBackups/arb
+
+python3
+import os, re
+import Bio.Seq
+import Bio.SeqRecord 
+import Bio.AlignIO 
+import pandas as pd
+
+#alignment = Bio.AlignIO.read("toy3.afa", "fasta")
+alignment = Bio.AlignIO.read("ourArchaea_SilvaArchaea_combo.afa", "fasta")
+
+for record in alignment:
+    print(record)
+
+ANMEaccessions = (pd.read_csv("/media/vol/wernerSphagnumBackups/arb/ANME.csv", header=None)
+                   .rename({0:"silva",1:"notes",2:"accession"}, axis=1))
+
+
+ANMEaccessions['accession']
+
+a=0
+b=[]
+for record in alignment:
+    accession = re.split(r'\s', record.description)[-1]
+    silvaNum = re.split(r'\s', record.description)[0]
+    record.name = accession + "-" + silvaNum
+    record.id = record.name
+    record.description  = ""
+    if accession in ANMEaccessions['accession'].to_list():
+      a += 1
+      record.description  = "ANME"
+      record.name = record.name + "-" + "ANME"
+
+
+
+
+a == ANMEaccessions.shape[0] ## yup, all ANME accessions maintained.
+
+for record in alignment:
+    if "ANME" in record.description:
+      print(record)
+
+## looks right. Try this. We will lose all taxonomic information but 
+## we hopefully recover the ANME clades. We'll see. 
+
+Bio.AlignIO.write(alignment, "ourArchaea_SilvaArchaea_combo_relabeled.afa", "fasta")
+
+## repeating above, rerun the tree with this relabeled alignment.
+
+getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaea_SilvaArchaea_combo_relabeled.afa
+putDir=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+rsync -auvz $getFile daniel@132.180.113.114:$putDir
+
+## rerun nohup fasttree command above on optiplex:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+
+nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo_relabeled.afa > refArchaeaSilvaArchaea.nwk' &
+
+## stopping here on 27.2.26. 
+## If the world doesn't end in the meantime, 
+## when I come back, make an arb database with the new tree.
+
+## should be the following:
+## get newick from opti:
+
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
+putDir=/media/vol/wernerSphagnumBackups/arb/
+rsync -auvz daniel@132.180.113.114:$getFile $putDir
+
+## start an arb database using this file and:
+
+ourArchaea_SilvaArchaea_combo_relabeled.afa
+
+## see if the ANME clades are recovered, and if we have any 
+## sequences in them. 
+
+## if not, double check results by manually looking for rdb tax assignments
+## that are within the clades on the archeal ARB database for ANME (they are
+## pretty clear). 
+
+
+
+###########
 
 ## since that will probably fail...how would we set up a new alignment for #2? 
 ## Export that unaligned file from arb. Clean up first with biopython?
