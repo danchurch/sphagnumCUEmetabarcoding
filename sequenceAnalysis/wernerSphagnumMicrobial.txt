@@ -1438,6 +1438,11 @@ cd /home/daniel/Documents/projects/wernerSphagnum/looking4ANME ## on optiplex
 
 nohup bash -c 'FastTreeMP -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refArchaeaSilvaArchaea.nwk' &
 
+## dies on both, try without multithreading:
+
+nohup bash -c 'FastTree -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refArchaeaSilvaArchaea.nwk' &
+## started on opti at 12:53, Thurs
+
 ## here ##
 
 ## nanoComp can't handle it, at least the multithreaded version.
@@ -1458,6 +1463,111 @@ getFile=/media/vol1/daniel/wernerPeat/looking4ANME/silvaArchea_ourArchea_relabel
 putDir=/home/daniel/Documents/projects/wernerSphagnum/looking4ANME/
 rsync -auv $getFile daniel@132.180.113.114:$putDir
 
-## try the code again on optiplex:
+## yup. Even the single threaded version overloads even the optiplex
 
+
+{ \time -v ls > ls.log ; } 2> time.log
+
+nohup \time -v bash -c 'ls -lth'
+
+nohup { \time -v bash -c 'FastTree -gtr -nt < silvaArchea_ourArchea_relabeled.afa > refArchaeaSilvaArchaea.nwk' } 2> time.log
+
+
+## nope, none of this works. The archaeal section of Silva is just too
+## large, can't rebuild the tree with just our local computing 
+## resources. 
+
+## revisit the existing arb database of silva. 
+## Re-download, first try local on desktop
+
+/media/vol/phylo_dbs/silva/arb/SILVA_138.2_SSURef_NR99_03_07_24_opt.arb
+
+## can we extract just the archea?:
+ 
+## yes, but don't forget to keep a bacteria for rooting..
+
+## so kept Nostoc punctiforme sequence as an outgroup, plus the whole archaeal
+## clade.
+
+## use sina, try again to integrate our archaea into this:
+
+conda activate sina
+
+myRefSeqs=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa
+outFolder=/media/vol/wernerSphagnumBackups/arb
+archaeaArb=/media/vol/phylo_dbs/silva/arb/SILVA_138.2_SSURef_NR99_Archeae.arb
+sina  -i $myRefSeqs -r $archaeaArb -o $outFolder/refArchSeqsInArchaeaSilva.afa
+
+## try adding this to our alignment and tree in ARB
+/media/vol/wernerSphagnumBackups/arb/refArchSeqsInArchaeaSilva.afa
+
+## and again, it lumps all our sequences into monophyletic two clades, one near thermococcus and one 
+## one in Caldarchaeales/Nitrosphaeria. This doesn't make sense, really. 
+## this doesn't match our silva classifications using RDP classifier
+## which are generally much more sensible, ecologically. 
+
+## so, let's try again with this smaller database to make our own tree. 
+## we don't know where the error lies - is it in the combined alignment
+## from silva, or in the parsimony tree building?
+
+## so work backward - first export the combined sina alignment and see
+## using fasttree fixes our issue.
+## second (if #1 doesn't work) try an alignment with the smaller 
+## archaeal sequence database with SSU-align, then rebuild tree. 
+
+mv sinaOurArchaeaSilva.afa.fasta ourArchaea_SilvaArchaea_combo.afa
+#pigz ourArchaea_SilvaArchaea_combo.afa
+
+## number 1 - export combo alignment, (cleanup?), and try making a tree:
+getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaea_SilvaArchaea_combo.afa
+putDir=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+rsync -auvz $getFile daniel@132.180.113.114:$putDir
+
+## on optiplex
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
+
+nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo.afa > refArchaeaSilvaArchaea.nwk' &
+
+## since that will probably fail...how would we set up a new alignment for #2? 
+## Export that unaligned file from arb. Clean up first with biopython?
+
+## first, get both lists of unaligned sequences:
+
+## 16S archeal reads are:
+/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa
+
+## export the archaeal reads, unaligned, and the nostoc:
+ls /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/ArchaeaSilvaUnaligned.fasta
+
+## clean up the white space:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME
+
+#seqtk seq -S ArchaeaSilvaUnaligned.fasta > ArchaeaSilvaUnaligned_cleaned.fasta
+#mv ArchaeaSilvaUnaligned_cleaned.fasta ArchaeaSilvaUnaligned.fasta
+seqtk seq -S ../ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa > ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa
+
+## concatenate them and 
+cat ArchaeaSilvaUnaligned.fasta ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa >\
+archaeaSilva_ourArchaea_combo_unaligned.fa
+
+## put on the nanoComp, since we are using the optiplex
+getFile=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/archaeaSilva_ourArchaea_combo_unaligned.fa
+putDir=test@132.180.112.115:/media/vol1/daniel/wernerPeat/looking4ANME/
+rsync -auv $getFile $putDir
+
+## run ssu-align on these on nanoComp:
+
+conda activate ssu-align
+
+cd /media/vol1/daniel/wernerPeat/looking4ANME/
+
+## not run ## 
+
+ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
+
+ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
+ssu-mask --pf 0.9999 --pt 0.9999 nostocaceaeCyanoseqPlusOurSeqs_ali
+ssu-mask --stk2afa nostocaceaeCyanoseqPlusOurSeqs_ali
 
