@@ -1611,6 +1611,17 @@ nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo_relabeled.afa
 
 ## so back up, set up the combined archea + cyano + our archea alignment
 ## that was created using sina, and k
+## export.
+
+## these should be on the office comp at:
+/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.arb
+/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.ARF
+/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
+
+## try making a tree with the alignment
+
+
+
 
 
 ## should be the following:
