@@ -1630,20 +1630,25 @@ nohup bash -c 'FastTreeMP -gtr -nt < ourArchaeaSilvaArchea_combo.fasta > refArch
 
 ## to get going for this on the laptop:
 
-## arb on the laptop somewhere:
-
+## get this custom arb on the laptop somewhere:
 getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.*
 putDir=/home/daniel/Documents/projects/wernerSphagnum/arb
 rsync -auvzn daniel@132.180.112.24:$getFile $putDir
 
+## let's also put on the silva archea without our addiitonal reads, to play with:
+getFile="/media/vol/phylo_dbs/silva/arb/SILVA_138.2_SSURef_NR99_Archeae.*"
+putDir="/home/daniel/Documents/projects/wernerSphagnum/arb"
+rsync -auv daniel@132.180.112.24:$getFile $putDir
 
-
-
+##  
 
 ## get newick from opti:
 getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
-putDir=/media/vol/wernerSphagnumBackups/arb/
+#putDir=/media/vol/wernerSphagnumBackups/arb/ ## desktop
+putDir=/home/daniel/Documents/projects/wernerSphagnum/arb/ ## laptop
 rsync -auv daniel@132.180.113.114:$getFile $putDir
+
+##  
 
 ## now load the new tree into the existing arb database 
 
