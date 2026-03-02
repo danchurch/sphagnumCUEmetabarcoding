@@ -1628,6 +1628,18 @@ cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/seque
 
 nohup bash -c 'FastTreeMP -gtr -nt < ourArchaeaSilvaArchea_combo.fasta > refArchaeaSilvaArchaea.nwk' &
 
+## to get going for this on the laptop:
+
+## arb on the laptop somewhere:
+
+getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.*
+putDir=/home/daniel/Documents/projects/wernerSphagnum/arb
+rsync -auvzn daniel@132.180.112.24:$getFile $putDir
+
+
+
+
+
 ## get newick from opti:
 getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
 putDir=/media/vol/wernerSphagnumBackups/arb/
