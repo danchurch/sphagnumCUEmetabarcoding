@@ -1618,22 +1618,23 @@ nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo_relabeled.afa
 /media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.ARF
 /media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
 
-## try making a tree with the alignment
+## try making a tree with the alignment on the optiplex:
 
+getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
+putDir=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/
+rsync -auvz $getFile daniel@132.180.113.114:$putDir
 
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME
 
+nohup bash -c 'FastTreeMP -gtr -nt < ourArchaeaSilvaArchea_combo.fasta > refArchaeaSilvaArchaea.nwk' &
 
-
-## should be the following:
 ## get newick from opti:
-
 getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
 putDir=/media/vol/wernerSphagnumBackups/arb/
-rsync -auvz daniel@132.180.113.114:$getFile $putDir
+rsync -auv daniel@132.180.113.114:$getFile $putDir
 
-## start an arb database using this file and:
+## now load the new tree into the existing arb database 
 
-ourArchaea_SilvaArchaea_combo_relabeled.afa
 
 ## see if the ANME clades are recovered, and if we have any 
 ## sequences in them. 
