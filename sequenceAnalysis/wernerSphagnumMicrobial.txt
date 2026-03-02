@@ -1601,9 +1601,17 @@ cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/seque
 
 nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo_relabeled.afa > refArchaeaSilvaArchaea.nwk' &
 
-## stopping here on 27.2.26. 
 ## If the world doesn't end in the meantime, 
 ## when I come back, make an arb database with the new tree.
+
+## coming back, rethinking this approach. It's probably better to 
+## leave the names in native arb format, and enter the tree back 
+## into the existing arb database. Should be compatible if the 
+## names are left alone. 
+
+## so back up, set up the combined archea + cyano + our archea alignment
+## that was created using sina, and k
+
 
 ## should be the following:
 ## get newick from opti:
