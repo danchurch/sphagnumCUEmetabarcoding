@@ -1644,8 +1644,8 @@ rsync -auv daniel@132.180.112.24:$getFile $putDir
 
 ## get newick from opti:
 getFile=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/refArchaeaSilvaArchaea.nwk
-#putDir=/media/vol/wernerSphagnumBackups/arb/ ## desktop
-putDir=/home/daniel/Documents/projects/wernerSphagnum/arb/ ## laptop
+putDir=/media/vol/wernerSphagnumBackups/arb/ ## desktop
+#putDir=/home/daniel/Documents/projects/wernerSphagnum/arb/ ## laptop
 rsync -auv daniel@132.180.113.114:$getFile $putDir
 
 ##  
@@ -1660,7 +1660,43 @@ rsync -auv daniel@132.180.113.114:$getFile $putDir
 ## that are within the clades on the archeal ARB database for ANME (they are
 ## pretty clear). 
 
+## some ANME-1 sequences:
 
+## these ASVs seem related to ANME bacteria
+ASV4840
+ASV2903
+ASV5335
+ASV3404
+ASV1674
+ASV4164
+
+## does their assigned taxonomy reflect this?
+
+R
+
+library("phyloseq")
+library("Biostrings")
+load("ps007_cleaned_sqrt_prop.rda")
+
+possibleANME <- c("ASV4840","ASV2903","ASV5335","ASV3404","ASV1674","ASV4164")
+
+tax_table(ps007_cleaned_sqrt_prop)[possibleANME]
+
+ASV4840
+ASV2903
+ASV5335
+ASV3404
+ASV1674
+ASV4164
+
+
+## are these "commmon"?
+
+
+psPossANME = prune_taxa(possibleANME, ps007_cleaned_sqrt_prop)
+
+
+plot_bar(psPossANME)
 
 ###########
 
