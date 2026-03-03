@@ -1675,7 +1675,8 @@ ASV4164
 R
 
 library("phyloseq")
-library("Biostrings")
+library("ggplot2")
+library("patchwork")
 load("ps007_cleaned_sqrt_prop.rda")
 
 possibleANME <- c("ASV4840","ASV2903","ASV5335","ASV3404","ASV1674","ASV4164")
@@ -1692,11 +1693,43 @@ ASV4164
 
 ## are these "commmon"?
 
-
 psPossANME = prune_taxa(possibleANME, ps007_cleaned_sqrt_prop)
 
-
 plot_bar(psPossANME)
+
+psObject <- psPossANME
+howManyOTUs <- 6
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+topOTUs_palsa <- names(sort(colSums(otu_table(ps.justPalsa)), decreasing=TRUE)[1:howManyOTUs])
+topOTUs_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topOTUs <- prune_taxa(topOTUs_palsa, ps.justPalsa)
+ps.justThermokarst_topOTUs <- prune_taxa(topOTUs_Thermokarst, ps.justThermokarst)
+
+
+phylumTop.Pal <- plot_bar(ps.justPalsa_topOTUs, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Phylum, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+phylumTop.tk  <- plot_bar(ps.justThermokarst_topOTUs, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Phylum, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( axis.text.y=element_blank(),
+                                       axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+phylumTop.Pal + phylumTop.tk 
+
+## something is weird about the plots. y-axes need to be fixed. 
+
+
+
+
+
+
 
 ###########
 
