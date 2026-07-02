@@ -4,6 +4,63 @@ devtools::install_github("thomasp85/patchwork")
 
 https://nbviewer.org/github/danchurch/sphagnumCUEmetabarcoding/blob/main/sequenceAnalysis/firstLookPeat16s.ipynb
 
+## to get this running locally, need a fresh jupyter install
+
+sudo apt install jupyter
+
+sudo apt install jupyterlab
+
+## rkernel, will this old one work?
+
+install.packages(c('repr', 'IRdisplay', 'IRkernel'), type = 'source')
+
+install.packages('IRkernel')
+
+## nope, have to update R, ogawd
+
+sudo apt update -qq 
+sudo apt install --no-install-recommends software-properties-common dirmngr
+gpg --show-keys /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc 
+sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+sudo apt install --no-install-recommends r-base
+sudo apt-get install r-base-dev
+
+## bioconductor stuff now needs to be installed. Oh jeez. 
+
+BiocManager::install(version = "3.23")
+
+## and now phyloseq is broken. Oh jeez. 
+
+sudo R CMD INSTALL --no-staged-install phyloseq
+
+R CMD INSTALL --help
+
+BiocManager::install("phyloseq")
+
+## fails. Probably something to do with R4.6 and how it handles C libraries or something,
+## don't understand: 
+## https://github.com/eddelbuettel/R-4.6.0-binary-transition/tree/master
+
+## they say to do a local compilation:
+
+remove.packages("rlang")
+
+install.packages("rlang")
+## installed to /home/daniel/R/x86_64-pc-linux-gnu-library/4.6
+
+## nope. Ugh. go home
+
+
+install.packages('RKernel', repos = c('https://melff.r-universe.dev', 'https://cloud.r-project.org'))
+
+RKernel::installspec()
+
+## bash kernel...
+pipx install bash_kernel
+
+python3 -m bash_kernel.install
+
+
 ## let's take a look at the sequences from Werner. 
 ## = get an OTU table, check predictors  NMS/permanova etc. 
 ## if there is anything there, contact florian hartig and get serious with jsdm
