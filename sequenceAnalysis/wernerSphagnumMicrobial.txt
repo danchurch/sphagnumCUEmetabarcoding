@@ -1860,11 +1860,21 @@ FJ231129 ## uncultured archeae from aliplano in Chile, categorized as Methanosar
 ## but the repseq from this asv blasts 100% no gaps full length to a known methanogen, 
 ## KY123342, called uncultured Methanosaeta sp by the authors, but id in Silva is Methanothrix
 
+## updating bioc and phyloseq on laptop, pain in the rear...
+
+BiocManager::install(version = "3.23")
+
 cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis
 
+cd /home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis ## laptop
+
+
 R
+
 library("phyloseq")
+
 load("ps007_cleaned_sqrt_prop.rda")
+
 ps <- ps007_cleaned_sqrt_prop
 tax_table(ps)['ASV2037'] ## our classifier agrees with Methanothrix
 
@@ -1895,6 +1905,10 @@ tax_table(ps)['ASV3404']  ## our RDP says Methanosarcina again.
 ## those are the primary suspects, everything else is below 95%
 ## for the moment there is not strong evidence for ANME 
 
+## while we're in here, did the classifier pick up an bathyarcheota?
+
+tax_table(ps)['ASV1674']  ## our RDP agrees.
+
 ## so for now, assume when we find mcrA, it is from a methanogen.
 ## which still begs the question, why don't the anaerobice soil cores
 ## release methane, if there is hardly any Pmoa?
@@ -1902,14 +1916,17 @@ tax_table(ps)['ASV3404']  ## our RDP says Methanosarcina again.
 ## maybe high-affinity methanotrophs. Not sure how to pick these up.
 ## ask around. For now... next steps
 
+## 
+
 ##### methane, N-cycling, S-cycling, etc. #####
 
 ## we have some evidence of sulfur-cycling, or 
-## at least there are some Desulfobacterota.
+## at least there are surprising numbers of Desulfobacterota.
 
-## the basic question is, what are the electron 
-## acceptors when these soils are anaerobic?
+## we also have unusually high nitrogen in the system 
 
+## and surprisingly low methane emissions from anaerobic cores
 
- 
+## I think we need to generate several categories
+
 
