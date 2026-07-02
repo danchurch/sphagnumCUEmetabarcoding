@@ -1618,8 +1618,13 @@ nohup bash -c 'FastTreeMP -gtr -nt < ourArchaea_SilvaArchaea_combo_relabeled.afa
 /media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.ARF
 /media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
 
-## try making a tree with the alignment on the optiplex:
+## updated to:
+/media/daniel/oldBeast/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.arb
+/media/daniel/oldBeast/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.ARF  
+/media/daniel/oldBeast/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
 
+## try making a tree with the alignment on the optiplex:
+## here
 getFile=/media/vol/wernerSphagnumBackups/arb/ourArchaeaSilvaArchea_combo.fasta
 putDir=/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sequenceAnalysis/findANME/
 rsync -auvz $getFile daniel@132.180.113.114:$putDir
@@ -1673,7 +1678,6 @@ ASV4164
 ## does their assigned taxonomy reflect this?
 
 R
-
 library("phyloseq")
 library("ggplot2")
 library("patchwork")
@@ -1742,6 +1746,7 @@ phylumTop.Pal + phylumTop.tk
 /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs.fa
 
 ## export the archaeal reads, unaligned, and the nostoc:
+
 ls /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/ArchaeaSilvaUnaligned.fasta
 
 ## clean up the white space:
@@ -1768,10 +1773,143 @@ conda activate ssu-align
 cd /media/vol1/daniel/wernerPeat/looking4ANME/
 
 ## not run ## 
+#ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
+#ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
+#ssu-mask --pf 0.9999 --pt 0.9999 nostocaceaeCyanoseqPlusOurSeqs_ali
+#ssu-mask --stk2afa nostocaceaeCyanoseqPlusOurSeqs_ali
+## not run ## 
 
-ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
 
-ssu-align -n bacteria $seqs2align nostocaceaeCyanoseqPlusOurSeqs_ali
-ssu-mask --pf 0.9999 --pt 0.9999 nostocaceaeCyanoseqPlusOurSeqs_ali
-ssu-mask --stk2afa nostocaceaeCyanoseqPlusOurSeqs_ali
+########## return after 6 months ########
+
+## finally getting back to this
+## most of the above shipwreck of code is 
+## to find ANME archaea, because we found 
+## lots of organisms predicted to have mcrA, 
+## but not much pmoa, and the incubated 
+## soil cores had very low total methane
+## emissions. 
+
+## this is still an open question to answer.
+
+## other questions, and goals:
+## - anoxic metabolism besides methane - nitrogen cycling and SOX genes
+## - what is the CUE of each core under oxic and anoxic conditions
+## - how much of this is explained by microbial community? 
+##   - try clustering community types, characterizing the CUE of these types? 
+## - how much of this is explained by peat quality (FTIR)
+## - microbial community: 
+##   - model as function of O2, depth, elements, Palsa/Thermokarst, peat quality
+
+## so two large models, one for CUE, and one for microbial community composition
+
+## plan:
+## finish the ANME question
+## finish functional analysis - methane, N-cycling, S-cycling
+## get the CUE data from werner
+## process the FTIR data
+## build model for CUE (glmm)
+## build model for microbial community (s-jsDM) 
+
+## qPCR for pmoa and mcrA?
+
+
+###### back to the ANME question #####
+
+## the arb, sina, alignments approach is just not working. 
+## back up, let's just try a simple blast approach.
+
+
+## went to silva, queried Taxonomy == "ANME", got ~6000 sequences
+
+## this is here:
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/blast
+
+tar -xvf arb-silva.de_2026-07-01_id1495757.tgz
+
+mv arb-silva.de_2026-07-01_id1495757_tax_silva_trunc.fasta  ANME_from_SILVA.fasta
+
+## make a blast database:
+
+makeblastdb -in ANME_from_SILVA.fasta -parse_seqids -dbtype nucl
+
+anmeDB=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/blast/ANME_from_SILVA.fasta
+myArchaea=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa
+blastn -db $anmeDB \
+  -query $myArchaea \
+  -num_threads 4 \
+  -num_alignments 1 \
+  -out myArchaea2silvaANME.csv \
+  -outfmt 10 &
+
+sed -i '1i qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' myArchaea2silvaANME.csv
+
+libreoffice --calc myArchaea2silvaANME.csv &
+
+## and just for reference:
+nohup blastn -db $anmeDB \
+  -query $myArchaea \
+  -num_threads 4 \
+  -num_alignments 5 \
+  -out myArchaea2silvaANME_Verbose.txt &
+
+## we have a few strong hits
+
+## ASV2037 blasts 98.6% sim to:
+FJ231129 ## uncultured archeae from aliplano in Chile, categorized as Methanosarcinaceae ANME-3
+## but the repseq from this asv blasts 100% no gaps full length to a known methanogen, 
+## KY123342, called uncultured Methanosaeta sp by the authors, but id in Silva is Methanothrix
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis
+
+R
+library("phyloseq")
+load("ps007_cleaned_sqrt_prop.rda")
+ps <- ps007_cleaned_sqrt_prop
+tax_table(ps)['ASV2037'] ## our classifier agrees with Methanothrix
+
+## on down the list, the next strong blast match is:
+
+## ASV1674 blasts at 98.5% to LT546367.1.881, ANME-2B 
+## a global blast at NCBI puts the closest match to a methanogen from Fichtegebirge! (LK025684)
+## silva classifier says Methanosarcina, obvious methanogen
+tax_table(ps)['ASV1674']  ## our RDP agrees.
+
+## ASV5335 blasts locally at 98.5 to LT546367 also.
+toString(refseq(ps)['ASV5335'])
+tax_table(ps)['ASV5335']  ## our RDP says Methanosarcina again.
+## silva refuses to classify. Definitely not pointing right an ANME clade.
+## The closest global blast matches are vague, second one is to another
+## BayCEER fichtegebirge accession
+## mystery. but seems unlikely to be an ANME.
+
+## ASV2903 blasts locally at 98.1 to LT546367 also.
+tax_table(ps)['ASV2903']  ## our RDP says Methanosarcina again.
+toString(refseq(ps)['ASV2903'])
+
+## ASV3404 blasts locally 94.9% to LT546367 also.
+tax_table(ps)['ASV3404']  ## our RDP says Methanosarcina again.
+## blasts globally best to Cui and Wei paper on methanogens, no good id.
+## silva says nothing, no id. 
+
+## those are the primary suspects, everything else is below 95%
+## for the moment there is not strong evidence for ANME 
+
+## so for now, assume when we find mcrA, it is from a methanogen.
+## which still begs the question, why don't the anaerobice soil cores
+## release methane, if there is hardly any Pmoa?
+
+## maybe high-affinity methanotrophs. Not sure how to pick these up.
+## ask around. For now... next steps
+
+##### methane, N-cycling, S-cycling, etc. #####
+
+## we have some evidence of sulfur-cycling, or 
+## at least there are some Desulfobacterota.
+
+## the basic question is, what are the electron 
+## acceptors when these soils are anaerobic?
+
+
+ 
 
