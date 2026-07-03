@@ -1986,4 +1986,293 @@ tax_table(ps)['ASV1674']  ## our RDP agrees.
 
 ## I think we need to generate several categories
 
+## two good first categories would be methanogen and methanotroph
+
+#### identifying methanotrophs ####
+
+## a good start might be with:
+http://www.methanotroph.org/wiki/taxonomy/
+
+Alphaproteobacteria, class Methylocystaceae
+Methylosinus sporium 
+Methylosinus trichosporium
+Methylocystis parvus
+Methylocystis parva
+Methylocystis echinoides 
+Methylocystis rosea
+Methylocystis heyeri
+Methylocystis hirsuta
+Methylocella palustris
+Methylocella silvestris
+Methylocella tundrae 
+Methylocapsa acidiphila
+Methylocapsa aurea
+Methyloferula stellata
+            
+Gammaproteobacteria, family Methylococcaceae
+Methylomonas aurantiaca
+Methylomonas fodinarum
+Methylomonas methanica
+Methanomonas methanicus
+Pseudomonas methanica
+Methylomonas scandinavica 
+Methylomonas rubra
+Methylomonas rubrum
+Methylomonas koyamae
+Methylomonas paludis 
+Methylobacter psychrophilus
+Methylobacter tundripaludum 
+Methylobacter luteus
+Methylococcus  luteus
+Methylococcus bovis
+Methylobacter bovis
+Methylobacter marinus 
+Methylomonas marinus
+Methylobacter whittenburyi
+Methylococcus whittenburyi
+Methylococcus vinelandii
+Methylobacter capsulatus
+Methylococcus capsulatus
+Methylococcus capsulatus
+Methylococcus thermophilus
+Methylococcus mobilis
+Methylomicrobium agile
+Methylobacter agilis
+Methylomicrobium album
+Methylomonas albus
+Methylobacter
+Methylomicrobium pelagicum
+Methylomonas pelagica
+Methylobacter pelagicus
+Methylomicrobium buryatense
+Methylomicrobium kenyense
+Methylomicrobium japanense
+Methylomicrobium alcaliphilum
+Methylobacter alcaliphilus
+Methylosphaera hansonii
+Methylocaldum gracile  
+Methylomonas gracilis
+Methylocaldum szegediense
+Methylocaldum tepidum
+Methylosarcina fibrata
+Methylosarcina quisquiliarum
+Methylosarcina lacus
+Methylothermus thermalis
+Methylothermus subterraneus
+Methylohalobius crimeensis
+Methylogaea oryzae
+Methylosoma difficile
+Methylomarinum vadi
+Methylovulum miyakonense
+Crenothrix polyspora
+Clonothrix fusca
+
+
+Verrucomicrobia
+Methylacidiphilum fumariolicum
+Acidimethylosilex fumariolicum
+Methylacidiphilum kamchatkensis
+Methyloacida kamchatkensis
+Methylacidiphilum infernorum
+Methylokorus infernorum
+
+## added by M. G. Kalyuzhnaya et al.
+Methylomirabilis (phyla Methylomirabilota/"NC10"/?Rokubacteria?) 
+Methylotuvimicrobium
+
+## actually, they have an extensive table of cultured methanotrophs:
+Clonothrix
+Crenothrix
+Methylobacter
+Methylocaldum
+Methylococcus
+Methylogaea
+Methyloglobulus
+Methylomagnum
+Methylomarinum
+Methylomicrobium
+Methylotuvimicrobium
+Methylomonas
+Methyloparacoccus
+Methyloprofundus
+Methylosarcina
+Methylosoma
+Methylosphaera
+Methylovulum
+Methylohalobius
+Methylomarinovum
+Methylothermus
+Methylocystis
+Methylosinus
+Methylocella
+Methylocapsa
+Methyloferula
+Methylomirabilis
+Methylacidiphilum
+Methylacidimicrobium
+
+## okay, other data sources are GTDB and SILVA
+## following Ahmadi & Lackner 2024 (https://doi.org/10.1007/s00253-023-12978-3)
+## we want everything in Methylococcaceae, Methylothermaceae, and Crenotrichaceae.
+
+## copy pasting from Silva browser:
+## Type I Gammaproteobacteria, Methylococcales excl. Cycloclasticaceae
+Methylospira
+Methylocaldum
+Methylococcus
+Methylogaea
+Methylomagnum
+Methyloparacoccus
+Methyloterricola
+Methylohalobius
+Methylomarinovum
+Methylothermus
+Crenothrix
+ET-SHO
+IheB2-23
+Incertae Sedis
+Marine Methylotrophic Group 2
+Methylicorpusculum
+Methylobacter
+Methyloglobulus
+Methylomarinum
+Methylomicrobium
+Methylomonas
+Methyloprofundus
+Methylosarcina
+Methylosoma
+Methylosphaera
+Methylotuvimicrobium
+Methylovulum
+Milano-WF1B-03
+Milano-WF1B-42
+pItb-vmat-59
+pLW-20
+
+## according to Tamas et al. (2013) in alphaproteobacteria, 
+## the two families that have methanotrophs are Methylocystaceae 
+## and Beijerinckiaceae. Methylocystaceae is entirely methanotrophs,
+## but Beijerinckiaceae is a mixed bag. 
+## and Silva doesn't follow this, it looks like both families 
+## are together in one family Beijerinckiaceae
+
+## these are the genera in Beijerinckiaceae on silva:
+Methylobacterium ## some yes, some no
+Methylocapsa
+Methylocella
+Methylocystis
+Methyloferula
+#Methylorubrum ## unclear, is a PPFM 
+Methylosinus
+
+## GTDB is a little awkward. Try SILVA tree
+cd /media/daniel/oldBeast/phylo_dbs/silva/silva138.2/arb
+arb
+## and nope, my installation can't read the new tree. And the arb install page is down. 
+## good old arb. 
+## 
+
+## let's make a table. Pandas.
+
+import pandas as pd
+import os
+
+Alphaproteobacteria, class Methylocystaceae
+
+## clean this up into a couple lists:
+
+## methanotroph website alphaprots/mythylocystaceae:
+websiteMethylocystaceae = pd.Series([ "Methylosinus", "Methylocystis", "Methylocella", "Methylocapsa", "Methyloferula"])
+websiteMethylococcaceae = pd.Series([ "Methylomonas", "Methanomonas", "Methylobacter", "Methylococcus", "Methylomicrobium", 
+                             "Methylosphaera", "Methylocaldum", "Methylosarcina ", "Methylothermus", 
+                             "Methylohalobius", "Methylogaea", "Methylosoma", "Methylomarinum", "Methylovulum",
+                             "Crenothrix polyspora", "Clonothrix fusca" ])
+websiteVerrucomicrobia = pd.Series([ "Methylacidiphilum", "Acidimethylosile", "Methyloacid", "Methylokoru"])
+klyuzhnayaMethanotrophs = pd.Series([ "Clonothrix", "Crenothrix", "Methylobacter", "Methylocaldum", "Methylococcus", "Methylogaea",
+                            "Methyloglobulus", "Methylomagnum", "Methylomarinum", "Methylomicrobium", "Methylotuvimicrobium",
+                            "Methylomonas", "Methyloparacoccus", "Methyloprofundus", "Methylosarcina",
+                            "Methylosoma", "Methylosphaera", "Methylovulum", "Methylohalobius", "Methylomarinovum",
+                            "Methylothermus", "Methylocystis", "Methylosinus", "Methylocella", "Methylocapsa",
+                            "Methyloferula", "Methylomirabilis", "Methylacidiphilum", "Methylacidimicrobium"])
+
+silvaBeij = pd.Series([ "Methylobacterium", "Methylocapsa", "Methylocella", "Methylocystis", "Methyloferula", "Methylosinus"])
+## these are all covered, except for Methylobacterium, which is controversial...leave it out.
+
+## so, our lists are pretty good, I think. Combine and look for duplication.
+websiteMethylocystaceae 
+websiteMethylococcaceae 
+websiteVerrucomicrobia 
+klyuzhnayaMethanotrophs 
+
+websiteMethylocystaceae.shape
+websiteMethylococcaceae.shape
+websiteVerrucomicrobia.shape
+klyuzhnayaMethanotrophs.shape
+
+allMethanoTrophLists = pd.concat([websiteMethylocystaceae,websiteMethylococcaceae,websiteVerrucomicrobia,klyuzhnayaMethanotrophs ])
+allMethanoTrophLists.reset_index(inplace=True, drop=True)
+allMethanoTrophLists.duplicated()
+sum(allMethanoTrophLists.duplicated()) ## only 18 duplicates, the lists didn't overlap that much.
+
+allMethanoTrophLists = (pd.concat([websiteMethylocystaceae,websiteMethylococcaceae,websiteVerrucomicrobia,klyuzhnayaMethanotrophs ])
+  .drop_duplicates()
+  .reset_index(drop=True)
+)
+
+## now how can we use this to get methanotrophs out our data?
+
+allMethanoTrophLists.to_csv("findMethanotrophs/findbacterialMethanotrophs.csv", index=False, header=False)
+
+## read into R:
+
+R
+
+library("phyloseq")
+library("ggplot2")
+library("patchwork")
+
+load("ps007_cleaned_sqrt_prop.rda")
+ps <- ps007_cleaned_sqrt_prop
+methanotrophList <- read.csv("findMethanotrophs/findbacterialMethanotrophs.csv", header=FALSE)[,1]
+
+## subset our taxonomy to these groups:
+
+rank_names(ps)
+
+ps.justMethantrophs <- subset_taxa(ps, Genus %in% methanotrophList)
+
+otu_table(ps.justMethantrophs)
+
+##### plot the methanotrophs ####
+
+psObject <- ps.justMethantrophs
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.class <- tax_glom(ps.justPalsa, taxrank="Class")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.class <- tax_glom(ps.justThermokarst, taxrank="Class")
+topOrder_palsa <- names(sort(colSums(otu_table(ps.justPalsa.class)), decreasing=TRUE)[1:howManyOTUs])
+topOrder_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.class)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topOrder <- prune_taxa(topOrder_palsa, ps.justPalsa.class)
+ps.justThermokarst_topOrder <- prune_taxa(topOrder_Thermokarst, ps.justThermokarst.class)
+
+orderTop.Pal <- plot_bar(ps.justPalsa_topOrder, x="DepthSection", fill = "Class", facet_grid=~Core ) +
+                          geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12),
+                                legend.text=element_text(size=20)) +
+                          labs(title='Palsa methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
+
+orderTop.tk  <- plot_bar(ps.justThermokarst_topOrder, x="DepthSection", fill = "Class", facet_grid=~Core ) +
+                                geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
+orderTop.Pal + orderTop.tk
+
+## everything is alphaproteobacteria (type II), except for deep in AP4
+## different  
+
 
