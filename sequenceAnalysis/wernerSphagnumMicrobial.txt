@@ -14,7 +14,8 @@ sudo apt install jupyterlab
 
 install.packages(c('repr', 'IRdisplay', 'IRkernel'), type = 'source')
 
-install.packages('IRkernel')
+IRkernel::installspec()
+
 
 ## nope, have to update R, ogawd
 
@@ -35,6 +36,8 @@ sudo R CMD INSTALL --no-staged-install phyloseq
 
 R CMD INSTALL --help
 
+BiocManager::install("dada2")
+
 BiocManager::install("phyloseq")
 
 ## fails. Probably something to do with R4.6 and how it handles C libraries or something,
@@ -50,14 +53,58 @@ install.packages("rlang")
 
 ## nope. Ugh. go home
 
+## and back, fixed the R installation (https://github.com/joey711/phyloseq/issues/1800) 
+## reran the code above for the IR kernel, no errors, but no kernal. 
+
+## try this one instead?:
 
 install.packages('RKernel', repos = c('https://melff.r-universe.dev', 'https://cloud.r-project.org'))
 
+install.packages(c('svglite', 'rsvg'))
+
+
+## jeezus that is a complicated install. had to install a lot of libraries and packages
+
+
+## gave us:
+# [InstallKernelSpec] Installed kernelspec rkernel in /root/.local/share/jupyter/kernels/rkernel
+
+## but jupyter can't find it...looks like I should be doing this not as root
+
+library(RKernel)
 RKernel::installspec()
 
-## bash kernel...
-pipx install bash_kernel
+## R in the jupyter notebook works okay, but can't change plot size.
+## is this because of the new R kernel?
 
+## let's try one more time with irkernel, it is the canonical rkernel.
+
+install.packages(c('repr', 'IRdisplay', 'IRkernel'), type = 'source')
+
+IRkernel::installspec(user=FALSE)
+
+## okay, now IRkernel works. and it scales the plots on request
+## uninstall the other
+
+remove.packages('RKernel')
+rm -r ~/.local/share/jupyter/kernels/rkernel/
+
+## bash kernel...
+
+pipx install bash_kernel --force
+python3 -m bash_kernel.install
+
+## actually, that probably didn't work. Python is 
+## forcing everything into virtual envs, a pain in the 
+## ass. So we have to modify
+
+pipx inject --include-apps --include-deps jupyter bash_kernel
+
+## but I didn't install with pipx, did it with apt. 
+pipx uninstall bash_kernel
+
+## this works:
+pip install --break-system-packages bash_kernel
 python3 -m bash_kernel.install
 
 
@@ -2258,8 +2305,8 @@ ps.justThermokarst_topOrder <- prune_taxa(topOrder_Thermokarst, ps.justThermokar
 
 orderTop.Pal <- plot_bar(ps.justPalsa_topOrder, x="DepthSection", fill = "Class", facet_grid=~Core ) +
                           geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack") +
-                          theme(axis.text=element_text(size=12),
-                                legend.text=element_text(size=20)) +
+                          theme(axis.text=element_text(size=12)) +
+                          theme(legend.position="none") +
                           labs(title='Palsa methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
 
 orderTop.tk  <- plot_bar(ps.justThermokarst_topOrder, x="DepthSection", fill = "Class", facet_grid=~Core ) +
@@ -2270,9 +2317,26 @@ orderTop.tk  <- plot_bar(ps.justThermokarst_topOrder, x="DepthSection", fill = "
                                        legend.text=element_text(size=20) ) +
                                 ylab(NULL) +
                                 labs(title='Thermokarst methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
-orderTop.Pal + orderTop.tk
 
-## everything is alphaproteobacteria (type II), except for deep in AP4
-## different  
+methanotrophsPlot <- orderTop.Pal + orderTop.tk 
+methanotrophsPlot & ylim(min(0), max(0.045)) ## make the ylimits shared across the plots
+
+ggsave("methanotophs.png")
+
+## why is that so bad?
+
+## Dimitri says methylococcales all methanotrophs.
+## but I find the family cyclo___, 
+## methylobacter is methanotroph, but methylobacterium is not?
+## that's not confusing at all.
+
+## so, what now? 
+
+## in the lab we need qPCR trials for pmo
+## but for analysis...
+
+## get barplot genera for the methane for discussion 
+## with dimitri
+## get notebook working, (including plotter?)
 
 
