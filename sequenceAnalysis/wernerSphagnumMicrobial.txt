@@ -10,12 +10,31 @@ sudo apt install jupyter
 
 sudo apt install jupyterlab
 
+## okay. but due to the new venv approach by python, modules
+## from my system python aren't shared with this environment
+## so how do I get the python venv pandas etc.
+
+
+import sys
+print(sys.prefix)
+## /home/daniel/.local/share/pipx/venvs/jupyterlab
+
+## try this:
+source /home/daniel/.local/share/pipx/venvs/jupyterlab/bin/activate
+pip3 install pandas
+## nope. 
+
+## try pipx?
+pipx inject --verbose --include-deps jupyterlab pandas
+
+## works, I think
+
+## how can I 
 ## rkernel, will this old one work?
 
 install.packages(c('repr', 'IRdisplay', 'IRkernel'), type = 'source')
 
 IRkernel::installspec()
-
 
 ## nope, have to update R, ogawd
 
@@ -88,6 +107,7 @@ IRkernel::installspec(user=FALSE)
 
 remove.packages('RKernel')
 rm -r ~/.local/share/jupyter/kernels/rkernel/
+
 
 ## bash kernel...
 
@@ -1936,9 +1956,9 @@ mv arb-silva.de_2026-07-01_id1495757_tax_silva_trunc.fasta  ANME_from_SILVA.fast
 ## make a blast database:
 
 makeblastdb -in ANME_from_SILVA.fasta -parse_seqids -dbtype nucl
-
 anmeDB=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/blast/ANME_from_SILVA.fasta
 myArchaea=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa
+
 blastn -db $anmeDB \
   -query $myArchaea \
   -num_threads 4 \
@@ -1978,6 +1998,7 @@ R
 library("phyloseq")
 
 load("ps007_cleaned_sqrt_prop.rda")
+#load("../ps007_cleaned_sqrt_prop.rda")
 
 ps <- ps007_cleaned_sqrt_prop
 tax_table(ps)['ASV2037'] ## our classifier agrees with Methanothrix
@@ -2011,16 +2032,78 @@ tax_table(ps)['ASV3404']  ## our RDP says Methanosarcina again.
 
 ## while we're in here, did the classifier pick up an bathyarcheota?
 
-tax_table(ps)['ASV1674']  ## our RDP agrees.
+bathyarcheota?
+
+head(tax_table(ps007_cleaned_sqrt_prop))
+
+tax_table(ps007_cleaned_sqrt_prop)[,'Phylum']
+
+unique(tax_table(ps007_cleaned_sqrt_prop)[,'Phylum'])
+
+phyla <- unique(tax_table(ps007_cleaned_sqrt_prop)[,'Phylum'])
+
+
+grep("Bath", phyla, value=TRUE) ## nope
+
+## we do find Methylomirabilota, btw.
+
+grep("Methylomirab", phyla, value=TRUE)
+
+ps007_cleaned_sqrt_prop
+
+ps.Methylomirabilota <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+
+tax_table(ps.Methylomirabilota)
+
+plot_bar(ps.Methylomirabilota, "DepthSection")
+
+plot_bar(ps.Methylomirabilota, "DepthSection", facet_grid="~Subsite")
+
+plot_bar(ps.Methylomirabilota, "Core", facet_grid="Subsite")
+
+## meh. run the same pile of code. Really should make a function out of this...
+
+ps.Methylomirabilota <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+psObject <- ps.Methylomirabilota
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          theme( axis.text.y=element_blank(),
+                                 axis.ticks.y=element_blank(), 
+                                 legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+methanotrophsPlot <- genusTop.Pal + genusTop.tk 
+methanotrophsPlot & ylim(min(0), max(0.005)) 
+
+otu_table(ps007_cleaned_sqrt_prop)[
+
+tax_table(ps007_cleaned_sqrt_prop)["ASV1842",]
 
 ## so for now, assume when we find mcrA, it is from a methanogen.
-## which still begs the question, why don't the anaerobice soil cores
+## which still begs the question, why do the anaerobic soil cores not
 ## release methane, if there is hardly any Pmoa?
 
 ## maybe high-affinity methanotrophs. Not sure how to pick these up.
 ## ask around. For now... next steps
-
-## 
 
 ##### methane, N-cycling, S-cycling, etc. #####
 
@@ -2219,7 +2302,7 @@ arb
 ## good old arb. 
 ## 
 
-## let's make a table. Pandas.
+## lets make a table. Pandas.
 
 import pandas as pd
 import os
@@ -2279,6 +2362,7 @@ library("ggplot2")
 library("patchwork")
 
 load("ps007_cleaned_sqrt_prop.rda")
+
 ps <- ps007_cleaned_sqrt_prop
 methanotrophList <- read.csv("findMethanotrophs/findbacterialMethanotrophs.csv", header=FALSE)[,1]
 
@@ -2323,20 +2407,100 @@ methanotrophsPlot & ylim(min(0), max(0.045)) ## make the ylimits shared across t
 
 ggsave("methanotophs.png")
 
-## why is that so bad?
+## why is that so bad? ggsave is failing me. deal with it later.
+## modify this to show genera: 
 
-## Dimitri says methylococcales all methanotrophs.
-## but I find the family cyclo___, 
-## methylobacter is methanotroph, but methylobacterium is not?
-## that's not confusing at all.
+
+## subset our taxonomy to these groups:
+methanotrophList <- read.csv("findMethanotrophs/findbacterialMethanotrophs.csv", header=FALSE)[,1]
+ps.justMethantrophs <- subset_taxa(ps007_cleaned_sqrt_prop, Genus %in% methanotrophList)
+psObject <- ps.justMethantrophs
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme(legend.position="none") +
+                          theme( #axis.text.y=element_blank(),
+                                 #axis.ticks.y=element_blank(),
+                                 legend.text=element_text(size=20) ) +
+                          labs(title='Palsa methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst methanotrophs') + theme(plot.title = element_text(hjust = 0.5))
+
+methanotrophsPlot <- genusTop.Pal + genusTop.tk 
+methanotrophsPlot & ylim(min(0), max(0.045)) 
+
+
+
+## methylocystis
+## maybe see if it is the same 16S as:
+https://www.microbiologyresearch.org/content/journal/ijsem/10.1099/ijs.0.043505-0
+(Belova 2013)
+## just a side quest, peat associated methylotrophs, could be interesting
+
+##  
+## the ncbi accession for these methylos:
+HE798551
+FN422003
+AJ458504
+
+## how do these compare to our 
+
+touch 
+for i in HE798551 FN422003 AJ458504; do
+  echo $i
+  esearch -db "Nucleotide" -query $i |
+  efetch -format "fasta"  |
+  seqtk seq -l 0 > ${i}.fasta
+done
+
+## get our methylocystis refseqs out:
+
+R
+library("phyloseq")
+library("biostrings")
+
+load("ps007_cleaned_sqrt_prop.rda")
+ps.Methylocystis <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == "Methylocystis")
+
+ps.Methylocystis ## 11 taxa
+
+writeXStringSet(refseq(ps.Methylocystis), "methylocystis_ourData.fa")
+
+
+cat methylocystis_ourData.fa HE798551.fasta FN422003.fasta AJ458504.fasta > methylocystis_2align.fa
+
+muscle -align methylocystis_2align.fa -output methylocystis.afa
+
+aliview methylocystis.afa
+
+## these are definitely something different. ~6 bp diff in V4 region.
 
 ## so, what now? 
-
-## in the lab we need qPCR trials for pmo
+## in the lab we need qPCR trials for pmoa
 ## but for analysis...
 
-## get barplot genera for the methane for discussion 
-## with dimitri
-## get notebook working, (including plotter?)
+## goals of the paper are not to solve the methane emissions.
+
+## basically two goals, 
+## CUE as a function of microbial community + permafrost + geomorphology + peat quality +  ....
+## microbial community as a function of permafrost + geomorphology + peat quality + ...
+## the first one needs werner to finish the CUE data
+
+## the second one is really only missing the FTIR peat quality data
 
 
