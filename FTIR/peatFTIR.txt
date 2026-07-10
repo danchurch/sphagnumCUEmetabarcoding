@@ -1,0 +1,17 @@
+## let's see if we can get a handle on the FTIR data. 
+## It was given to us by Arwen at Muenster
+## she recommends the ir package, and irpeat package
+
+install.packages("ir")
+
+## looks like I may need:
+sudo apt install libxml2-dev
+sudo apt install libudunits2-dev
+
+## then installed tinyverse, a few hiccups there...
+## now, irpeat package: https://github.com/henningte/irpeat
+
+install.packages("remotes")
+remotes::install_github(repo = "henningte/irpeat")
+
+
