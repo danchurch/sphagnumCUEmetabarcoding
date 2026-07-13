@@ -2512,6 +2512,8 @@ library(vegan)
 library("phyloseq")
 library("ggplot2")
 library("RColorBrewer")
+library("ggnewscale")
+
 load("ps007_cleaned_sqrt_prop.rda")
 
 comm <- otu_table(ps007_cleaned_sqrt_prop)
@@ -2520,9 +2522,11 @@ commBray <- vegdist(comm)
 comm.ward <- hclust(commBray, method='ward.D2')
 ## repeat our ordination from before:
 ps007_cleaned_sqrt_prop.ord <- ordinate(ps007_cleaned_sqrt_prop, "NMDS", "bray")
+## run clustering algorithm
 k=5
 clusterCols <- c("green","blue","red","black","brown","orange")[1:k]
 names(clusterCols) <- as.character(1:k)
+
 plot(comm.ward)
 clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
 sample <- vector()
@@ -2538,80 +2542,65 @@ envData$cluster <- as.factor(gr)
 ## add this back into our sample data:
 sample_data(ps007_cleaned_sqrt_prop) <- envData
 
-## start plot
-dev.new()
 
-plot_ordination
+## customizing hull colors, etc, is hard with the phyloseq 
+## plotting functions.
+## start over, use "base" ggplot functions:
 
-cc <- plot_ordination(ps007_cleaned_sqrt_prop, ps007_cleaned_sqrt_prop.ord, 
-   color="DepthSection",
-   shape="Subsite",
-) + geom_point(size=5, alpha=0.75)
-myPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
-sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(5, 0), trans="reverse")
-## label by sample ##
-#lbs <- geom_text(label=sample_names(ps007_cleaned_sqrt_prop),
-#                 color = "black",
-#                 nudge_x = 0.05, nudge_y = 0.05,
-#                 check_overlap = T)
+head(ps007_cleaned_sqrt_prop.ord$points)
 
-
-els <- stat_ellipse(type = "norm", level=0.9)
-cc + sc + els
-
-## how do we get hulls to have their own color?
-## maybe start over, without the plot ordination function:
-
-clusterPoints <- as.data.frame(cbind(ps007_cleaned_sqrt_prop.ord$points, 
+clusterPoints <- as.data.frame(cbind(ps007_cleaned_sqrt_prop.ord$points[,'MDS1'],
+                                     ps007_cleaned_sqrt_prop.ord$points[,'MDS2'],
                                      envData$cluster, 
                                      envData$DepthSection, 
                                      envData$Subsite
                                      )) 
-colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
-clusterPoints$cluster <- as.factor(clusterPoints$cluster)
-clusterPoints$DepthSection <- as.factor(clusterPoints$DepthSection)
 
-head(clusterPoints)
+colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
+
+clusterPoints$MDS1 <- as.numeric(clusterPoints$MDS1)
+clusterPoints$MDS2 <- as.numeric(clusterPoints$MDS2)
+clusterPoints$cluster <- as.factor(clusterPoints$cluster)
+clusterPoints$DepthSection <- as.numeric(clusterPoints$DepthSection)
 
 str(clusterPoints)
 
-ggplot(clusterPoints) + 
-  geom_point(aes(x=MDS2, y=MDS1, color=DepthSection), size=1.5) +
-  stat_ellipse(aes(x=MDS2, y=MDS1, color=cluster), type="norm", level=0.8) 
+head(clusterPoints)
 
-ggplot(clusterPoints, aes(MDS2, MDS1)) + geom_point(colour = "blue")
+peatNMS <- ggplot(data=clusterPoints)
+MDSpts <- geom_point(data=clusterPoints, 
+                     aes(x=MDS2, y=MDS1, 
+                         color=DepthSection, 
+                         shape=Subsite), 
+                     size=5)
+depthPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = depthPalette(100), limits=c(5, 0), trans="reverse")
+els <- stat_ellipse(data=clusterPoints, aes(x=MDS2, y=MDS1, 
+                                            group=cluster, 
+                                            color=cluster), 
+                                        type="norm", 
+                                        linetype=2, 
+                                        lwd=1, 
+                                        level=0.80)
+elCS <- scale_color_manual(values = clusterCols)
+peatNMS + MDSpts + dCS + 
+new_scale_color() + els + elCS
 
-
-els <- stat_ellipse(data=clusterPoints, mapping=aes(x=MDS1,y=MDS2, color=envData$cluster), type="norm", level=0.9, inherit.aes=FALSE) 
-
-els <- stat_ellipse(data=clusterPoints, mapping=aes(x=MDS1,y=MDS2, group=cluster ), type="norm", level=0.9, inherit.aes=T) 
-
-clusterCols[as.character(envData$cluster)]
-
-
-cc + sc + els 
-
-cc + sc + els 
-
-cc + sc + lbs + els 
-
-#+ guides(color=FALSE)
-
-## ugh nothing is working. start again on monday.
-## this SO post is interesting, but can't seem to adapt their code:
-https://stackoverflow.com/questions/54565754/r-ggplot2-colors-for-stat-ellipse-and-for-categorical-variables-with-several-un
-
-https://r-charts.com/correlation/scatter-plot-ellipses-ggplot2/
-
+## ^^ works ^^
 
 ## the clustering lines up well with the ordination. 
 ## Use these for modeling the community as a predictor, I would say. 
 
+
+
+
+
+
 ## relabeling the hierarchical clustering figure.
 ## let's relabel it by thermokarst/palsa and depth section:
 
+dev.new()
 all(rownames(envData) == rownames(commBray))
-
 comm.ward <- hclust(commBray, method='ward.D2')
 hclustlabels <- paste(substr(envData$SampleID,1,3),
                       envData$DepthSection, sep="_")
