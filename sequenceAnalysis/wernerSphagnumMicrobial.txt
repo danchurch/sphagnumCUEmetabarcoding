@@ -2607,10 +2607,118 @@ hclustlabels <- paste(substr(envData$SampleID,1,3),
 plot(comm.ward,labels=hclustlabels)
 clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
 
-## we'll need to get differential abundances for heatmaps
-## for this, not sure if there is time today...
+### differential abundances, indicator species, etc #####
+
+## now look for important species, differentially abundant 
+## species with depth/geomorphology/etc. 
+
+## start with ANCOMB2, everybody seems to be using this instead
+## of deseq2 now. 
+
+#BiocManager::install("ANCOMBC")
+#BiocManager::install("microbiome")
+
+library("ANCOMBC")
+library("phyloseq")
+library("dplyr")
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+## let's follow the tutorial from the authors:
+https://bioconductor.posit.co/packages/3.19/bioc/vignettes/ANCOMBC/inst/doc/ANCOMBC2.html
+## following section 4: "Run ANCOM-BC2 on a real cross-sectional dataset"
+## (also looking at https://jojyjohn28.github.io/blog/differential-abundance-analysis-mag-genomes/)
+
+## just to have their data to look at:
+data(atlas1006, package = "microbiome")
+tse = mia::makeTreeSummarizedExperimentFromPhyloseq(atlas1006)
+tse = tse[, tse$time == 0]
+tse$bmi = recode(tse$bmi_group,
+                 obese = "obese",
+                 severeobese = "obese",
+                 morbidobese = "obese")
+tse = tse[, tse$bmi %in% c("lean", "overweight", "obese")]
+tse$bmi = factor(tse$bmi, levels = c("obese", "overweight", "lean"))
+tse$region = recode(as.character(tse$nationality),
+                    Scandinavia = "NE", UKIE = "NE", SouthEurope = "SE", 
+                    CentralEurope = "CE", EasternEurope = "EE",
+                    .missing = "unknown")
+
+tse = tse[, ! tse$region %in% c("EE", "unknown")]
+
+
+print(tse)
+
+## 
+
+set.seed(123)
+
+# It should be noted that we have set the number of bootstrap samples (B) equal 
+# to 10 in the 'trend_control' function for computational expediency. 
+# However, it is recommended that users utilize the default value of B, 
+# which is 100, or larger values for optimal performance.
+
+output = ancombc2(data = tse, assay_name = "counts", tax_level = "Family",
+                  fix_formula = "age + region + bmi", rand_formula = NULL,
+                  p_adj_method = "holm", pseudo_sens = TRUE,
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "bmi", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 2, verbose = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  em_control = list(tol = 1e-5, max_iter = 100),
+                  lme_control = lme4::lmerControl(),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
+                  trend_control = list(contrast = list(matrix(c(1, 0, -1, 1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE),
+                                                       matrix(c(-1, 0, 1, -1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE),
+                                                       matrix(c(1, 0, 1, -1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE)),
+                                       node = list(2, 2, 1),
+                                       solver = "ECOS",
+                                       B = 10))
+
+
+## how can we adapt our data to this? Ancombc, like deseq, is designed to 
+## act on raw reads. I think we should give it "semi-" raw reads, as 
+## after clustering asvs, and removing the controls and low read
+## samples. 
+
+load("ps007_cleaned.rda") 
+## something's not right, there are still controls and low abundance samples
+## fix this tomorrow. 
+
+output = ancombc2(data = ps007_cleaned_sqrt_prop, 
+                  assay_name = "counts", tax_level = "Family",
+                  fix_formula = "age + region + bmi", rand_formula = NULL,
+                  p_adj_method = "holm", pseudo_sens = TRUE,
+                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+                  group = "bmi", struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 2, verbose = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  em_control = list(tol = 1e-5, max_iter = 100),
+                  lme_control = lme4::lmerControl(),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
+                  trend_control = list(contrast = list(matrix(c(1, 0, -1, 1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE),
+                                                       matrix(c(-1, 0, 1, -1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE),
+                                                       matrix(c(1, 0, 1, -1),
+                                                              nrow = 2, 
+                                                              byrow = TRUE)),
+                                       node = list(2, 2, 1),
+                                       solver = "ECOS",
+                                       B = 10))
 
 vegan::tabasco()
 https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/using-groups/
-
 
