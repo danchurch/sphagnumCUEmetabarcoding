@@ -2520,15 +2520,16 @@ comm <- otu_table(ps007_cleaned_sqrt_prop)
 envData <- sample_data(ps007_cleaned_sqrt_prop)
 commBray <- vegdist(comm)
 comm.ward <- hclust(commBray, method='ward.D2')
+
 ## repeat our ordination from before:
 ps007_cleaned_sqrt_prop.ord <- ordinate(ps007_cleaned_sqrt_prop, "NMDS", "bray")
 ## run clustering algorithm
 k=5
 clusterCols <- c("green","blue","red","black","brown","orange")[1:k]
 names(clusterCols) <- as.character(1:k)
-
 plot(comm.ward)
 clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
+
 sample <- vector()
 gr <- vector()
 for (i in 1:k){
@@ -2555,9 +2556,7 @@ clusterPoints <- as.data.frame(cbind(ps007_cleaned_sqrt_prop.ord$points[,'MDS1']
                                      envData$DepthSection, 
                                      envData$Subsite
                                      )) 
-
 colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
-
 clusterPoints$MDS1 <- as.numeric(clusterPoints$MDS1)
 clusterPoints$MDS2 <- as.numeric(clusterPoints$MDS2)
 clusterPoints$cluster <- as.factor(clusterPoints$cluster)
@@ -2618,107 +2617,125 @@ clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
 #BiocManager::install("ANCOMBC")
 #BiocManager::install("microbiome")
 
+vignette("ANCOMBC")
 library("ANCOMBC")
-library("phyloseq")
 library("dplyr")
 
+library("phyloseq")
+library("vegan")
 load("ps007_cleaned_sqrt_prop.rda")
 
 ## let's follow the tutorial from the authors:
 https://bioconductor.posit.co/packages/3.19/bioc/vignettes/ANCOMBC/inst/doc/ANCOMBC2.html
 ## following section 4: "Run ANCOM-BC2 on a real cross-sectional dataset"
 ## (also looking at https://jojyjohn28.github.io/blog/differential-abundance-analysis-mag-genomes/)
-
-## just to have their data to look at:
-data(atlas1006, package = "microbiome")
-tse = mia::makeTreeSummarizedExperimentFromPhyloseq(atlas1006)
-tse = tse[, tse$time == 0]
-tse$bmi = recode(tse$bmi_group,
-                 obese = "obese",
-                 severeobese = "obese",
-                 morbidobese = "obese")
-tse = tse[, tse$bmi %in% c("lean", "overweight", "obese")]
-tse$bmi = factor(tse$bmi, levels = c("obese", "overweight", "lean"))
-tse$region = recode(as.character(tse$nationality),
-                    Scandinavia = "NE", UKIE = "NE", SouthEurope = "SE", 
-                    CentralEurope = "CE", EasternEurope = "EE",
-                    .missing = "unknown")
-
-tse = tse[, ! tse$region %in% c("EE", "unknown")]
-
-
-print(tse)
-
-## 
-
-set.seed(123)
-
-# It should be noted that we have set the number of bootstrap samples (B) equal 
-# to 10 in the 'trend_control' function for computational expediency. 
-# However, it is recommended that users utilize the default value of B, 
-# which is 100, or larger values for optimal performance.
-
-output = ancombc2(data = tse, assay_name = "counts", tax_level = "Family",
-                  fix_formula = "age + region + bmi", rand_formula = NULL,
-                  p_adj_method = "holm", pseudo_sens = TRUE,
-                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
-                  group = "bmi", struc_zero = TRUE, neg_lb = TRUE,
-                  alpha = 0.05, n_cl = 2, verbose = TRUE,
-                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
-                  iter_control = list(tol = 1e-2, max_iter = 20, 
-                                      verbose = TRUE),
-                  em_control = list(tol = 1e-5, max_iter = 100),
-                  lme_control = lme4::lmerControl(),
-                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
-                  trend_control = list(contrast = list(matrix(c(1, 0, -1, 1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE),
-                                                       matrix(c(-1, 0, 1, -1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE),
-                                                       matrix(c(1, 0, 1, -1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE)),
-                                       node = list(2, 2, 1),
-                                       solver = "ECOS",
-                                       B = 10))
-
-
 ## how can we adapt our data to this? Ancombc, like deseq, is designed to 
 ## act on raw reads. I think we should give it "semi-" raw reads, as 
 ## after clustering asvs, and removing the controls and low read
-## samples. 
+## samples, but without taking the square root of abundances and 
+## normalizing by abundance. We have a phyloseq object from that 
+## intermediate stage:
 
 load("ps007_cleaned.rda") 
-## something's not right, there are still controls and low abundance samples
-## fix this tomorrow. 
 
-output = ancombc2(data = ps007_cleaned_sqrt_prop, 
-                  assay_name = "counts", tax_level = "Family",
-                  fix_formula = "age + region + bmi", rand_formula = NULL,
-                  p_adj_method = "holm", pseudo_sens = TRUE,
-                  prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
-                  group = "bmi", struc_zero = TRUE, neg_lb = TRUE,
+## add in the cluster analysis results from above
+## to our sample data:
+
+all(sample_names(ps007_cleaned) == sample_names(ps007_cleaned_sqrt_prop))
+
+sample_data(ps007_cleaned) <- sample_data(ps007_cleaned_sqrt_prop)
+
+
+## I am confused how make on of these contrast matrices for 
+## their trend analysis function. 
+## seems like you need to order your levels and 
+## build a matrix of the number of levels squared,
+## then drop the first row/column, as this level is
+## used as a baseline and is subtracted from the rest 
+## then in each you put a "1" in the row/column of 
+## the level that you want to check for higher abundance
+## 
+## each row has to sum to zero, so the first row can have 
+## a single "1" in the first coulmn and zeroes in the 
+## remaining, and the "invisible/0" column is assumed to 
+## be -1, in order to sum to one. 
+
+## google AI says we need the following contrast matrices:
+## (wow, it is good, smarter than me)
+
+## for monotonic increase:
+
+incrMat <- matrix(c(1, 0, 0, 0, 0, 
+                   -1, 1, 0, 0, 0,
+                    0,-1, 1, 0, 0,
+                    0, 0,-1, 1, 0, 
+                    0, 0, 0,-1, 1), 
+                  nrow = 5, byrow = TRUE)
+
+## for monotonic decrease:
+
+decrMat <- matrix(c(-1, 0, 0, 0, 0, 
+                     1,-1, 0, 0, 0,
+                     0, 1,-1, 0, 0,
+                     0, 0, 1,-1, 0, 
+                     0, 0, 0, 1,-1), 
+                  nrow = 5, byrow = TRUE)
+
+
+## we leave off "umbrella" trends, or unimodal trends,
+## I think our differential abundance for clusters
+## is better suited for that.
+
+## how do we specificy that we want to examine the trend 
+## of depth? I think the group variable is the one that 
+## the function will focus on when you run a contrast
+
+## let's make a new ps just for this test:
+
+ps <- ps007_cleaned
+
+sample_data(ps)$DepthSection  <- factor(sample_data(ps)$DepthSection)
+
+str(sample_data(ps))
+
+
+## so to compare the effect of depth:
+
+output = ancombc2(data = ps, 
+                  assay_name = "counts", 
+                  taxa_are_rows = FALSE,
+                  tax_level = "Genus",
+                  fix_formula = "DepthSection + Subsite", 
+                  prv_cut = 0.10, 
+                  group = "DepthSection", 
+                  struc_zero = TRUE, neg_lb = TRUE,
                   alpha = 0.05, n_cl = 2, verbose = TRUE,
-                  global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = FALSE, trend = TRUE,
                   iter_control = list(tol = 1e-2, max_iter = 20, 
                                       verbose = TRUE),
-                  em_control = list(tol = 1e-5, max_iter = 100),
-                  lme_control = lme4::lmerControl(),
-                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 100),
-                  trend_control = list(contrast = list(matrix(c(1, 0, -1, 1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE),
-                                                       matrix(c(-1, 0, 1, -1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE),
-                                                       matrix(c(1, 0, 1, -1),
-                                                              nrow = 2, 
-                                                              byrow = TRUE)),
-                                       node = list(2, 2, 1),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 500),
+                  trend_control = list(contrast = list(incrMat, decrMat),
+                                       node = list(4, 4),
                                        solver = "ECOS",
-                                       B = 10))
+                                       B = 500))
+
+
+## works, or at least, runs.
+
+## can we get the tabasco function going for our data?:
 
 vegan::tabasco()
 https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/using-groups/
+
+tabasco(x = vegtab(Oak1,
+  minval = nrow(Oak1)/2),
+use = Oak1.hclust,
+labCol = paste(groups$g6_letter,
+groups$Stand,
+sep = "_") )
+
+data(dune, dune.taxon)
+
+sptree <- hclust(vegdist(t(dune), "raup"), "average")
+tabasco(dune, plotree, sptree)
 
