@@ -2616,13 +2616,19 @@ clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
 
 #BiocManager::install("ANCOMBC")
 #BiocManager::install("microbiome")
+#install.packages("phylogram")
+#install.packages("DT")
 
 vignette("ANCOMBC")
 library("ANCOMBC")
 library("dplyr")
 
+library("tidyverse")
+
 library("phyloseq")
 library("vegan")
+library("phylogram")
+
 load("ps007_cleaned_sqrt_prop.rda")
 
 ## let's follow the tutorial from the authors:
@@ -2720,10 +2726,49 @@ output = ancombc2(data = ps,
                                        B = 500))
 
 
+## the depth 
+
 ## works, or at least, runs.
 
+## this gives us pairwise comparisons among all our groups,
+## which in case are depths in the core
+## and it gives us the results of a test for general
+## monotonic increase or decrease with depth. 
+
+
+## now that the code is working what we really want:
+## - which species are specialized to palsas, and which to thermokarsts
+## - within each, which are showing patterns with depth
+
+## for the first, use the whole data set, without the grouping 
+## at least, that is the advice from the vignette, because
+## our variable of interest (subsite) has only two categories (palsa/thermokarst)
+
+ancombSubsite_Depth = ancombc2(data = ps, 
+                               assay_name = "counts", 
+                               taxa_are_rows = FALSE,
+                               tax_level = "Genus",
+                               fix_formula = "Subsite + DepthSection", 
+                               prv_cut = 0.10, 
+                               group = NULL, 
+                               #struc_zero = TRUE, 
+                               neg_lb = TRUE,
+                               alpha = 0.05, n_cl = 2, verbose = TRUE,
+                               #global = TRUE, pairwise = TRUE, dunnet = FALSE, trend = FALSE,
+                               iter_control = list(tol = 1e-2, max_iter = 100, 
+                                                   verbose = TRUE),
+                               mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
+
+
+
+
+
+
+
+### build tree/heatmap
 ## can we get the tabasco function going for our data?:
 
+## command is:
 vegan::tabasco()
 https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/using-groups/
 
@@ -2737,5 +2782,69 @@ sep = "_") )
 data(dune, dune.taxon)
 
 sptree <- hclust(vegdist(t(dune), "raup"), "average")
+taxontree <- hclust(taxa2dist(dune.taxon))
+
+plotree <- hclust(vegdist(dune), "average")
 tabasco(dune, plotree, sptree)
+
+tabasco(dune, plotree, sptree)
+
+dev.new()
+tabasco(dune, plotree, sp.ind = taxontree)
+
+## so theoretically, we can use our data and tree:
+
+load("ps007_cleaned_sqrt_prop.rda")
+## to get +/- raw abundances:
+load("ps007_cleaned.rda")
+
+comm <- otu_table(ps007_cleaned_sqrt_prop)
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+## get the hundred most abundant ASVs, just for example
+## later we'll use the diffabund results for this
+mostAbundantOTUs <- names(sort(colSums(otu_table(ps007_cleaned)), decreasing=TRUE)[1:40])
+tax <- tax_table(ps007_cleaned_sqrt_prop)[mostAbundantOTUs,]
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop)[,mostAbundantOTUs])
+commBray <- vegdist(comm)
+comm.ward <- hclust(commBray, method='ward.D2')
+hclustlabels <- paste(substr(envData$SampleID,1,3),
+                      envData$DepthSection, sep="_")
+plot(comm.ward,labels=hclustlabels)
+clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
+dev.new()
+aa <- tabasco(otutab, comm.ward) ## works. 
+
+
+## would be nice to align our 16s tree with this...
+
+psAbu <- prune_taxa(mostAbundantOTUs, ps007_cleaned_sqrt_prop)
+
+plot(phy_tree(psAbu), show.node.label = TRUE)
+
+aa <- as.dendrogram(phy_tree(psAbu))
+
+plot(aa)
+dev.new()
+plot(phy_tree(psAbu), show.node.label = TRUE)
+
+tabasco(otutab, comm.ward) ## 
+
+dev.new()
+tabasco(otutab, comm.ward, aa) 
+## this seems like it works, but then I'm having trouble confirming that the ASVs/tips are correct.
+## they don't seem correct at first glance. 
+
+
+help(plot.phylo)
+
+library(help=vegan)
+
+## working example
+data(dune, dune.taxon)
+taxontree <- hclust(taxa2dist(dune.taxon))
+plotree <- hclust(vegdist(dune), "average")
+sptree <- hclust(vegdist(t(dune), "raup"), "average")
+tabasco(dune, plotree, sptree)
+
+
 
