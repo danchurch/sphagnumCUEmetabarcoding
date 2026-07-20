@@ -2513,8 +2513,8 @@ library("phyloseq")
 library("ggplot2")
 library("RColorBrewer")
 library("ggnewscale")
-load("ps007_cleaned_sqrt_prop.rda")
 
+load("ps007_cleaned_sqrt_prop.rda")
 comm <- otu_table(ps007_cleaned_sqrt_prop)
 envData <- sample_data(ps007_cleaned_sqrt_prop)
 commBray <- vegdist(comm)
@@ -2541,6 +2541,11 @@ gr <- gr[sample_names(ps007_cleaned_sqrt_prop)]
 envData$cluster <- as.factor(gr)
 ## add this back into our sample data:
 sample_data(ps007_cleaned_sqrt_prop) <- envData
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+## keep it this way:
+#save(ps007_cleaned_sqrt_prop, file="ps007_cleaned_sqrt_prop.rda")
 
 
 ## customizing hull colors, etc, is hard with the phyloseq 
@@ -2608,6 +2613,8 @@ new_scale_color() + els + elCS
 #install.packages("dendextend")
 
 #vignette("ANCOMBC")
+## a better tutorial at bioconductor
+## https://bioconductor.org/packages//release/bioc/vignettes/ANCOMBC/inst/doc/ANCOMBC2.html
 library("ANCOMBC")
 library("dplyr")
 library("tidyverse")
@@ -2615,9 +2622,10 @@ library("phyloseq")
 library("vegan")
 library("phylogram")
 library("dendextend")
-
+library("patchwork")
 
 load("ps007_cleaned_sqrt_prop.rda")
+load("ps007_cleaned.rda")
 
 ## let's follow the tutorial from the authors:
 https://bioconductor.posit.co/packages/3.19/bioc/vignettes/ANCOMBC/inst/doc/ANCOMBC2.html
@@ -2688,22 +2696,17 @@ decrMat <- matrix(c(-1, 0, 0, 0, 0,
 ## the function will focus on when you run a contrast
 
 ## let's make a new ps just for this test:
+## and try to compare the effect of depth:
+
+## run this morning:
 
 ps <- ps007_cleaned
-
 sample_data(ps)$DepthSection  <- factor(sample_data(ps)$DepthSection)
-
-str(sample_data(ps))
-
-
-## so to compare the effect of depth:
-
-## here
 output = ancombc2(data = ps, 
                   assay_name = "counts", 
                   taxa_are_rows = FALSE,
                   tax_level = "Genus",
-                  fix_formula = "DepthSection + Subsite", 
+                  fix_formula = "DepthSection + Subsite",  ## first variable is the primary one
                   prv_cut = 0.10, 
                   group = "DepthSection", 
                   struc_zero = TRUE, neg_lb = TRUE,
@@ -2718,25 +2721,81 @@ output = ancombc2(data = ps,
                                        B = 500))
 
 
-## the depth 
+## to explore this - what organisms are changing with depth?:
 
-## works, or at least, runs.
 
+head(output$res_trend)
+
+output$res_trend[output$res_trend$diff_robust_abn,]
+
+[output$res_trend[ 'diff_robust_abn' ],]
+## only methylocystis seems to be "robust"-ly trending with depth
+
+## we put depthSection as our primary variable, what do we see 
+## there?
+
+str(output$res)
+
+head(output$res)
+
+output$res[ output$res$diff_robust_SubsiteThermokarst,"taxon"]
+
+output$res$diff_robust_SubsiteThermokarst
+
+output$res[ output$res$diff_robust_SubsiteThermokarst,]
+
+output$res[ output$res$diff_robust_SubsiteThermokarst,c("taxon","lfc_SubsiteThermokarst","q_SubsiteThermokarst")]
+
+## for example, Ralstonia seems to be differentially abundant,
+## particular to one geomorphology (palsa). Do we pick this up 
+## in our test?
+
+genus="Conexibacter"
+#genus="Occallatibacter"
+#genus="Ralstonia"
+ps.sub <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == genus)
+ps.justPalsa <- subset_samples(ps.sub, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(ps.sub, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+genus.Pal <- plot_bar(ps.justPalsa.genus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+genus.tk  <- plot_bar(ps.justThermokarst.genus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+genusPlot <- genus.Pal + genus.tk
+
+dev.new()
+genusPlot 
+
+## after exploring ylim:
+genusPlot & ylim(min(0), max(0.03))
+ 
 ## this gives us pairwise comparisons among all our groups,
 ## which in case are depths in the core
 ## and it gives us the results of a test for general
 ## monotonic increase or decrease with depth. 
 
-
 ## now that the code is working what we really want:
 ## - which species are specialized to palsas, and which to thermokarsts
+##   answerable with the above? We have mostly acidobacteria:
+
 ## - within each, which are showing patterns with depth
 
 ## for the first, use the whole data set, without the grouping 
 ## at least, that is the advice from the vignette, because
 ## our variable of interest (subsite) has only two categories (palsa/thermokarst)
 
-## not working:
 ancombSubsite_Depth = ancombc2(data = ps, 
                                assay_name = "counts", 
                                taxa_are_rows = FALSE,
@@ -2753,10 +2812,60 @@ ancombSubsite_Depth = ancombc2(data = ps,
                                mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
 
 
+## and try one to get "indicator" species that seem
+## to be abundant particularly with the clusters
+## here, unfortunately, we can't include the effect
+## of subsite (palsa/thermokarst), because there are 
+## mismatches (thermokarst has a zero layer, but 
+## no "3" layer, etc).
+
+library("ANCOMBC")
+library("phyloseq")
+
+load("ps007_cleaned.rda")
+load("ps007_cleaned_sqrt_prop.rda")
+ps <- ps007_cleaned
+sample_data(ps) <- sample_data(ps007_cleaned_sqrt_prop)
+
+ancombSubsite_indicatorSppCluster = ancombc2(data = ps, 
+                               assay_name = "counts", 
+                               taxa_are_rows = FALSE,
+                               tax_level = "Genus",
+                               fix_formula = "cluster + DepthSection", 
+                               prv_cut = 0.10, 
+                               group = "cluster", 
+                               #struc_zero = TRUE, 
+                               neg_lb = TRUE,
+                               alpha = 0.05, n_cl = 2, verbose = TRUE,
+                               global = TRUE, pairwise = TRUE, dunnet = FALSE, trend = FALSE,
+                               iter_control = list(tol = 1e-2, max_iter = 100, 
+                                                   verbose = TRUE),
+                               mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
 
 
+indSp_global <- ancombSubsite_indicatorSppCluster$res_global
+
+indSp_global[indSp_global$q_val < 0.05,] ## just some weird ones.
+
+indSp_global[indSp_global$diff_robust_abn == TRUE,] ## just some weird ones.
+
+## what is driving the difference among our clustered points? 
+## 
 
 
+ancombSubsite_indicatorSppCluster$res[, c("q_cluster2", "q_cluster3", "q_cluster4", "q_cluster5")]
+## nothing, this approach picks up no OTUs specifically abundant in 
+## one or another cluster. 
+
+
+str(ancombSubsite_indicatorSppCluster)
+
+ancombSubsite_indicatorSppCluster$res_global[11,]
+
+ancombSubsite_indicatorSppCluster$res_pair
+clustRes <- ancombSubsite_indicatorSppCluster$res
+
+clustRes$diff_robust_cluster5
 
 ### build tree/heatmap
 ## can we get the tabasco function going for our data?:
@@ -2843,6 +2952,7 @@ plot(specTree)
 ## hugh...I'm confusing myself.
 ## Let's see if the issue pops again when we 
 ## try to map differential abundances. 
+## anyway, this is a working example for now
 ####################################################
 
 
@@ -2893,4 +3003,54 @@ tabasco(otutab, use=comm.ward, sp.ind=bb, Rowv = FALSE)
 dev.new()
 tabasco(otutab, use=bb, site.ind=comm.ward) 
 
+## ugh. Anyway, see "github issue" above, maybe this is 
+## fixed. Focus on the differential abundances and 
+## come back to this. 
 
+
+
+#### indicator analysis ####
+
+## let's try a quick classic indicator analysis
+library(indicspecies)
+library(phyloseq)
+library(vegan)
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+## community matrix. Take the 100 most abundant asvs:
+tax <- tax_table(ps007_cleaned_sqrt_prop)
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+
+## cluster our sites as above. (Do we get the same without the rare ASVs?)
+
+## run clustering algorithm
+
+commBray <- vegdist(otutab)
+comm.ward <- hclust(commBray, method='ward.D2')
+
+k=5
+clusterCols <- c("green","blue","red","black","brown","orange")[1:k]
+names(clusterCols) <- as.character(1:k)
+hclustlabels <- paste(substr(envData$SampleID,1,3),
+                      envData$DepthSection, sep="_")
+plot(comm.ward,labels=hclustlabels)
+clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
+
+sample <- vector()
+gr <- vector()
+for (i in 1:k){
+    cmem.i <- attr(clustGroups[[i]], "names")
+    sample <- c(sample, cmem.i)
+    gr <- c(gr, rep(i, length(cmem.i)))
+    }
+names(gr) <- sample
+gr <- gr[sample_names(ps007_cleaned_sqrt_prop)]
+envData$cluster <- as.factor(gr)
+
+indval <- multipatt(otutab, gr, 
+                    control = how(nperm=999)) 
+
+## now we have the opposite problem. Too many positives.
+## correct for multiple comparisons tomorrow. 
