@@ -3088,8 +3088,11 @@ sc <- indicators(otutab, gr, group=1,
 ## takes a long time. Run it as a script?:
 
 ##################### indicSpeciesCombinationsPeat.r ###############################
+
 library(indicspecies)
+
 library(phyloseq)
+
 library(vegan)
 
 load("ps007_cleaned_sqrt_prop.rda")
@@ -3108,4 +3111,7 @@ save(sc.list, file="indicSpeciesCombinationsPeat.rda")
 
 ##########################################################################################
 
+## try this on the optiplex?
+## needs an update. This will probably take forever. 
+## How about the nanoComp?
 

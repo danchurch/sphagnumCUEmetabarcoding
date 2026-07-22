@@ -6,8 +6,7 @@ load("ps007_cleaned_sqrt_prop.rda")
 tax <- tax_table(ps007_cleaned_sqrt_prop)
 otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
 envData <- sample_data(ps007_cleaned_sqrt_prop)
-
-levels(envData$cluster)
+gr=envData$cluster
 
 sc.list <- list()
 for (i in levels(envData$cluster)){
