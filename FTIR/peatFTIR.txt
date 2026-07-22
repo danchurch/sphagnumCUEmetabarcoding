@@ -185,15 +185,37 @@ load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 envData$sampleNum <- rownames(envData)
 rownames(envData) <- envData$SampleID
-envData <- subset(envData,select=-c(SampleID))
+
 
 ## I hope order was maintained? No way to check, really...:
-rownames(rawData) <- list.files( rawDir, pattern=".spc") |> gsub(pattern=".spc", replacement="", x=_)
 
+SampleID <- list.files( rawDir, pattern=".spc") |> gsub(pattern=".spc", replacement="", x=_)
+rownames(rawData) <- SampleID
 drop.cols <- c("exponentiation_factor","data_point_number","x_variable_type",
                 "y_variable_type","measurement_date","measurement_device")
 spectra <- rawData |> select(-all_of(drop.cols))
 
-rownames(spectra) <- rownames(rawData)
+## use dplyr joins to avoid losing the tibble/IR class
+## ugh. 
+ourIR <- inner_join(spectra, envData, by = "SampleID")
 
+plot(ourIR) ## looks okay
 
+## can we repeat their example pipeline in the peat package?:
+
+x <- 
+  ourIR |>                                               # data
+  dplyr::mutate(
+    hi_1630_1090 =
+      ourIR |>
+      ir::ir_bc(method = "rubberband") |>                # baseline correction
+      ir::ir_interpolate(start = NULL, dw = 1) |>        # interpolation
+      irp_hi(x1 = 1630, x2 = 1090) |>                    # humification index
+      dplyr::pull(hi_1630_1090)
+  ) |>
+  ir::ir_interpolate(start = NULL, dw = 1) |>
+  irpeat::irp_nitrogen_content_1(do_summary = TRUE) |>   # N content
+  irpeat::irp_bulk_density_1(do_summary = TRUE) |>       # bulk density
+  irpeat::irp_macroporosity_1(do_summary = TRUE)         # macroporosity
+
+## okay,
