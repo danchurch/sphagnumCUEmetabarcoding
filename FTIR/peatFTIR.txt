@@ -14,4 +14,120 @@ sudo apt install libudunits2-dev
 install.packages("remotes")
 remotes::install_github(repo = "henningte/irpeat")
 
+## we might need the irpeatmodels package:
+
+remotes::install_url("https://zenodo.org/record/17187912/files/irpeatmodels_0.1.0.tar.gz", type = "source")
+
+## too big. Download and work locally.
+
+library("ir")
+library("irpeat")
+library(ggplot2)
+## for tutorial
+library(dplyr)
+library(stringr)
+
+## where to start?
+## to learn about the basics, maybe start with the IR tutorial:
+https://github.com/henningte/ir/
+## which sends us here:
+https://henningte.github.io/ir/articles/ir-introduction.html
+
+## our data are in the ".spc" format, a binary for spectroscopic data
+
+## they have sample data on the github site:
+
+d_spc <- ir_import_spc("1.spc", log.txt = FALSE)
+
+# export only the spectra
+ir_sample_data |>
+  ir_export_prepare(what = "spectra") |>
+  write.csv(tempfile("ir_sample_data_spectra", fileext = ".csv"), row.names = FALSE)
+
+ir_sample_data |>
+  ir_drop_spectra() |>
+  write.csv(tempfile("ir_sample_data_metadata", fileext = ".csv"), row.names = FALSE)
+
+plot(d_spc)
+
+## with CSV:
+d_csv <- 
+  ir_import_csv(
+    "klh_hodgkins_mir.csv", 
+    sample_id = "from_colnames"
+  )
+
+# import the metadata
+d_csv_metadata <- 
+  read.csv(
+    "klh_hodgkins_reference.csv",
+    header = TRUE,
+    as.is = TRUE
+  ) |>
+  dplyr::rename(
+    sample_id = "Sample.Name",
+    sample_type = "Category",
+    comment = "Description",
+    holocellulose = "X..Cellulose...Hemicellulose..measured.",
+    klason_lignin = "X..Klason.lignin..measured." 
+  ) |>
+  # make the sample_id values fit to those in `d_csv$sample_id` to make combining easier
+  dplyr::mutate(
+    sample_id =
+      sample_id |>
+      stringr::str_replace_all(pattern = "( |-)", replacement = "\\.")
+  )
+d_csv <- 
+  d_csv |>
+  dplyr::full_join(d_csv_metadata, by = "sample_id")
+
+plot(d_csv)
+
+
+plot(d_csv) + 
+  geom_path(aes(color = sample_type))
+
+plot(d_csv) + 
+  geom_path(aes(color = sample_type)) +
+  labs(x = expression("Wavenumber ["*cm^{-1}*"]"), y = "Absorbance") +
+  guides(color = guide_legend(title = "Sample type")) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+
+plot(d_spc)
+
+d_spc |>
+  ir_bc(method = "rubberband") |>
+  plot()
+
+d_spc |>
+  ir_normalize(method = "area") |>
+  plot()
+
+d_spc |>
+  ir_normalize(method = 1090) |>
+  plot() +
+  geom_hline(yintercept = 1, linetype = 2) +
+  geom_vline(xintercept = 1090, linetype = 2)
+
+d_spc |>
+  ir_smooth(method = "sg", p = 3, n = 91, m = 0) |>
+  plot()
+
+
+## great. not sure what standardization, corrections, etc,
+## are appropriate for our peat IR data. Let's go through 
+## the peat IR package tutorial, and maybe they have suggestions.
+
+https://github.com/henningte/irpeat
+
+library(ir)
+
+library(irpeatmodels)
+
+library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.3.3
+library(units)
+#> udunits database from C:/Users/henni/AppData/Local/R/win-library/4.3/units/share/udunits/udunits2.xml
+library(rstan)
 

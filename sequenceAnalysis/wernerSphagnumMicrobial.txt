@@ -3090,17 +3090,14 @@ sc <- indicators(otutab, gr, group=1,
 ##################### indicSpeciesCombinationsPeat.r ###############################
 
 library(indicspecies)
-
 library(phyloseq)
-
 library(vegan)
 
 load("ps007_cleaned_sqrt_prop.rda")
 tax <- tax_table(ps007_cleaned_sqrt_prop)
 otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
 envData <- sample_data(ps007_cleaned_sqrt_prop)
-
-levels(envData$cluster)
+gr=envData$cluster
 
 sc.list <- list()
 for (i in levels(envData$cluster)){
@@ -3112,6 +3109,46 @@ save(sc.list, file="indicSpeciesCombinationsPeat.rda")
 ##########################################################################################
 
 ## try this on the optiplex?
-## needs an update. This will probably take forever. 
-## How about the nanoComp?
 
+nohup Rscript indicSpeciesCombinationsPeat.r &
+
+## running. 
+
+## now what?
+
+## taking too long. Modify script to just do one at a time, and 
+## run all five simultaneously:
+
+##################### indicSpeciesCombinationsPeat_parallelize.r ###############################
+
+whichCluster = commandArgs(trailingOnly=TRUE)
+library(indicspecies)
+library(phyloseq)
+library(vegan)
+
+print(paste0("indicSpeciesCombinationsPeat",whichCluster,".rda"))
+
+load("ps007_cleaned_sqrt_prop.rda")
+tax <- tax_table(ps007_cleaned_sqrt_prop)
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+gr=envData$cluster
+
+sc <- indicators(otutab, gr, group=whichCluster,
+                    control = how(nperm=999)) 
+
+saveRDS(sc, file=paste0("indicSpeciesCombinationsPeat",whichCluster,".rda"))
+
+##############################################################################################
+
+## we have 5 clusters, so 
+
+for i in {1..5}; do
+  echo $i
+  nohup Rscript indicSpeciesCombinationsPeat_parallelize.r $i &
+done 
+
+
+
+
+## FTIR data, CUE data, community modeling with sJSDM.
