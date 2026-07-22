@@ -3054,3 +3054,58 @@ indval <- multipatt(otutab, gr,
 
 ## now we have the opposite problem. Too many positives.
 ## correct for multiple comparisons tomorrow. 
+
+
+head(indval$sign)
+
+fdrs<-p.adjust(pvalues, method="BH")
+
+print(pvalues)
+
+
+
+print(fdrs)
+
+## okay, wait on that. Given the possibility of
+## syntrophy among the nitrifiers, sulfur oxiders,
+## and methanotrophs, etc, we probably want to 
+## check for indicator species groups. 
+## try the following command, still from 
+## the indicspecies package.
+
+data(wetland)
+groups <- c(rep(1, 17), rep(2, 14), rep(3,10))
+
+sc <- indicators(X=wetland, cluster=groups, group=2, 
+                 max.order = 3, verbose=TRUE, 
+                 At=0.5, Bt=0.2)
+
+## try this on one of groups from clustering results:
+
+sc <- indicators(otutab, gr, group=1,
+                    control = how(nperm=999)) 
+
+## takes a long time. Run it as a script?:
+
+##################### indicSpeciesCombinationsPeat.r ###############################
+library(indicspecies)
+library(phyloseq)
+library(vegan)
+
+load("ps007_cleaned_sqrt_prop.rda")
+tax <- tax_table(ps007_cleaned_sqrt_prop)
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+
+levels(envData$cluster)
+
+sc.list <- list()
+for (i in levels(envData$cluster)){
+  sc.i <- indicators(otutab, gr, group=i,
+                    control = how(nperm=999)) 
+}
+save(sc.list, file="indicSpeciesCombinationsPeat.rda")
+
+##########################################################################################
+
+
