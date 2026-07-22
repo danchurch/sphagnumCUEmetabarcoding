@@ -3149,6 +3149,4 @@ for i in {1..5}; do
 done 
 
 
-
-
 ## FTIR data, CUE data, community modeling with sJSDM.

@@ -20,12 +20,19 @@ remotes::install_url("https://zenodo.org/record/17187912/files/irpeatmodels_0.1.
 
 ## too big. Download and work locally.
 
+wget https://zenodo.org/record/17187912/files/irpeatmodels_0.1.0.tar.gz
+install.packages("irpeatmodels_0.1.0.tar.gz", type = "source")
+
 library("ir")
 library("irpeat")
 library(ggplot2)
 ## for tutorial
 library(dplyr)
 library(stringr)
+library(units)
+library(rstan)
+library(irpeatmodels)
+library(phyloseq)
 
 ## where to start?
 ## to learn about the basics, maybe start with the IR tutorial:
@@ -121,13 +128,72 @@ d_spc |>
 
 https://github.com/henningte/irpeat
 
-library(ir)
+irpeat_sample_data <- irpeat::irpeat_sample_data
 
-library(irpeatmodels)
+class(irpeat_sample_data)
 
-library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.3.3
-library(units)
-#> udunits database from C:/Users/henni/AppData/Local/R/win-library/4.3/units/share/udunits/udunits2.xml
-library(rstan)
+x <- 
+  irpeat_sample_data |>                                  # data
+  dplyr::mutate(
+    hi_1630_1090 =
+      irpeat_sample_data |>
+      ir::ir_bc(method = "rubberband") |>                # baseline correction
+      ir::ir_interpolate(start = NULL, dw = 1) |>        # interpolation
+      irp_hi(x1 = 1630, x2 = 1090) |>                    # humification index
+      dplyr::pull(hi_1630_1090)
+  ) |>
+  ir::ir_interpolate(start = NULL, dw = 1) |>
+  irpeat::irp_nitrogen_content_1(do_summary = TRUE) |>   # N content
+  irpeat::irp_bulk_density_1(do_summary = TRUE) |>       # bulk density
+  irpeat::irp_macroporosity_1(do_summary = TRUE)         # macroporosity
+
+colnames(x)
+
+## looks great. how do we adapt our data to do this?
+
+irpeat_sample_data
+
+aa <- ir::ir_bc(irpeat_sample_data, method = "rubberband")
+
+head(irpeat_sample_data)
+
+irpeat_sample_data$spectra
+
+##############################################
+
+## so for our data?
+## working from the raw data:
+
+rawDir="/home/daniel/Documents/projects/wernerSphagnum/FTIR/FTIR_raw/"
+
+aa <- ir_import_spc(paste0(rawDir, "AT5_70-90.spc"), log.txt = FALSE)
+
+?ir_import_spc
+
+## so we would get a dataframe/tibble from all files this way:
+setwd(rawDir)
+rawData <- ir_import_spc(list.files( rawDir, pattern=".spc"), log.txt = FALSE)
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/FTIR")
+
+colnames(rawData)
+## we don't really want all that. I guess we can attach our environmental data 
+## to this:
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+envData$sampleNum <- rownames(envData)
+rownames(envData) <- envData$SampleID
+envData <- subset(envData,select=-c(SampleID))
+
+## I hope order was maintained? No way to check, really...:
+rownames(rawData) <- list.files( rawDir, pattern=".spc") |> gsub(pattern=".spc", replacement="", x=_)
+
+drop.cols <- c("exponentiation_factor","data_point_number","x_variable_type",
+                "y_variable_type","measurement_date","measurement_device")
+spectra <- rawData |> select(-all_of(drop.cols))
+
+rownames(spectra) <- rownames(rawData)
+
 
