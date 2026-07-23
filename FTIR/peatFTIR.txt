@@ -31,8 +31,9 @@ library(dplyr)
 library(stringr)
 library(units)
 library(rstan)
-library(irpeatmodels)
 library(phyloseq)
+library(ordinalCont)
+library(irpeatmodels)
 
 ## where to start?
 ## to learn about the basics, maybe start with the IR tutorial:
@@ -191,9 +192,11 @@ rownames(envData) <- envData$SampleID
 
 SampleID <- list.files( rawDir, pattern=".spc") |> gsub(pattern=".spc", replacement="", x=_)
 rownames(rawData) <- SampleID
+rawData$SampleID <- SampleID
 drop.cols <- c("exponentiation_factor","data_point_number","x_variable_type",
                 "y_variable_type","measurement_date","measurement_device")
 spectra <- rawData |> select(-all_of(drop.cols))
+
 
 ## use dplyr joins to avoid losing the tibble/IR class
 ## ugh. 
@@ -218,4 +221,198 @@ x <-
   irpeat::irp_bulk_density_1(do_summary = TRUE) |>       # bulk density
   irpeat::irp_macroporosity_1(do_summary = TRUE)         # macroporosity
 
-## okay,
+dev.new()
+
+plot(x)
+
+## base correct, interpolate, and normalize:
+ourIRbaseCorrected <- ir::ir_bc(ourIR, method = "rubberband") |> ir_interpolate(dw = 1)
+ourIRbaseCorrected_normalized <- ir::ir_normalize(ourIRbaseCorrected, method = "area")
+
+dev.new()
+plot(ourIR)
+dev.new()
+plot(ourIRbaseCorrected)
+dev.new()
+plot(ourIRbaseCorrected_normalized)
+
+## okay, that was pretty simple. 
+
+## what variables are possible?
+
+irp_nitrogen_content_1
+irp_holocellulose_content_2
+irp_klason_lignin_content_2
+irp_eac_1 ## = electron acceptors?
+irp_edc_1 ## = electron donors?
+irp_carbon_content_1
+irp_nitrogen_content_1
+irp_hydrogen_content_1
+irp_oxygen_content_1
+irp_phosphorus_content_1
+irp_potassium_content_1
+irp_sulfur_content_1
+irp_titanium_content_1
+irp_silicon_content_1
+irp_calcium_content_1
+irp_d13C_1
+irp_d15N_1
+irp_nosc_1 ## = ??
+irp_dgf0_1 ## = ??
+irp_bulk_density_1
+irp_loss_on_ignition_1
+irp_O_to_C_1
+irp_C_to_N_1
+irp_H_to_C_1
+irp_volume_fraction_solids_1
+irp_non_macroporosity_1
+irp_macroporosity_1
+irp_saturated_hydraulic_conductivity_1
+irp_specific_heat_capacity_1
+irp_dry_thermal_conductivity_1
+irp_microbial_nitrogen_content_1
+irp_degree_of_decomposition_1
+irp_degree_of_decomposition_2
+irp_degree_of_decomposition_3
+
+## What variables are we interested in?
+## given that we want good predictors of microbial community
+## and possible influences of CUE?
+ 
+## keep the following:
+irp_nitrogen_content_1
+irp_holocellulose_content_2
+irp_klason_lignin_content_2
+irp_carbon_content_1
+irp_nitrogen_content_1
+irp_hydrogen_content_1
+irp_oxygen_content_1
+irp_phosphorus_content_1
+irp_sulfur_content_1
+irp_d13C_1
+irp_d15N_1
+irp_bulk_density_1
+irp_O_to_C_1
+irp_C_to_N_1
+irp_H_to_C_1
+irp_macroporosity_1
+irp_saturated_hydraulic_conductivity_1
+irp_microbial_nitrogen_content_1
+
+## choose one of the following, if they 
+## give the same results
+irp_degree_of_decomposition_1
+irp_degree_of_decomposition_2
+irp_degree_of_decomposition_3
+
+## does running these on normalized data change the result?
+
+ourIR
+ourIRbaseCorrected
+ourIRbaseCorrected_normalized
+
+## make an IR object that has first row from 
+## all 3:
+
+?irp_nitrogen_content_1
+
+aa <- bind_rows(
+               ourIR[1, ],
+               ourIRbaseCorrected[1, ],
+               ourIRbaseCorrected_normalized[1, ],
+)
+
+testN <- irp_nitrogen_content_1(aa, do_summary = TRUE)
+
+bb$nitrogen_content_1
+
+testCell <- irp_holocellulose_content_2(aa, do_summary = FALSE)
+testCell[,"holocellulose_content_2"] ## no difference...
+
+testLig <- irp_klason_lignin_content_2(aa, do_summary = TRUE)
+testLig["klason_lignin_content_2"] ## nope, no difference due to preproc
+
+## anyway, let's use the preprocessed data and run all of the above,
+## and also the the four humification indices. 
+
+## start over:
+
+library("ir")
+library("irpeat")
+library(ggplot2)
+## for tutorial
+library(dplyr)
+library(stringr)
+library(units)
+library(rstan)
+library(phyloseq)
+library(ordinalCont)
+library(irpeatmodels)
+
+
+rawDir="/home/daniel/Documents/projects/wernerSphagnum/FTIR/FTIR_raw/"
+setwd(rawDir)
+rawData <- ir_import_spc(list.files( rawDir, pattern=".spc"), log.txt = FALSE)
+setwd("/home/daniel/Documents/projects/wernerSphagnum/FTIR")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+envData$sampleNum <- rownames(envData)
+rownames(envData) <- envData$SampleID
+
+
+## I hope order was maintained? No way to check, really...:
+
+SampleID <- list.files( rawDir, pattern=".spc") |> gsub(pattern=".spc", replacement="", x=_)
+rownames(rawData) <- SampleID
+rawData$SampleID <- SampleID
+drop.cols <- c("exponentiation_factor","data_point_number","x_variable_type",
+                "y_variable_type","measurement_date","measurement_device")
+spectra <- rawData |> select(-all_of(drop.cols))
+ourIR <- inner_join(spectra, envData, by = "SampleID")
+
+
+
+
+## use dplyr joins to avoid losing the tibble/IR class
+## ugh. 
+ourIR <- inner_join(spectra, envData, by = "SampleID")
+
+
+
+
+
+
+
+
+plot(ourIR) ## looks okay
+
+ourIRbaseCorrected <- ir::ir_bc(ourIR, method = "rubberband") |> ir_interpolate(dw = 1)
+ourIRbaseCorrected_normalized <- ir::ir_normalize(ourIRbaseCorrected, method = "area")
+
+## don't know why, but interpolating still doesn't prevent the warnings that nearest 
+## wavelengths were used. 
+
+x <- ourIRbaseCorrected_normalized |>
+  irp_hi(x1 = NULL, x2 = NULL) |> ## humification indices as per Broder et al 2012 ("Pet decomp Records in Three Pristine...")
+  irp_holocellulose_content_2() |> 
+  irp_klason_lignin_content_2() |> 
+  irp_carbon_content_1() |> 
+  irp_nitrogen_content_1() |> 
+  irp_hydrogen_content_1() |> 
+  irp_oxygen_content_1() |> 
+  irp_phosphorus_content_1() |> 
+  irp_sulfur_content_1() |> 
+  irp_d13C_1() |> 
+  irp_d15N_1() |> 
+  irp_bulk_density_1() |> 
+  irp_O_to_C_1() |>
+  irp_C_to_N_1() |>
+  irp_H_to_C_1() |>
+  irp_macroporosity_1() |>
+
+x <- ourIRbaseCorrected_normalized |>
+  irp_saturated_hydraulic_conductivity_1() 
+
+  irp_microbial_nitrogen_content_1() 
+
+
