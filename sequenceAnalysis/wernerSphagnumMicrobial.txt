@@ -3149,3 +3149,31 @@ for i in {1..5}; do
 done 
 
 ## FTIR data, CUE data, community modeling with sJSDM.
+
+###### FTIR data ########
+
+## we have some new data from the FTIR data
+
+## can we reformat it to fit into our phyloseq object?
+
+ 
+library(phyloseq)
+library(vegan)
+
+load("ps007_cleaned_sqrt_prop.rda")
+FTIR <- read.csv("../FTIR/envDataFTIR.csv")
+
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+
+envData[1:10,1:6]
+
+FTIR[1:10,1:6]
+
+## reorder  
+rownames(FTIR) <- FTIR$sampleNum
+FTIR <- FTIR[rownames(envData),]
+
+sample_data(ps007_cleaned_sqrt_prop) <- FTIR 
+
+sample_data(ps007_cleaned_sqrt_prop)
+## works...
