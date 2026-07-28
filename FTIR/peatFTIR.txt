@@ -11,7 +11,7 @@ sudo apt install libudunits2-dev
 ## then installed tinyverse, a few hiccups there...
 ## now, irpeat package: https://github.com/henningte/irpeat
 
-install.packages("remotes")
+#install.packages("remotes")
 remotes::install_github(repo = "henningte/irpeat")
 
 ## we might need the irpeatmodels package:
@@ -20,8 +20,15 @@ remotes::install_url("https://zenodo.org/record/17187912/files/irpeatmodels_0.1.
 
 ## too big. Download and work locally.
 
+
 wget https://zenodo.org/record/17187912/files/irpeatmodels_0.1.0.tar.gz
 install.packages("irpeatmodels_0.1.0.tar.gz", type = "source")
+
+## and redo, because the authors changed some things for us,
+## should test it:
+
+remove.packages(c("irpeat", "irpeatmodels"))
+
 
 library("ir")
 library("irpeat")
@@ -377,11 +384,19 @@ ourIRbaseCorrected_normalized <- ir::ir_normalize(ourIRbaseCorrected, method = "
 ourIRbaseCorrected_normalized[,"spectra"][[1]]$"1"
 
 print(ourIRbaseCorrected_normalized[,"spectra"][[1]]$"1", n=100) ## nope. Lowest are 600.
+
+print(ir::ir_sample_data[,"spectra"][[1]]$OFF.08.852, n=100)
+
+print(ir::ir_sample_data[,"spectra"][[1]]$"1", n=100)
+
 ## 650 is available, at least in the first sample. Not sure, maybe raise it as issue, 
 ## if they respond to my other issue. 
 
 ourIRbaseCorrected_normalized[,"spectra"][[1]]
 
+?irp_oxygen_content_1
+
+## for github issues
 #saveRDS(ourIRbaseCorrected_normalized, file = "ourIRbaseCorrected_normalized.rds")
 
 x <- ourIRbaseCorrected_normalized
@@ -408,6 +423,19 @@ x <- ourIRbaseCorrected_normalized |>
   irp_degree_of_decomposition_3()
 
 ## tried irp_saturated_hydraulic_conductivity_1() also, but function is broken methinks
+
+zoop <- ourIRbaseCorrected_normalized |>
+        irp_saturated_hydraulic_conductivity_1()
+
+?irp_saturated_hydraulic_conductivity_1
+
+ir::ir_sample_data 
+
+ir::ir_sample_data[,"spectra"][[1]][1:20]
+
+ir::ir_sample_data |>
+  irp_saturated_hydraulic_conductivity_1()
+
 ## anyway, maybe this can be a kind of new environmental matrix for our next analysis.
 ## but I hate fucking tibbles. 
 ## how to format all this data into a sane dataframe?
@@ -461,4 +489,85 @@ envDataFTIR <- cbind(noWeirdos, fixWeirdCols)
 
 #write.csv(envDataFTIR, file="envDataFTIR.csv", row.names=FALSE)
 
+## these were then added to a phyloseq object, ps007_cleaned_sqrt_prop_FTIR
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
+## How do these data compare to our elemental analysis?:
+
+## elemental analysis results are in our classic ps007_cleaned_sqrt_prop object:
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+elements <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR))
+FTIRdata <- FTIRdata[,c("SampleID","sampleNum","hi1","hi2","hi3","hi4","holocellulose_content_2","klason_lignin_content_2","carbon_content_1","nitrogen_content_1","hydrogen_content_1","oxygen_content_1","phosphorus_content_1","sulfur_content_1","bulk_density_1","O_to_C_1","C_to_N_1","H_to_C_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3")]
+
+colnames(FTIRdata)
+
+colnames(elements)
+
+## for instance, nitrogen:
+N <- elements[,"N"]
+Nmir <- FTIRdata[,"nitrogen_content_1"]
+ndf <- data.frame(N=N, Nmir=Nmir)
+ggplot(ndf, aes(x=N, y=Nmir)) +
+  geom_point() ## wow, that's pretty good
+
+## carbon comparison:
+C <- elements[,"C"]
+Cmir <- FTIRdata[,"carbon_content_1"]
+cdf <- data.frame(C=C, Cmir=Cmir)
+ggplot(cdf, aes(x=C, y=Cmir)) +
+  geom_point() ## again, really good fit
+
+## oxygen comparison:
+O <- elements[,"O"]
+Omir <- FTIRdata[,"oxygen_content_1"]
+odf <- data.frame(O=O, Omir=Omir)
+ggplot(odf, aes(x=O, y=Omir)) +
+  geom_point() ## a little messier, but still good fit
+
+## sulphur
+S <- elements[,"S"]
+Smir <- FTIRdata[,"sulfur_content_1"]
+sdf <- data.frame(S=S, Smir=Smir)
+ggplot(sdf, aes(x=S, y=Smir)) +
+  geom_point() +
+  geom_abline(slope=0.001, intercept=0)
+## messier, but the relation is there
+
+## CN ratio
+CN <- elements[,"CN"]
+CNmir <- FTIRdata[,"C_to_N_1"]
+CNdf <- data.frame(CN=CN, CNmir=CNmir)
+
+ggplot(CNdf, aes(x=CN, y=CNmir)) +
+  geom_point() +
+  geom_abline(slope=1, intercept=0)
+
+##  H/C 
+HC <- elements[,"HC"]
+HCmir <- FTIRdata[,"H_to_C_1"]
+HCdf <- data.frame(HC=HC, HCmir=HCmir)
+ggplot(HCdf, aes(x=HC, y=HCmir)) +
+  geom_point() +
+  geom_abline(slope=1, intercept=0)
+## whoah, failed badly.
+## looks like the HC ratio is binned into 
+## two values, 0.12 and 0.13. Not useful.
+
+##  O/C 
+OC <- elements[,"OC"]
+OCmir <- FTIRdata[,"O_to_C_1"]
+OCdf <- data.frame(OC=OC, OCmir=OCmir)
+ggplot(OCdf, aes(x=OC, y=OCmir)) +
+  geom_point() +
+  geom_abline(slope=1, intercept=0)
+## looks pretty good. 
+
+elements
+FTIRdata
+
+colnames(elements)
+colnames(FTIRdata)
+
+## great. now the question, what do we do with all this data?...

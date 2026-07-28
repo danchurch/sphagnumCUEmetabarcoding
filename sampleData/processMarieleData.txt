@@ -1,0 +1,141 @@
+## let's go back through Mariele's data and results. 
+## the main goal is to simply recover her sample data,
+## but also to recover her results and benefit from 
+## all of her hard work on data exploration.
+
+library("openxlsx")
+library("phyloseq")
+library("ggplot2")
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+#elementsRaw <- read.xlsx( "marieleData/Data_Castan_Mariele.xlsx", 
+#                        sheet="11_Elemental analyses", 
+#                        rowNames=FALSE,
+#                        colNames=TRUE,
+#                        startRow=9)
+
+elements <- read.xlsx( "marieleData/Data_Castan_Mariele.xlsx", 
+                        sheet="11_Elemental analyses", 
+                        rowNames=FALSE,
+                        colNames=TRUE,
+                        startRow=9)
+## for the moment, let's stay with mass ratios rather than molar:
+elements <- elements[,c("Sample.ID","Subsite","Working.ID","N.[mg/g]","C.[mg/g]","H.[mg/g]","S.[mg/g]","O.[mg/g]","C/N.mass","C/H.mass","H/C.mass","O/C.mass")]
+rownames(elements) <- gsub("P","S", elements$Working.ID) ## match to our sample names
+## reorder and subset to match our data:
+elements <- elements[ rownames(envData),]
+
+## sanity check, do her Working.ID values line up with my sample numbers?:
+
+dim(elements)
+dim(envData)
+
+elements
+envData
+
+head(elements)
+head(envData)
+
+cbind(rownames(envData), rownames(elements), elements$Sample.ID, envData$SampleID)
+
+elements$SampleID == envData$SampleID
+
+## looks fine. just curious, how do our FTIR data lineup with our elemental 
+## predictions here:
+
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR))
+
+FTIRdata <- FTIRdata[,c("SampleID","sampleNum","hi1","hi2","hi3","hi4","holocellulose_content_2","klason_lignin_content_2","carbon_content_1","nitrogen_content_1","hydrogen_content_1","oxygen_content_1","phosphorus_content_1","sulfur_content_1","bulk_density_1","O_to_C_1","C_to_N_1","H_to_C_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3")]
+
+head(FTIRdata)
+
+## for instance, nitrogen:
+N <- elements[,"N.[mg/g]"]
+Nmir <- FTIRdata[,"nitrogen_content_1"]
+
+ndf <- data.frame(N=N, Nmir=Nmir)
+ggplot(ndf, aes(x=N, y=Nmir)) +
+  geom_point() ## wow, that's pretty good
+
+## carbon comparison:
+C <- elements[,"C.[mg/g]"]
+Cmir <- FTIRdata[,"carbon_content_1"]
+cdf <- data.frame(C=C, Cmir=Cmir)
+ggplot(ndf, aes(x=C, y=Cmir)) +
+  geom_point() ## again, really good fit
+
+## oxygen comparison:
+O <- elements[,"O.[mg/g]"]
+Omir <- FTIRdata[,"oxygen_content_1"]
+cdf <- data.frame(O=O, Omir=Omir)
+ggplot(ndf, aes(x=O, y=Omir)) +
+  geom_point() ## a little messier, but still good fit
+
+## sulfur comparison:
+S <- elements[,"S.[mg/g]"]
+Smir <- FTIRdata[,"sulfur_content_1"]
+cdf <- data.frame(S=S, Smir=Smir)
+ggplot(ndf, aes(x=S, y=Smir)) +
+  geom_point() +
+  geom_abline(slope=0.001, intercept=0)
+## a lot messier, though perhaps still useful. 
+
+## anyway. these would be the extra environmental data from 
+## Marielle's work. 
+
+## save this as environmental data onto our standard phyloseq 
+## object:
+
+## transfer the above to our FTIR script for the record. 
+
+ps007_cleaned_sqrt_prop
+
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+head(elements)
+
+colnames(elements)
+
+length(c("Sample.ID","Subsite","Working.ID","N.[mg/g]","C.[mg/g]","H.[mg/g]","S.[mg/g]","O.[mg/g]","C/N.mass","C/H.mass","H/C.mass","O/C.mass"))
+colnames(elements) <- c("SampleID","Subsite","Working.ID","N","C","H","S","O","CN","CH","HC","OC")
+
+aa <- merge(envData, elements)
+rownames(aa) <- gsub("P","S", aa$Working.ID) ## match to our sample names
+aa <- aa[rownames(envData),] ## reorder to match existing sample data
+
+head(aa)
+head(sample_data(ps007_cleaned_sqrt_prop) )
+
+tail(aa)
+tail(sample_data(ps007_cleaned_sqrt_prop) )
+
+## looks fine, save it as our new env data:
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+
+sample_data(ps007_cleaned_sqrt_prop) <- aa
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+save(ps007_cleaned_sqrt_prop, file = "ps007_cleaned_sqrt_prop.rda")
+
+
+head(elementsRaw)
+
+spreadsheetNames <- c("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24", "P25", "P26", "P27", "P28", "P29", "P30", "P31", "P32", "P33", "P34", "P35", "P36", "P37", "P38", "P39", "P40")
+
+cbind(elementsRaw$Working.ID, spreadsheetNames)
+
+head(elementsRaw, n=10)
+
+rownames(elementsRaw) <- elementsRaw$Working.ID
+
+elementsRaw[ spreadsheetNames,"Sample.ID", drop=FALSE]
+
+write.csv(elementsRaw[ spreadsheetNames,"Sample.ID"], file="zoop.txt", row.names=FALSE)

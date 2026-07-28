@@ -3021,6 +3021,7 @@ load("ps007_cleaned_sqrt_prop.rda")
 ## community matrix. Take the 100 most abundant asvs:
 tax <- tax_table(ps007_cleaned_sqrt_prop)
 otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+
 envData <- sample_data(ps007_cleaned_sqrt_prop)
 
 ## cluster our sites as above. (Do we get the same without the rare ASVs?)
@@ -3125,6 +3126,8 @@ whichCluster = commandArgs(trailingOnly=TRUE)
 library(indicspecies)
 library(phyloseq)
 library(vegan)
+library(ggplot2)
+library(patchwork)
 
 print(paste0("indicSpeciesCombinationsPeat",whichCluster,".rda"))
 
@@ -3148,32 +3151,210 @@ for i in {1..5}; do
   nohup Rscript indicSpeciesCombinationsPeat_parallelize.r $i &
 done 
 
-## FTIR data, CUE data, community modeling with sJSDM.
+## and that is a big no. Computationally too expensive, been running for days. 
+## only one of the five processes survived anyway, too much ram needed. 
 
-###### FTIR data ########
+## we really need the bigger jsdm to do species correlations with environment 
+## and each other. so for the moment, just get indicator species for each 
+## cluster, and maybe for depth. 
 
-## we have some new data from the FTIR data
+## do the rest with a jsdm. Later. 
+## for now, back and find some indicator species
+## with the classic algorithm:
 
-## can we reformat it to fit into our phyloseq object?
+tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
- 
-library(phyloseq)
-library(vegan)
+## does this work?
+indval <- multipatt(otutab, envData$cluster, 
+                    max.order=1,
+                    control = how(nperm=999)) 
 
-load("ps007_cleaned_sqrt_prop.rda")
-FTIR <- read.csv("../FTIR/envDataFTIR.csv")
 
-envData <- sample_data(ps007_cleaned_sqrt_prop)
+sink(file="multipatt_cluster_out.txt")
+summary(indval)
+sink()
 
-envData[1:10,1:6]
+## correction for multiple comparisons
 
-FTIR[1:10,1:6]
+str(indval)
 
-## reorder  
-rownames(FTIR) <- FTIR$sampleNum
-FTIR <- FTIR[rownames(envData),]
+dim(indval$sign)
 
-sample_data(ps007_cleaned_sqrt_prop) <- FTIR 
+indSpecResults <- indval$sign
 
-sample_data(ps007_cleaned_sqrt_prop)
-## works...
+head(indSpecResults)
+
+indSpecResults <- indSpecResults[ complete.cases(indSpecResults),]
+
+indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
+
+## if we use an fdr cutoff of 5%, rather than p<.05...
+
+sum(indSpecResults$p.value < 0.05) ## 2229 indicator species
+sum(indSpecResults$fdr < 0.05) ## 2002 indicator species
+
+## still to many to really understand. Make a really strict cutoff, say 0.01:
+
+sum(indSpecResults$fdr < 0.01) ## still 1418 species, out of 3570.
+
+hist(indSpecResults$stat) ## let's try reducing by the association statistic...
+
+sum(indSpecResults$stat > 0.9) ## takes it down to 287 species. 
+
+## reduce to these:
+indSpecResults <- indSpecResults[indSpecResults$stat > 0.9,]
+
+
+head(indSpecResults)
+
+barplot(colSums(indSpecResults)[c("s.1","s.2","s.3","s.4","s.5")])
+
+## get the taxonomy of these.
+## for instance, cluster 1 (upper thermokarst):
+
+s.1_asvs <- rownames(indSpecResults[indSpecResults$s.1 == 1,])
+tax_table(ps007_cleaned_sqrt_prop)[ s.1_asvs,]
+
+s.2_asvs <- rownames(indSpecResults[indSpecResults$s.2 == 1,])
+tax_table(ps007_cleaned_sqrt_prop)[ s.2_asvs,]
+
+s.3_asvs <- rownames(indSpecResults[indSpecResults$s.3 == 1,])
+tax_table(ps007_cleaned_sqrt_prop)[ s.3_asvs,]
+
+s.4_asvs <- rownames(indSpecResults[indSpecResults$s.4 == 1,])
+tax_table(ps007_cleaned_sqrt_prop)[ s.4_asvs,]
+
+s.5_asvs <- rownames(indSpecResults[indSpecResults$s.5 == 1,])
+tax_table(ps007_cleaned_sqrt_prop)[ s.5_asvs,]
+
+## ralstonia seems strongly associated with the lowest layer of the 
+## the palsa. 
+
+aa <- tax_glom(ps007_cleaned_sqrt_prop, taxrank="Genus")
+
+ralstFilt <- data.frame(tax_table(aa))[,"Genus"] == "Ralstonia"
+
+ralstFilt <- tax_table(aa)[,"Genus"] == "Ralstonia"
+
+
+otu_table(aa)[,ralstFilt] ## Ralstonia seems quite common, but let's check visually:
+
+ps.Ralstonia <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == "Ralstonia")
+psObject <- ps.Ralstonia
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+ralstoniaPlot <- genusTop.Pal + genusTop.tk
+
+ralstoniaPlot
+
+ralstoniaPlot & ylim(min(0), max(0.20))
+
+
+## ralstonia seems strongly associated with the lowest layer of the 
+## the palsa. Interesting that is observed reliably only
+## once in the thermokarst in what used to be a  Must be historical?
+
+## this generally brings up the topic, are there commonalities 
+## among the sites that used to be permafrost in the thermokarst
+## and the current permafrost? They draw relatively close in
+## the ordinations. 
+
+## to check this, look for indicator species for these two groups?
+
+## does this work?
+
+indic2sitesAll <- multipatt(otutab, envData$cluster, 
+                    max.order=2,
+                    control = how(nperm=999)) 
+
+sink("indic2sites.txt")
+summary(indic2sitesAll)
+sink()
+
+indic2sites <- indic2sitesAll$sign
+indic2sites$fdr <- p.adjust(indic2sites$p.value, method = "fdr")
+indic2sites <- indic2sites[ complete.cases(indic2sites),]
+
+## if we want a stricter subset
+#indic2sites <- indic2sites[indic2sites$fdr < 0.05,] ## 2240 rows
+#indic2sites <- indic2sites[indic2sites$fdr < 0.01,] ## 1734 rows
+#indic2sites <- indic2sites[indic2sites$stat > 0.9,] ## 473 rows
+dim(indic2sites)
+
+head(indic2sites)
+
+## but hold off for a minute. without any filtering, what ASVs 
+## seem to be common only to the deepest site clusters?  
+
+indic2sites$s.2 == 1 
+indic2sites$s.5 == 1
+
+any(rowSums(indic2sites[,c("s.2","s.5")]) == 2)
+
+deepInders_filt <- rowSums(indic2sites[,c("s.2","s.5")]) == 2
+
+deepInders <- indic2sites[deepInders_filt,]
+
+dim(deepInders) ## 97, not all sig
+
+deepInders <- deepInders[deepInders$fdr < 0.05,] ## down to 34 rows.
+
+deepInders
+
+tax_table(ps007_cleaned_sqrt_prop)[rownames(deepInders),]
+
+## speaking, where else are Bathyarchaeia present?:
+sum(data.frame(tax_table(ps007_cleaned_sqrt_prop))[,'Class'] == "Bathyarchaeia", na.rm=TRUE)
+
+Class
+"Bathyarchaeia"
+
+## a lot of probably fermenters, theoretically 
+## humic-substance reducers
+
+
+
+
+#######
+
+## and now what?? We have a lot of environmental data and 
+## a microbial community dataset. What to do now?
+
+## these FTIR data are processed, with some cool new data added to our 
+## environmental data, such as humification, holocellulose, etc. 
+## some todos: 
+
+## behavior of the methanotroph and methanogen communities, as in
+## do the upper layers of the thermokarst and permafrost layer
+## of the palsa share some of their methanogen (and ## methanotroph?) 
+## community?
+
+## examine patterns of FTIR e- acceptor with depth, quality, 
+## and methanogens/
