@@ -1,3 +1,7 @@
+## get the usual packages
+install.packages("BiocManager")
+BiocManager::install("phyloseq")
+
 ## link to see notebook:
 
 devtools::install_github("thomasp85/patchwork")
@@ -8,7 +12,11 @@ https://nbviewer.org/github/danchurch/sphagnumCUEmetabarcoding/blob/main/sequenc
 
 sudo apt install jupyter
 
-sudo apt install jupyterlab
+sudo apt install jupyterlab ## not found
+
+## try pipx:
+pipx install jupyterlab 
+## not working on laptop
 
 ## okay. but due to the new venv approach by python, modules
 ## from my system python aren't shared with this environment
@@ -3123,6 +3131,7 @@ nohup Rscript indicSpeciesCombinationsPeat.r &
 ##################### indicSpeciesCombinationsPeat_parallelize.r ###############################
 
 whichCluster = commandArgs(trailingOnly=TRUE)
+
 library(indicspecies)
 library(phyloseq)
 library(vegan)
@@ -3162,6 +3171,15 @@ done
 ## for now, back and find some indicator species
 ## with the classic algorithm:
 
+library(indicspecies)
+library(phyloseq)
+library(vegan)
+library(ggplot2)
+library(patchwork)
+
+
+load("ps007_cleaned_sqrt_prop.rda")
+
 tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
 otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
 envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
@@ -3175,6 +3193,8 @@ indval <- multipatt(otutab, envData$cluster,
 sink(file="multipatt_cluster_out.txt")
 summary(indval)
 sink()
+
+summary(indval)
 
 ## correction for multiple comparisons
 
@@ -3195,7 +3215,7 @@ indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 sum(indSpecResults$p.value < 0.05) ## 2229 indicator species
 sum(indSpecResults$fdr < 0.05) ## 2002 indicator species
 
-## still to many to really understand. Make a really strict cutoff, say 0.01:
+## still too many to really understand. Make a really strict cutoff, say 0.01:
 
 sum(indSpecResults$fdr < 0.01) ## still 1418 species, out of 3570.
 
@@ -3330,17 +3350,116 @@ deepInders
 
 tax_table(ps007_cleaned_sqrt_prop)[rownames(deepInders),]
 
-## speaking, where else are Bathyarchaeia present?:
+## speaking of, where else are Bathyarchaeia present?:
+
 sum(data.frame(tax_table(ps007_cleaned_sqrt_prop))[,'Class'] == "Bathyarchaeia", na.rm=TRUE)
 
-Class
-"Bathyarchaeia"
+bathFilt <- data.frame(tax_table(ps007_cleaned_sqrt_prop))[,'Class'] == "Bathyarchaeia"
 
-## a lot of probably fermenters, theoretically 
-## humic-substance reducers
+bathFilt <- tax[,'Class'] == "Bathyarchaeia"
 
+tax[grep("Bathyarchaeia", tax[,'Class']),]
 
+dim(tax[grep("Bathyarchaeia", tax[,'Class']),])
 
+ps.Bathyarchaeia <- subset_taxa(ps007_cleaned_sqrt_prop, Class == "Bathyarchaeia")
+psObject <- ps.Bathyarchaeia
+howManyOTUs <- 25
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Class")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Class")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Class", facet_grid=~Core ) +
+                          geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Class", facet_grid=~Core ) +
+                                geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.Pal 
+genusTop.tk
+
+BathyarchaeiaPlot <- genusTop.Pal + genusTop.tk
+
+BathyarchaeiaPlot
+
+BathyarchaeiaPlot & ylim(min(0), max(0.04)) 
+## these are mostly present in the thermokarst, and 
+## seem to be slightly more prevelant in the lower layers,
+## but present in upper layers also. 
+
+## interestingly, this article: https://doi.org/10.1093/femsre/fuy023
+## (Zhou et al. 2018: Bathyarchaeota: globally distributed metabolic generalists in anoxic environments)
+## argues that these guys may actually participate in AOM, 
+## given where they are often observed and the presence of mcr genes
+## in their genomes. Another possible reason for low methane emissions 
+## they note that sulfate reducing bacteria may be important partners in this,
+## might be worth noting that we do a 
+
+## in addition to Bathyarchaeia, a lot of firmicutes, probably fermenters, theoretically 
+## humic-substance reducers, probably. 
+
+#### checking for Udaeobacter ####
+
+grep("Udaeobacter", tax$Genus, value=TRUE)
+
+grep("Udaeobacter", tax$Genus, value=FALSE)
+
+tax[344,]
+
+## ASV4088 is Udaeobacter
+
+indSpecResults["ASV4088",] 
+## not found, not an indicator species of a single cluster
+
+indic2sites["ASV4088",]  
+## seems to be an indicator of the 1 and 5 
+## 1 is the upper thermokarst, and 5 is the lowest 
+## (permafrost) in palsa, but not statistically significant
+## makes sense - not really a pattern to its distribution: 
+ps.Udaeobacter <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == "Candidatus Udaeobacter")
+psObject <- ps.Udaeobacter
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+UdaeobacterPlot <- genusTop.Pal + genusTop.tk
+UdaeobacterPlot & ylim(min(0), max(0.005)) ## yeah, not really important. 
 
 #######
 
@@ -3358,3 +3477,5 @@ Class
 
 ## examine patterns of FTIR e- acceptor with depth, quality, 
 ## and methanogens/
+
+
