@@ -3198,26 +3198,21 @@ summary(indval)
 
 ## correction for multiple comparisons
 
-str(indval)
-
-dim(indval$sign)
 
 indSpecResults <- indval$sign
-
-head(indSpecResults)
-
+indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 indSpecResults <- indSpecResults[ complete.cases(indSpecResults),]
 
-indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 
 ## if we use an fdr cutoff of 5%, rather than p<.05...
 
-sum(indSpecResults$p.value < 0.05) ## 2229 indicator species
-sum(indSpecResults$fdr < 0.05) ## 2002 indicator species
+sum(indSpecResults$p.value < 0.05) ## 2219 indicator species
+
+sum(indSpecResults$fdr < 0.05) ## 2016 indicator species
 
 ## still too many to really understand. Make a really strict cutoff, say 0.01:
 
-sum(indSpecResults$fdr < 0.01) ## still 1418 species, out of 3570.
+sum(indSpecResults$fdr < 0.01) ## still 1486 species, out of 3570.
 
 hist(indSpecResults$stat) ## let's try reducing by the association statistic...
 
@@ -3321,11 +3316,11 @@ sink()
 indic2sites <- indic2sitesAll$sign
 indic2sites$fdr <- p.adjust(indic2sites$p.value, method = "fdr")
 indic2sites <- indic2sites[ complete.cases(indic2sites),]
-
 ## if we want a stricter subset
-#indic2sites <- indic2sites[indic2sites$fdr < 0.05,] ## 2240 rows
+indic2sites <- indic2sites[indic2sites$fdr < 0.05,] ## 2228 rows
 #indic2sites <- indic2sites[indic2sites$fdr < 0.01,] ## 1734 rows
-#indic2sites <- indic2sites[indic2sites$stat > 0.9,] ## 473 rows
+#indic2sites <- indic2sites[indic2sites$stat > 0.9,] ##
+
 dim(indic2sites)
 
 head(indic2sites)
@@ -3476,6 +3471,167 @@ UdaeobacterPlot & ylim(min(0), max(0.005)) ## yeah, not really important.
 ## community?
 
 ## examine patterns of FTIR e- acceptor with depth, quality, 
-## and methanogens/
+## and methanogens/methanotrophs/
 
+## we would 
+
+## are there similarities between the permafrost and the upper thermokarst,
+## as the permafrost theoretically preserved a community that was some how similar to 
+## to the very active top layer of the thermokarst (layer "0")
+
+## the way to learn about that would be to examine all species that are
+## indicators of cluster 5 (deep palsa) and cluster 1 (shallow thermokarst):
+
+## using the loosest filter for significance (fdr < 0.05):
+filter1_5 <- rowSums(indic2sites[,c("s.1","s.5")]) == 2
+
+dim(indic2sites)
+
+dim(indic2sites[filter1_5,]) ## 3 species:
+
+indSpec_1.5 <- indic2sites[filter1_5,]
+
+indSpec_1.5
+
+tax[rownames(indSpec_1.5),] ## Paenibacillus, Clostridium, Pelosinus, all firmicutes
+
+
+#ps.Clostridium <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == "Clostridium")
+ps.Pelosinus <- subset_taxa(ps007_cleaned_sqrt_prop, Genus == "Pelosinus")
+psObject <- ps.Pelosinus
+
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+orgPlot <- genusTop.Pal + genusTop.tk
+
+dev.new()
+orgPlot
+
+orgPlot & ylim(min(0), max(0.005)) ## noisy... 
+
+### anyway, want to get a start on the full jsdms...
+
+####### sJSDM model again #######
+
+## start over with the sJSDM model...
+## run our data through the example here:
+
+https://github.com/TheoreticalEcology/s-jSDM
+
+install.packages("sjSDM")
+sjSDM::install_sjSDM(version = "cpu")
+
+library(sjSDM)
+
+## this didn't work. I'm betting pytorch issues, with the new way that
+## pip works all in venvs.
+
+?installation_help
+
+## looks like they want a conda install of pytorch...
+## I haven't installed conda yet...
+
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+
+chmod 777 ./Miniconda3-latest-Linux-x86_64.sh
+
+bash ./Miniconda3-latest-Linux-x86_64.sh
+
+cd /media/daniel/oldBeast/miniconda3
+
+conda create --name r-sjsdm python=3.7
+conda activate r-sjsdm
+conda install pytorch torchvision cpuonly -c pytorch # cpu
+python -m pip install pyro-ppl torch_optimizer madgrad
+
+## run the R session inside the conda env
+
+library(sjSDM)
+library(phyloseq)
+
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+set.seed(42)
+
+community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+Env <- community$env_weights
+Occ <- community$response
+SP <- matrix(rnorm(200, 0, 0.3), 100, 2) # spatial coordinates (no effect on species occurences)
+
+model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial = linear(data = SP, formula = ~0+X1:X2), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = FALSE)
+
+?simulate_SDM
+
+?sjSDM
+
+## okay, how to make our data look like this?
+
+## Occ looks a like a standard matrix, sites are rows, species are columns.
+## SP is two column XY matrix of positions. 
+## Env is environmental matrix, rows are sites, env vars are columns
+## what kind of form can the data take for these environmental predictors?
+
+## it simply says use a linear model or DNN, but no information about the 
+## acceptable types of predictors. 
+
+linear DNN objects, 
+
+## for our data, our community matrix would be:
+
+otuMat <- as.matrix(otutab)
+model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
+
+#c("Subsite","DepthSection","EcoCont","Core","cluster","N","C","H","S","O","CN","CH","HC","OC")
+
+## obviously going to take forever. Make a model script, run it overnight.
+
+###### test_sjDSM.r #######
+library(sjSDM)
+library(phyloseq)
+load("ps007_cleaned_sqrt_prop.rda")
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+otuMat <- as.matrix(otutab)
+model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
+saveRDS(model, file="test_sjDSM.rds")
+###### test_sjDSM.r #######
+
+conda activate r-sjsdm
+
+nohup Rscript test_sjDSM.r &
+
+## error:
+#In sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C +  :
+#  No variation in at least one of Y columns detected!
+#Execution halted
 

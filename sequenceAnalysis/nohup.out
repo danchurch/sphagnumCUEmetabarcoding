@@ -1,0 +1,7 @@
+── Attaching sjSDM ──────────────────────────────────────────────────── 1.0.7 ──
+✔ torch <environment> 
+✔ torch_optimizer  
+✔ pyro  
+✔ madgrad  
+
+Iter: 0/100   0%|          | [00:00, ?it/s]Iter: 0/100   0%|          | [01:33, ?it/s, loss=19834.709]Iter: 1/100   1%|          | [01:33, 93.33s/it, loss=19834.709]

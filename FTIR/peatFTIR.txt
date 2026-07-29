@@ -39,7 +39,6 @@ library(stringr)
 library(units)
 library(rstan)
 library(phyloseq)
-library(ordinalCont)
 library(irpeatmodels)
 
 ## where to start?
@@ -422,6 +421,9 @@ x <- ourIRbaseCorrected_normalized |>
   irp_degree_of_decomposition_2() |>
   irp_degree_of_decomposition_3()
 
+## note from the future (29.7.26) - forgot to include electron acceptor estimation
+## add this is in if repeating:
+
 ## tried irp_saturated_hydraulic_conductivity_1() also, but function is broken methinks
 
 zoop <- ourIRbaseCorrected_normalized |>
@@ -570,4 +572,50 @@ FTIRdata
 colnames(elements)
 colnames(FTIRdata)
 
+##########
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+
+library(phyloseq)
+
+library(ggplot2)
+library(corrplot)
+library(ggcorrplot)
+
 ## great. now the question, what do we do with all this data?...
+
+## can we do a quick visual check for changes with depth, separate by thermokarst/palsa?
+
+load("ps007_cleaned_sqrt_prop_FTIR.rda")
+
+ps <- ps007_cleaned_sqrt_prop_FTIR
+
+sample_data(ps)
+
+sample_names(ps)
+
+
+envData <- data.frame(sample_data(ps)[,grep("error", sample_variables(ps), invert=TRUE, value=TRUE)])
+
+library(help=phyloseq)
+
+## a wide-net check of all of them against depth...
+
+colnames(envData)
+
+ftirData <- envData[,8:ncol(envData)]
+
+ftirData$Depth <- envData$DepthSection
+
+str(ftirData)
+
+cor_matrix <- cor(ftirData)
+
+corrplot(cor_matrix, method = "color")
+
+## maybe prettier with ggcorrplot?
+ggcorrplot(cor_matrix)
+
+## anyway, most of it makes sense. 
+## what happened to the electron acceptor data?
+## oh no...I forgot...

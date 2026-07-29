@@ -1,0 +1,8 @@
+library(sjSDM)
+library(phyloseq)
+load("ps007_cleaned_sqrt_prop.rda")
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+otuMat <- as.matrix(otutab)
+model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
+saveRDS(model, file="test_sjDSM.rds")
