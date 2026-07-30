@@ -1,0 +1,7 @@
+Family:  binomial 
+
+LogLik:  -8163.518 
+Regularization loss:  0 
+
+Coefficients (beta): 
+

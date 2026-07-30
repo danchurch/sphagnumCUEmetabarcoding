@@ -24,11 +24,12 @@ remotes::install_url("https://zenodo.org/record/17187912/files/irpeatmodels_0.1.
 wget https://zenodo.org/record/17187912/files/irpeatmodels_0.1.0.tar.gz
 install.packages("irpeatmodels_0.1.0.tar.gz", type = "source")
 
+install.packages("rstanarm")
+
 ## and redo, because the authors changed some things for us,
 ## should test it:
 
 remove.packages(c("irpeat", "irpeatmodels"))
-
 
 library("ir")
 library("irpeat")
@@ -422,7 +423,8 @@ x <- ourIRbaseCorrected_normalized |>
   irp_degree_of_decomposition_3()
 
 ## note from the future (29.7.26) - forgot to include electron acceptor estimation
-## add this is in if repeating:
+## add this is in if repeating.
+
 
 ## tried irp_saturated_hydraulic_conductivity_1() also, but function is broken methinks
 
@@ -586,7 +588,7 @@ library(ggcorrplot)
 
 ## can we do a quick visual check for changes with depth, separate by thermokarst/palsa?
 
-load("ps007_cleaned_sqrt_prop_FTIR.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 ps <- ps007_cleaned_sqrt_prop_FTIR
 
@@ -604,14 +606,17 @@ library(help=phyloseq)
 colnames(envData)
 
 ftirData <- envData[,8:ncol(envData)]
-
 ftirData$Depth <- envData$DepthSection
 
 str(ftirData)
 
 cor_matrix <- cor(ftirData)
 
+dev.new()
 corrplot(cor_matrix, method = "color")
+
+dev.new()
+plot(ftirData)
 
 ## maybe prettier with ggcorrplot?
 ggcorrplot(cor_matrix)
@@ -619,3 +624,75 @@ ggcorrplot(cor_matrix)
 ## anyway, most of it makes sense. 
 ## what happened to the electron acceptor data?
 ## oh no...I forgot...
+## after loading all the IR packages above...
+
+help(package=irpeat)
+
+help(package=irpeatmodels)
+
+library(help=phyloseq)
+
+x <- ourIRbaseCorrected_normalized |>
+         irpeatmodels::model_eac_1()
+
+ourIRbaseCorrected_normalized
+
+
+
+irp_eac_1 ## = electron acceptors?
+irp_edc_1 ## = electron donors?
+
+x <- ourIRbaseCorrected_normalized |>
+  irp_eac_1() |> ## = electron acceptors?
+  irp_edc_1()
+
+
+xx <- as.data.frame(x[,c("sampleNum","eac_1","eac_1_in_pd","edc_1","edc_1_in_pd")])
+
+## want to add these to our phyloseq object with FTIR data:
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+ps <- ps007_cleaned_sqrt_prop_FTIR
+
+listofparts <- strsplit(as.character(xx$eac_1), " ± ")
+eac <- as.numeric(unlist(lapply(listofparts, "[", 1)))
+eac_error <- as.numeric(unlist(lapply(listofparts, "[", 2)))
+
+listofparts <- strsplit(as.character(xx$edc_1), " ± ")
+edc <- as.numeric(unlist(lapply(listofparts, "[", 1)))
+edc_error <- as.numeric(unlist(lapply(listofparts, "[", 2)))
+
+sample_data(ps)$eac <- eac
+sample_data(ps)$eac_error <- eac_error
+sample_data(ps)$edc <- edc 
+sample_data(ps)$edc_error <- edc_error 
+
+sample_data(ps007_cleaned_sqrt_prop_FTIR) <- sample_data(ps)
+
+tail(sample_data(ps007_cleaned_sqrt_prop_FTIR))
+
+#save(ps007_cleaned_sqrt_prop_FTIR, file="/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+## so
+
+plot(sample_data(ps)$DepthSection, sample_data(ps)$eac)
+plot(sample_data(ps)$DepthSection, sample_data(ps)$edc)
+## no really clear signals there, except maybe a unimodal
+## curve in electron acceptors in the mid depths. 
+
+## break it up by geomorphology:
+
+ps.tk <- subset_samples(ps, Subsite=="Thermokarst")
+
+ps.pa <- subset_samples(ps, Subsite=="Palsa")
+
+par(mfrow = c(1,2))
+
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$eac)
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$eac)
+
+## same rough trend, a paucity of electron acceptors in 
+## the middle depths
+
+## okay. back to jsdm models 

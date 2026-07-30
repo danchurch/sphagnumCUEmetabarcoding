@@ -3534,6 +3534,58 @@ orgPlot
 
 orgPlot & ylim(min(0), max(0.005)) ## noisy... 
 
+#### add in pH to env data #####
+
+## werner and Karin got the pH measurements
+## and did the CUE calculations:
+
+
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sampleData
+
+R 
+
+library("openxlsx")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+pH <- read.xlsx("CUE_pH.xlsx", sheet="pH", rowNames=FALSE)
+rownames(pH) <- gsub("P","S",pH$ID)
+
+oxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=1:29)
+anoxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=30:57)
+
+
+pH$ID <- NULL
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+bb <- merge(aa, pH, by = "row.names")
+rownames(bb) <- bb$Row.names
+bb$Row.names <- NULL
+bb$Sample <- NULL
+sample_data(ps007_cleaned_sqrt_prop) <- bb
+
+plot(bb$DepthSection, bb$pH)
+plot(bb$DepthSection, bb$CN)
+plot(bb$DepthSection, bb$CH)
+plot(bb$DepthSection, bb$OC)
+
+colrsDict <- c("green", "blue") 
+names(colrsDict) <- c("Palsa", "Thermokarst") 
+getColr <- function(x){return(colrsDict[x])}
+aa <- sapply(bb$Subsite, getColr, USE.NAMES=FALSE)
+
+plot(bb$DepthSection, bb$OC, col=aa)
+
+plot(bb$DepthSection, bb$OC, col=aa)
+dev.new()
+plot(sample_data(ps007_cleaned_sqrt_prop_FTIR)$DepthSection,
+     sample_data(ps007_cleaned_sqrt_prop_FTIR)$O_to_C_1,
+     col=aa)
+
+head(sample_data(ps007_cleaned_sqrt_prop_FTIR$O_to_C_1))
+
 ### anyway, want to get a start on the full jsdms...
 
 ####### sJSDM model again #######
@@ -3571,6 +3623,10 @@ python -m pip install pyro-ppl torch_optimizer madgrad
 
 ## run the R session inside the conda env
 
+conda activate r-sjsdm
+
+R
+
 library(sjSDM)
 library(phyloseq)
 
@@ -3604,10 +3660,9 @@ model <- sjSDM(Y = Occ, env = linear(data = Env, formula = ~X1+X2+X3), spatial =
 ## it simply says use a linear model or DNN, but no information about the 
 ## acceptable types of predictors. 
 
-linear DNN objects, 
-
 ## for our data, our community matrix would be:
 
+## just to run through the tutorial, use a very simple model:
 otuMat <- as.matrix(otutab)
 model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
 
@@ -3626,12 +3681,160 @@ model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = 
 saveRDS(model, file="test_sjDSM.rds")
 ###### test_sjDSM.r #######
 
+## run it 
 conda activate r-sjsdm
-
 nohup Rscript test_sjDSM.r &
 
-## error:
+## warning:
 #In sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C +  :
 #  No variation in at least one of Y columns detected!
-#Execution halted
 
+toymodel <- readRDS(file="test_sjDSM.rds")
+
+sink(file="toymodel_sjsdm_summary.txt")
+summary(toymodel)
+sink()
+
+pdf(file="toymodel_plot.pdf")
+plot(toymodel)
+dev.off()
+
+## doesn't seem to be working...do we need to reduce the number of 
+## OTUs? 
+
+## could start by reducing the number of OTU to ~300. 
+## take the top 150 otus from each?
+
+psObject <- ps007_cleaned_sqrt_prop
+howManyOTUs <- 150
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+topOTUs_palsa <- names(sort(colSums(otu_table(ps.justPalsa)), decreasing=TRUE)[1:howManyOTUs])
+topOTUs_thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst)), decreasing=TRUE)[1:howManyOTUs])
+topOTUs <- union(topOTUs_palsa, topOTUs_thermokarst)
+ps.topOTUs <- prune_taxa(topOTUs, psObject)
+save(ps.topOTUs, file="ps.topOTUs.rda")
+
+## rerun the model with the simplified community:
+
+###### test_sjDSM_small.r #######
+library(sjSDM)
+library(phyloseq)
+load("ps.topOTUs.rda")
+otutab <- as.data.frame(otu_table(ps.topOTUs))
+otuMat <- as.matrix(otutab)
+envData <- data.frame(sample_data(ps.topOTUs))
+model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
+saveRDS(model, file="test_sjDSM.rds")
+###### test_sjDSM_small.r #######
+
+## run it 
+conda activate r-sjsdm
+
+nohup Rscript test_sjDSM_small.r &
+
+## that works a lot better, just a few minutes.  Could probably give it more species.
+
+toymodel <- readRDS("test_sjDSM.rds")
+
+sink(file="toymodel_sjsdm_summary.txt")
+
+summary(toymodel)
+sink()
+
+pdf(file="toymodel_plot.pdf")
+plot(toymodel)
+dev.off()
+
+## And if we give it more environmental variables?
+
+## the long list of what I'd like to include:
+
+## our "normal" variables are 
+c("Subsite","DepthSection","EcoCont","Core","cluster","N","C","H","S","O","CN","CH","HC","OC")
+
+## we probably want to two models, one for each kind of subsite/geomorphology
+
+## additional variables from FTIR
+
+## CUE - what to do there? 
+
+library(phyloseq)
+
+library("openxlsx")
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+oxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=1:29)
+anoxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=30:57)
+
+## for the moment, just look at the oxygen incubations.
+## what are the main predictors we want to look at?
+## depth, geomorphology, microbial community, carbon quality
+
+## for carbon quality, maybe make some PCAs of our 
+## FTIR and elemental data 
+
+## these would be:
+
+sample_data(ps007_cleaned_sqrt_prop_FTIR)
+
+head(sample_data(ps007_cleaned_sqrt_prop_FTIR), n=2)
+
+sample_variables(ps007_cleaned_sqrt_prop_FTIR)
+
+soilVars <- c("SampleID","Subsite","DepthSection","cluster","hi1","hi2","hi3","hi4","holocellulose_content_2","holocellulose_content_2_error","klason_lignin_content_2","klason_lignin_content_2_error","carbon_content_1","nitrogen_content_1","hydrogen_content_1","oxygen_content_1","phosphorus_content_1","sulfur_content_1","d13C_1","bulk_density_1","O_to_C_1","C_to_N_1","H_to_C_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3","eac","edc")
+
+
+aa <- sample_data(ps007_cleaned_sqrt_prop_FTIR)[,soilVars]
+
+## ultimately, we want just want a classic model of linear model of CUE as a function of microbial community and environmental predictors.
+
+ [1] "SampleID"                        "Subsite"
+ [3] "DepthSection"                    "EcoCont"
+ [5] "Core"                            "cluster"
+ [7] "sampleNum"                       "hi1"
+ [9] "hi2"                             "hi3"
+[11] "hi4"                             "holocellulose_content_2"
+[13] "holocellulose_content_2_error"   "klason_lignin_content_2"
+[15] "klason_lignin_content_2_error"   "carbon_content_1"
+[17] "carbon_content_1_error"          "nitrogen_content_1"
+[19] "nitrogen_content_1_error"        "hydrogen_content_1"
+[21] "hydrogen_content_1_error"        "oxygen_content_1"
+[23] "oxygen_content_1_error"          "phosphorus_content_1"
+[25] "phosphorus_content_1_error"      "sulfur_content_1"
+[27] "sulfur_content_1_error"          "d13C_1"
+[29] "d13C_1_error"                    "d15N_1"
+[31] "d15N_1_error"                    "bulk_density_1"
+[33] "bulk_density_1_error"            "O_to_C_1"
+[35] "O_to_C_1_error"                  "C_to_N_1"
+[37] "C_to_N_1_error"                  "H_to_C_1"
+[39] "H_to_C_1_error"                  "macroporosity_1"
+[41] "macroporosity_1_error"           "degree_of_decomposition_1"
+[43] "degree_of_decomposition_1_error" "degree_of_decomposition_2"
+[45] "degree_of_decomposition_2_error" "degree_of_decomposition_3"
+[47] "degree_of_decomposition_3_error" "eac"
+[49] "eac_error"                       "edc"
+[51] "edc_error"
+
+## we want to do a semi-guided PCA approach here,
+
+princomp(darl.data, cor = TRUE) 
+
+## leaving out depth and microbial groups:
+
+aa <- sample_data(ps007_cleaned_sqrt_prop_FTIR)[,soilVars]
+
+darl.PCA <- aa[,4:ncol(aa)] |>
+
+aa[,4:ncol(aa)]
+
+?princomp
+
+  princomp(aa, cor = TRUE)
+
+
+princomp(, cor = TRUE) 

@@ -1,0 +1,8 @@
+library(sjSDM)
+library(phyloseq)
+load("ps.topOTUs.rda")
+otutab <- as.data.frame(otu_table(ps.topOTUs))
+otuMat <- as.matrix(otutab)
+envData <- data.frame(sample_data(ps.topOTUs))
+model <- sjSDM(Y = otuMat, env = linear(data = envData, formula = ~C+H+S), se = TRUE, family=binomial("probit"), sampling = 100L, verbose = TRUE)
+saveRDS(model, file="test_sjDSM.rds")
