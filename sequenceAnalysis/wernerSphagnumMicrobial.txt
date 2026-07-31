@@ -3760,20 +3760,66 @@ c("Subsite","DepthSection","EcoCont","Core","cluster","N","C","H","S","O","CN","
 ## CUE - what to do there? 
 
 library(phyloseq)
-
 library("openxlsx")
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+library(vegan)
+
+#setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
 
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
-
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
-oxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=1:29)
-anoxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=30:57)
+CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
+
+oxCUE <- CUE[CUE$Treatment == "oxic",]
+anoxCUE <- CUE[CUE$Treatment == "anoxic",]
+
+oxCUE$Sample == anoxCUE$Sample
+
+oxCUE$Sample %in% anoxCUE$Sample
+anoxCUE$Sample %in% oxCUE$Sample
+
+## different samples succeeded in either case.
+## we need the "working name", or sampleid, to 
+## make this compatible with our other data
+
+sample_data(ps007_cleaned_sqrt_prop)$SampleID
+
+sample_names(ps007_cleaned_sqrt_prop)
+
+## all of the successful CUE calculations have sequence data?:
+all(oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## yup
+
+all(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## nope
+
+## so we have anoxic CUE results for some samples without sequence data:
+anoxFilt <- !(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID)
+
+anoxCUE[ anoxFilt, ] 
+
+noAnoxData <- anoxCUE[ anoxFilt, ]$Sample
+## 35, 36, 41 not in our sample data. Makes sense, these were the failed 
+## PCR reactions
 
 ## for the moment, just look at the oxygen incubations.
 ## what are the main predictors we want to look at?
 ## depth, geomorphology, microbial community, carbon quality
+
+## hunt down the sampleid as we have been using them:
+
+oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID
+
+oxCUEnotInSeqDataFilt <- !(sample_data(ps007_cleaned_sqrt_prop)$SampleID %in% oxCUE$Sample)
+
+AT1_0-40, AT1_63-83, AT1_83-103
+AT2_0-40
+AT3_0-40, AT3_60-80
+AT5_0-40, AT5_50-70, AT5_70-90
+AT2_43-63
+AT2_63-83
+AT3_80-100
+
+sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 
 ## for carbon quality, maybe make some PCAs of our 
 ## FTIR and elemental data 
@@ -3784,12 +3830,26 @@ sample_data(ps007_cleaned_sqrt_prop_FTIR)
 
 head(sample_data(ps007_cleaned_sqrt_prop_FTIR), n=2)
 
+sample_variables(ps007_cleaned_sqrt_prop)
+
 sample_variables(ps007_cleaned_sqrt_prop_FTIR)
 
-soilVars <- c("SampleID","Subsite","DepthSection","cluster","hi1","hi2","hi3","hi4","holocellulose_content_2","holocellulose_content_2_error","klason_lignin_content_2","klason_lignin_content_2_error","carbon_content_1","nitrogen_content_1","hydrogen_content_1","oxygen_content_1","phosphorus_content_1","sulfur_content_1","d13C_1","bulk_density_1","O_to_C_1","C_to_N_1","H_to_C_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3","eac","edc")
+## the FTIR data are surprising good, but I still trust our elemental analysis a litter more
+## anyway, where the FTIR data are very high quality but are redundant with the elemental 
+## analysis, the correlation is really high. Pointless to have both. 
+## so remove some redundancy here, including ratios and extremely low conf vars like the 
+## c isotope ratios
 
+FTIRvars <- c("hi1","hi2","hi3","hi4","holocellulose_content_2","holocellulose_content_2_error","klason_lignin_content_2","klason_lignin_content_2_error","phosphorus_content_1","sulfur_content_1","bulk_density_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3","eac","edc")
+FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR)[,FTIRvars])
+## somehow, we lost our original elemental analysis...
+## bring that back in
+elementalData <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c("N","C","H","S","O","CH","HC","OC")])
+all(rownames(FTIRdata) == rownames(elementalData))
+soilData <- merge(elementalData,FTIRdata, by = "row.names")
 
-aa <- sample_data(ps007_cleaned_sqrt_prop_FTIR)[,soilVars]
+head(soilData, n=2)
+dim(soilData) ## 26 soil variables, we gotta reduce
 
 ## ultimately, we want just want a classic model of linear model of CUE as a function of microbial community and environmental predictors.
 
@@ -3820,21 +3880,42 @@ aa <- sample_data(ps007_cleaned_sqrt_prop_FTIR)[,soilVars]
 [49] "eac_error"                       "edc"
 [51] "edc_error"
 
-## we want to do a semi-guided PCA approach here,
+## the PCA approach would be to run an RDA, which both constructs 
+## PCAs out of our predictors and does a quick check on which 
+## might be affecting the microbial community
 
-princomp(darl.data, cor = TRUE) 
+## this is exploratory, we're not building a real 
+## model yet. But we can hopefully inform our 
+## final jSDM model-building
 
 ## leaving out depth and microbial groups:
+## transform the abundance data to hellinger distances:
 
-aa <- sample_data(ps007_cleaned_sqrt_prop_FTIR)[,soilVars]
+otutab <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
 
-darl.PCA <- aa[,4:ncol(aa)] |>
+?decostand
 
-aa[,4:ncol(aa)]
+otutab.hel <- decostand(otutab, "hellinger")
 
-?princomp
+bigRDA <- rda(otutab.hel, soilData) ## of course over-fitted, but check:
 
-  princomp(aa, cor = TRUE)
+screeplot(bigRDA)
+
+bigRDA$CCA$eig
+
+str(bigRDA)
 
 
-princomp(, cor = TRUE) 
+par(mfrow = c(1, 2))
+
+scores(bigRDA)
+
+plot(bigRDA, scaling = 1, main = "PCA - scaling 1")
+
+plot(bigRDA, main = "PCA - scaling 2") # Default scaling 2
+
+
+
+cleanplot.pca(bigRDA, scaling = 1, mar.percent = 0.08)
+
+cleanplot.pca(bigRDA, scaling = 2, mar.percent = 0.04)
