@@ -3541,41 +3541,76 @@ orgPlot & ylim(min(0), max(0.005)) ## noisy...
 
 
 
-cd /home/daniel/Documents/projects/wernerSphagnum/sampleData
 
 R 
 
-library("openxlsx")
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
 
+library("openxlsx")
+library("phyloseq")
+library("vegan")
+
+load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
-pH <- read.xlsx("CUE_pH.xlsx", sheet="pH", rowNames=FALSE)
-rownames(pH) <- gsub("P","S",pH$ID)
 
 oxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=1:29)
 anoxCUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE, rows=30:57)
 
+head(sample_data(ps007_cleaned_sqrt_prop))
 
+pH <- read.xlsx("CUE_pH.xlsx", sheet="pH", rowNames=FALSE)
+rownames(pH) <- gsub("P","S",pH$ID)
 pH$ID <- NULL
 
 aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 bb <- merge(aa, pH, by = "row.names")
+## just checking:
+#bb[,c("SampleID","Sample")] ## looks good
 rownames(bb) <- bb$Row.names
 bb$Row.names <- NULL
 bb$Sample <- NULL
-sample_data(ps007_cleaned_sqrt_prop) <- bb
+bb$Working.ID <- NULL
+bb <- bb[ sample_names(ps007_cleaned_sqrt_prop),]
 
-plot(bb$DepthSection, bb$pH)
-plot(bb$DepthSection, bb$CN)
-plot(bb$DepthSection, bb$CH)
-plot(bb$DepthSection, bb$OC)
+## let's combine the FTIR data, so all of this is in one place:
+FTIRvars <- c("hi1","hi2","hi3","hi4","holocellulose_content_2","klason_lignin_content_2","phosphorus_content_1","sulfur_content_1","bulk_density_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3","eac","edc")
+FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR)[,FTIRvars])
+
+head(sample_data(ps007_cleaned_sqrt_prop), n=2)
+
+soilData <- merge(bb,FTIRdata, by = "row.names")
+rownames(soilData) <- soilData$Row.names
+soilData$Row.names <- NULL
+soilData <- soilData[ sample_names(ps007_cleaned_sqrt_prop),]
+
+sample_data(ps007_cleaned_sqrt_prop) 
+rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(soilData)
+
+## clean up unnecessary stuff
+sample_data(ps007_cleaned_sqrt_prop)$sulfur_content_1 <- NULL
+
+
+## let's clean up the names a little bit?: 
+
+## combine it all and keep it in one ps object:
+#sample_data(ps007_cleaned_sqrt_prop) <- soilData
+#save(ps007_cleaned_sqrt_prop, file= "/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## explore a bit:
+plot(soilData$DepthSection, soilData$pH)
+
+plot(soilData$DepthSection, soilData$CN)
+
+plot(soilData$DepthSection, soilData$CH)
+
+plot(soilData$DepthSection, soilData$OC)
 
 colrsDict <- c("green", "blue") 
 names(colrsDict) <- c("Palsa", "Thermokarst") 
 getColr <- function(x){return(colrsDict[x])}
 aa <- sapply(bb$Subsite, getColr, USE.NAMES=FALSE)
-
 plot(bb$DepthSection, bb$OC, col=aa)
 
 plot(bb$DepthSection, bb$OC, col=aa)
@@ -3586,7 +3621,177 @@ plot(sample_data(ps007_cleaned_sqrt_prop_FTIR)$DepthSection,
 
 head(sample_data(ps007_cleaned_sqrt_prop_FTIR$O_to_C_1))
 
-### anyway, want to get a start on the full jsdms...
+## let's run a sweep of permanovas over these various predictors
+
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+soilData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+soilData <- soilData[,!(colnames(soilData) %in% c("SampleID","EcoCont"))]
+commData <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
+doPerm <- function(pred){ adonis2(commData ~ pred) }
+aa <- lapply(soilData, doPerm)
+
+sink("permanovaEverything.txt")
+print(aa)
+sink()
+
+## odd, almost everything turns out to be important. 
+## but so much is correlated, we need to do some
+## dim. reduction. 
+
+##### eigen analysis of soil vars #####
+
+## ugh, how do I do this again?
+
+## I don't really like vegan's ordination 
+## objects for this, let's do it the old-fashioned
+## way, in almost-base R (stats)
+
+library("phyloseq")
+library("vegan")
+library("ggplot2")
+library("ggbiplot")
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+load("ps007_cleaned_sqrt_prop.rda")
+soilData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+head(soilData, n=2)
+
+## get rid of the non-continuous vars:
+soilDataCont <- soilData[,!(colnames(soilData) %in% c("SampleID","Subsite","EcoCont","DepthSection","Core","cluster"))]
+soilDataCat <- soilData[,colnames(soilData) %in% c("SampleID","Subsite","DepthSection","Core","cluster")]
+commData <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
+
+
+plot(soilDataCat$DepthSection, soilDataCont$S)
+
+
+## how to quickly do this in ggplot?
+ggp <- ggplot(soilData, aes(DepthSection, S)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+ggp <- ggplot(soilData, aes(DepthSection, H)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+
+ggp <- ggplot(soilData, aes(DepthSection, CH)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+## assume our new PCAs are highly correlated with 
+## depth:
+
+ggp <- ggplot(soilData, aes(DepthSection, H)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+
+## maybe make the variable names a little prettier:
+colnames(soilDataCont) <- c("N","C", "H","S", "O","CN", "CH","HC", "OC","pH", "hi1","hi2", "hi3","hi4", "holocellulose","lignin", "P","bulk_density", "macroporosity","decomposition1", "decomposition2","decomposition3", "eac","edc")
+
+
+
+soilvarPCA <- princomp(
+         x = soilDataCont,
+         cor = TRUE,
+         fix_sign = TRUE)
+ 
+summary(soilvarPCA, loadings=FALSE)
+
+summary(soilvarPCA, loadings=TRUE)
+
+plot(soilvarPCA)
+
+str(soilvarPCA)
+
+head(soilvarPCA$loadings)
+
+
+## just to check, it's easiest to plot 
+## the broken stick with an RDA object:
+
+soilvarRDA <- rda(X = soilDataCont, scale = TRUE)
+screeplot(soilvarRDA, bstick=TRUE) ## okay, just keep the first two
+
+## okay, so what is this first, huge PC1?:
+
+
+barplot(soilvarPCA$loadings[,'Comp.1'], las=2) ## everything, except H and electrons
+
+barplot(soilvarPCA$loadings[,'Comp.2'], las=2) ## second PCA is mostly H. Weird.
+
+par(mar=c(8,4,4,2))
+par(mfrow=c(2,1))
+barplot(soilvarPCA$loadings[,'Comp.1'], las=2, main="Soil continuous variables, PCA1")
+barplot(soilvarPCA$loadings[,'Comp.2'], las=2, main="Soil continuous variables, PCA2")
+
+
+soilVarPCAs <- data.frame(soilvarPCA$scores)
+adonis2(commData ~ soilVarPCAs[,1]) ## R2 ~ 0.11, p = 0.001
+adonis2(commData ~ soilVarPCAs[,2]) ## R2 ~ 0.07, p = 0.008
+
+ggbiplot(soilvarPCA) +
+geom_point(aes(colour = soilDataCat$Subsite)) +
+labs(colour = "Depth", x = "PC1(67%)", y = "PC2 (12.9%)") +
+theme_bw()
+
+## this is probably the most interesting distinction:
+
+first2pcaDepth <- data.frame( cbind(soilVarPCAs[,1:2], soilDataCat$DepthSection)) 
+colnames(first2pcaDepth) <- c("PCA1","PCA2","Depth")
+
+dev.new()
+
+ggbiplot(soilvarPCA) +
+geom_point(aes(colour = first2pcaDepth$Depth)) +
+labs(colour = "Depth", x = "PC1(Size; 67%)", y = "PC2 (Shape; 12.9%)") +
+theme_bw()
+
+## some sites look like they are distinct in terms of
+## and hydrogen content, the main variable of PCA2. 
+
+soilDataCat
+
+head(soilDataCat, n=2)
+
+soilDataCat$Subsite
+
+## is there are clear relationship with depth and 
+## these PCA's?
+
+
+dev.new()
+ggp <- ggplot(first2pcaDepth, aes(Depth, PCA1)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+## yup.
+
+dev.new()
+ggp <- ggplot(first2pcaDepth, aes(Depth, PCA2)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
 
 ####### sJSDM model again #######
 
@@ -3629,7 +3834,6 @@ R
 
 library(sjSDM)
 library(phyloseq)
-
 
 load("ps007_cleaned_sqrt_prop.rda")
 
@@ -3763,9 +3967,10 @@ library(phyloseq)
 library("openxlsx")
 library(vegan)
 
-#setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
-setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+#setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
 
+load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
@@ -3794,10 +3999,23 @@ all(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## nope
 
 ## so we have anoxic CUE results for some samples without sequence data:
 anoxFilt <- !(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID)
-
-anoxCUE[ anoxFilt, ] 
-
 noAnoxData <- anoxCUE[ anoxFilt, ]$Sample
+
+sample_data(ps007)[sample_data(ps007)$SampleID %in% noAnoxData,]
+
+##       SampleID     Subsite DepthSection    EcoCont Core
+## S27  AT2_43-63 Thermokarst            1 Ecological  AT2
+## S28  AT2_63-83 Thermokarst            2 Ecological  AT2
+## S33 AT3_80-100 Thermokarst            2 Ecological  AT3
+
+## yup, the failed PCRs. Anyway, for these we cannot test
+## effects of microbial community. But they can still be
+## modeled on all the other predictors
+
+## anyway, let's loop through the predictors we have,
+## and look for effects on the microbial community.
+
+
 ## 35, 36, 41 not in our sample data. Makes sense, these were the failed 
 ## PCR reactions
 
@@ -3821,64 +4039,6 @@ AT3_80-100
 
 sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 
-## for carbon quality, maybe make some PCAs of our 
-## FTIR and elemental data 
-
-## these would be:
-
-sample_data(ps007_cleaned_sqrt_prop_FTIR)
-
-head(sample_data(ps007_cleaned_sqrt_prop_FTIR), n=2)
-
-sample_variables(ps007_cleaned_sqrt_prop)
-
-sample_variables(ps007_cleaned_sqrt_prop_FTIR)
-
-## the FTIR data are surprising good, but I still trust our elemental analysis a litter more
-## anyway, where the FTIR data are very high quality but are redundant with the elemental 
-## analysis, the correlation is really high. Pointless to have both. 
-## so remove some redundancy here, including ratios and extremely low conf vars like the 
-## c isotope ratios
-
-FTIRvars <- c("hi1","hi2","hi3","hi4","holocellulose_content_2","holocellulose_content_2_error","klason_lignin_content_2","klason_lignin_content_2_error","phosphorus_content_1","sulfur_content_1","bulk_density_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3","eac","edc")
-FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR)[,FTIRvars])
-## somehow, we lost our original elemental analysis...
-## bring that back in
-elementalData <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c("N","C","H","S","O","CH","HC","OC")])
-all(rownames(FTIRdata) == rownames(elementalData))
-soilData <- merge(elementalData,FTIRdata, by = "row.names")
-
-head(soilData, n=2)
-dim(soilData) ## 26 soil variables, we gotta reduce
-
-## ultimately, we want just want a classic model of linear model of CUE as a function of microbial community and environmental predictors.
-
- [1] "SampleID"                        "Subsite"
- [3] "DepthSection"                    "EcoCont"
- [5] "Core"                            "cluster"
- [7] "sampleNum"                       "hi1"
- [9] "hi2"                             "hi3"
-[11] "hi4"                             "holocellulose_content_2"
-[13] "holocellulose_content_2_error"   "klason_lignin_content_2"
-[15] "klason_lignin_content_2_error"   "carbon_content_1"
-[17] "carbon_content_1_error"          "nitrogen_content_1"
-[19] "nitrogen_content_1_error"        "hydrogen_content_1"
-[21] "hydrogen_content_1_error"        "oxygen_content_1"
-[23] "oxygen_content_1_error"          "phosphorus_content_1"
-[25] "phosphorus_content_1_error"      "sulfur_content_1"
-[27] "sulfur_content_1_error"          "d13C_1"
-[29] "d13C_1_error"                    "d15N_1"
-[31] "d15N_1_error"                    "bulk_density_1"
-[33] "bulk_density_1_error"            "O_to_C_1"
-[35] "O_to_C_1_error"                  "C_to_N_1"
-[37] "C_to_N_1_error"                  "H_to_C_1"
-[39] "H_to_C_1_error"                  "macroporosity_1"
-[41] "macroporosity_1_error"           "degree_of_decomposition_1"
-[43] "degree_of_decomposition_1_error" "degree_of_decomposition_2"
-[45] "degree_of_decomposition_2_error" "degree_of_decomposition_3"
-[47] "degree_of_decomposition_3_error" "eac"
-[49] "eac_error"                       "edc"
-[51] "edc_error"
 
 ## the PCA approach would be to run an RDA, which both constructs 
 ## PCAs out of our predictors and does a quick check on which 
@@ -3914,8 +4074,13 @@ plot(bigRDA, scaling = 1, main = "PCA - scaling 1")
 
 plot(bigRDA, main = "PCA - scaling 2") # Default scaling 2
 
-
-
 cleanplot.pca(bigRDA, scaling = 1, mar.percent = 0.08)
 
 cleanplot.pca(bigRDA, scaling = 2, mar.percent = 0.04)
+
+## meh, that's not working well. 
+
+## we need a quick check of CUE's relationship 
+## to microbial community cluster, 
+## our PCAs from elemental soil analysis,
+## depth,  
