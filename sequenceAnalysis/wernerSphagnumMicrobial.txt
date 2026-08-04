@@ -3652,7 +3652,9 @@ library("vegan")
 library("ggplot2")
 library("ggbiplot")
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+#setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sequenceAnalysis")
+
 load("ps007_cleaned_sqrt_prop.rda")
 soilData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
@@ -3700,6 +3702,24 @@ ggp +
               formula = y ~ x,
               geom = "smooth")
 
+head(soilData)
+
+
+ggp <- ggplot(soilData, aes(DepthSection, CN)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+
+palsaData <-soilData[soilData$Subsite == "Palsa",]
+
+ggp <- ggplot(palsaData, aes(DepthSection, hi1)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
 
 ## maybe make the variable names a little prettier:
 colnames(soilDataCont) <- c("N","C", "H","S", "O","CN", "CH","HC", "OC","pH", "hi1","hi2", "hi3","hi4", "holocellulose","lignin", "P","bulk_density", "macroporosity","decomposition1", "decomposition2","decomposition3", "eac","edc")
@@ -3966,9 +3986,10 @@ c("Subsite","DepthSection","EcoCont","Core","cluster","N","C","H","S","O","CN","
 library(phyloseq)
 library("openxlsx")
 library(vegan)
+library(ggplot2)
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
-#setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
+#setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
 
 load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
@@ -3976,21 +3997,38 @@ load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
 
-oxCUE <- CUE[CUE$Treatment == "oxic",]
-anoxCUE <- CUE[CUE$Treatment == "anoxic",]
+## add our working ids to this, so it is compatible with the 
+## ps objects:
 
-oxCUE$Sample == anoxCUE$Sample
+findWorkId <- function(x){
+   aa <- which(sample_data(ps007)$SampleID == x) 
+   return(rownames(sample_data(ps007))[aa])
+   }
+
+CUE$workingID <- sapply(CUE$Sample, findWorkId)
+
+## split up by oxygenic and anoxygenic fermentations
+oxCUE <- CUE[CUE$Treatment == "oxic",]
+rownames(oxCUE) <- oxCUE$workingID
+## pain in the ass, to sort these rownames:
+rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(oxCUE$workingID,2,3))))))
+oxCUE <- oxCUE[rownamesSorted,]
+oxCUE$workingID <- NULL
+
+anoxCUE <- CUE[CUE$Treatment == "anoxic",]
+rownames(anoxCUE) <- anoxCUE$workingID
+rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(anoxCUE$workingID,2,3))))))
+anoxCUE <- anoxCUE[rownamesSorted,]
+anoxCUE$workingID <- NULL
+
 
 oxCUE$Sample %in% anoxCUE$Sample
+
 anoxCUE$Sample %in% oxCUE$Sample
 
-## different samples succeeded in either case.
+## different samples used/succeeded in either case.
 ## we need the "working name", or sampleid, to 
 ## make this compatible with our other data
-
-sample_data(ps007_cleaned_sqrt_prop)$SampleID
-
-sample_names(ps007_cleaned_sqrt_prop)
 
 ## all of the successful CUE calculations have sequence data?:
 all(oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## yup
@@ -4008,16 +4046,17 @@ sample_data(ps007)[sample_data(ps007)$SampleID %in% noAnoxData,]
 ## S28  AT2_63-83 Thermokarst            2 Ecological  AT2
 ## S33 AT3_80-100 Thermokarst            2 Ecological  AT3
 
-## yup, the failed PCRs. Anyway, for these we cannot test
-## effects of microbial community. But they can still be
-## modeled on all the other predictors
-
-## anyway, let's loop through the predictors we have,
-## and look for effects on the microbial community.
-
-
 ## 35, 36, 41 not in our sample data. Makes sense, these were the failed 
 ## PCR reactions
+
+## Anyway, for these we cannot test effects of microbial community. 
+## But they can still be modeled on all the other predictors
+
+anoxCUE$Sample %in% sample_data(ps007)$SampleID
+
+head(sample_data(ps007))
+
+which(sample_data(ps007)$SampleID == anoxCUE$Sample)
 
 ## for the moment, just look at the oxygen incubations.
 ## what are the main predictors we want to look at?
@@ -4039,48 +4078,53 @@ AT3_80-100
 
 sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 
+## final product would probably be a hierarchical/mixed
+## linear model
 
-## the PCA approach would be to run an RDA, which both constructs 
-## PCAs out of our predictors and does a quick check on which 
-## might be affecting the microbial community
+## would rather do all this bayesian style, but not really an 
+## option right now, I'm not set up for it.
+## Will take longer and no one will understand it. 
 
-## this is exploratory, we're not building a real 
-## model yet. But we can hopefully inform our 
-## final jSDM model-building
+## anyway, one step at a time...
+## we want to ask if CUE is predicted by microbial community
 
-## leaving out depth and microbial groups:
-## transform the abundance data to hellinger distances:
+MASS::lm.gls
 
-otutab <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
-
-?decostand
-
-otutab.hel <- decostand(otutab, "hellinger")
-
-bigRDA <- rda(otutab.hel, soilData) ## of course over-fitted, but check:
-
-screeplot(bigRDA)
-
-bigRDA$CCA$eig
-
-str(bigRDA)
+## quick check with ANOVA, do microbial communities 
+## seem to have different CUE?
 
 
-par(mfrow = c(1, 2))
+oxCUE_CUE <- oxCUE[,"CUE", drop=F]
+oxCUE_anovadf <- merge(oxCUE_CUE, 
+            sample_data(ps007_cleaned_sqrt_prop)[,'cluster', drop=F], 
+            by="row.names"
+            )
+rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
+oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
+oxCUE_anovadf$Row.names <- NULL
 
-scores(bigRDA)
 
-plot(bigRDA, scaling = 1, main = "PCA - scaling 1")
+head(oxCUE_anovadf)
 
-plot(bigRDA, main = "PCA - scaling 2") # Default scaling 2
+aa <- aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$cluster)
+summary(aa)
 
-cleanplot.pca(bigRDA, scaling = 1, mar.percent = 0.08)
+head(oxCUE_anovadf)
 
-cleanplot.pca(bigRDA, scaling = 2, mar.percent = 0.04)
+oxCUE_anovadf
 
-## meh, that's not working well. 
+ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+  geom_density(alpha = 0.2, na.rm = TRUE) 
 
-## we need a quick check of CUE's relationship 
-## to microbial community cluster, 
-## our PCAs from elemental soil analysis,
-## depth,  
+  xlim(58, 68) + 
+  theme(legend.position = "none")
+
+ggplot(diamonds, aes(depth, fill = cut, colour = cut)) +
+  geom_density(alpha = 0.2, na.rm = TRUE) + 
+  xlim(58, 68) + 
+  theme(legend.position = "none")
+
+
+## werner would like to talk about:
+## low respiration, and low MBC, unexpectedly, even after thawing 
+##  
