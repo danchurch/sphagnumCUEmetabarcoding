@@ -3987,9 +3987,12 @@ library(phyloseq)
 library("openxlsx")
 library(vegan)
 library(ggplot2)
+library(patchwork)
+library(lme4)
+library(lmerTest)
 
-#setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
-setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
+#setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
 
 load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
@@ -4004,23 +4007,22 @@ findWorkId <- function(x){
    aa <- which(sample_data(ps007)$SampleID == x) 
    return(rownames(sample_data(ps007))[aa])
    }
-
 CUE$workingID <- sapply(CUE$Sample, findWorkId)
 
 ## split up by oxygenic and anoxygenic fermentations
+## oxic
 oxCUE <- CUE[CUE$Treatment == "oxic",]
 rownames(oxCUE) <- oxCUE$workingID
 ## pain in the ass, to sort these rownames:
 rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(oxCUE$workingID,2,3))))))
 oxCUE <- oxCUE[rownamesSorted,]
 oxCUE$workingID <- NULL
-
+## anoxic
 anoxCUE <- CUE[CUE$Treatment == "anoxic",]
 rownames(anoxCUE) <- anoxCUE$workingID
 rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(anoxCUE$workingID,2,3))))))
 anoxCUE <- anoxCUE[rownamesSorted,]
 anoxCUE$workingID <- NULL
-
 
 oxCUE$Sample %in% anoxCUE$Sample
 
@@ -4088,11 +4090,9 @@ sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 ## anyway, one step at a time...
 ## we want to ask if CUE is predicted by microbial community
 
-MASS::lm.gls
 
 ## quick check with ANOVA, do microbial communities 
 ## seem to have different CUE?
-
 
 oxCUE_CUE <- oxCUE[,"CUE", drop=F]
 oxCUE_anovadf <- merge(oxCUE_CUE, 
@@ -4102,29 +4102,228 @@ oxCUE_anovadf <- merge(oxCUE_CUE,
 rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
 oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
 oxCUE_anovadf$Row.names <- NULL
+aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$cluster) |> summary()
+## seems important, F=5.7, p<0.01
+oxClCue <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+             geom_density(alpha = 0.2, na.rm = TRUE) + 
+             ggtitle("oxygen incubation, microbial clusters")
+
+oxClCue ## we don't have oxygen incubations of the upper thermokarst
+
+oxCUE_anovadf 
+
+## how does depth as a categorical predictor do, in comparison?
+oxCUE_CUE <- oxCUE[,"CUE", drop=F]
+oxCUE_anovadf <- merge(oxCUE_CUE, 
+            sample_data(ps007_cleaned_sqrt_prop)[,'DepthSection', drop=F],
+            by="row.names"
+            )
+oxCUE_anovadf$DepthSection <- as.factor(oxCUE_anovadf$DepthSection)
+rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
+oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
+oxCUE_anovadf$Row.names <- NULL
+aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$DepthSection) |> summary()
+oxDeCue <- ggplot(oxCUE_anovadf, aes(CUE, fill = DepthSection, colour = DepthSection)) +
+             geom_density(alpha = 0.2, na.rm = TRUE) + 
+             ggtitle("oxygen incubation, depth")
 
 
-head(oxCUE_anovadf)
+boxplot(oxCUE_anovadf)
 
-aa <- aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$cluster)
-summary(aa)
+boxplot(oxCUE_anovadf$CUE ~ oxCUE_anovadf$DepthSection)
 
-head(oxCUE_anovadf)
+oxDeCue + oxClCue & ylim(min(0), max(33))
 
-oxCUE_anovadf
 
-ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+## also really significant and higher effect, F=11.37, p = 0.002, when taken as a numerical predictor
+## when used as a categorical predictor F=4.329, p = 0.001
+## but very confusing as far as CUE values. The depths here are in both palsa and thermokarst and
+## so hard to compare. 
+
+ggplot(oxCUE_anovadf, aes(CUE, fill = DepthSection, colour = DepthSection)) +
   geom_density(alpha = 0.2, na.rm = TRUE) 
 
-  xlim(58, 68) + 
-  theme(legend.position = "none")
+## repeat for anoxic:
+anoxCUE_CUE <- anoxCUE[,"CUE", drop=F]
+anoxCUE_anovadf <- merge(anoxCUE_CUE, 
+            sample_data(ps007_cleaned_sqrt_prop)[,'cluster', drop=F], 
+            by="row.names"
+            )
+rownames(anoxCUE_anovadf) <- anoxCUE_anovadf$Row.names
+rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(rownames(anoxCUE_anovadf),2,3))))))
+anoxCUE_anovadf <- anoxCUE_anovadf[rownamesSorted,]
+anoxCUE_anovadf$Row.names <- NULL
 
-ggplot(diamonds, aes(depth, fill = cut, colour = cut)) +
-  geom_density(alpha = 0.2, na.rm = TRUE) + 
-  xlim(58, 68) + 
-  theme(legend.position = "none")
+anoxCUE_anovadf
+
+aa <- aov(anoxCUE_anovadf$CUE ~ anoxCUE_anovadf$cluster)
+summary(aa)  ## not so strong 
+
+## yup, strongly predictive. as a first check, is it stronger than when 
+## but it needs comparison to a model with the two largest predictors, 
+## depth and geomorphology (thermokarst vs. palsa)
+
+## for this, let's switch over to GLMs. 
+
+## a good model will take geomorphology as a grouping variable, 
+## and depth as the predictor within that. 
+
+## how do we select for microbes that may be influential?
+## first step would be to try the microbial community cluster variable
+
+## not sure what the best distribution would be. For the moment,
+## just go with defaults
+
+## make a nice dataframe from the CUE and our other env data: 
+aa <- CUE[,c("CUE", "workingID", "Treatment")]
+## if we want to model the microbial cluster, we have to lose a few CUE values
+bb <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c("SampleID","Subsite","DepthSection","cluster")])
+bb$workingID <- rownames(bb)
+cc <- merge(aa,bb, by="workingID")
+reorderCUEbySamp <- order(as.numeric(substr(cc$workingID,2,3)))
+totalCUEwithCluster <- cc[reorderCUEbySamp,]
+
+head(totalCUEwithCluster)
+tail(totalCUEwithCluster)
+
+str(totalCUEwithCluster)
 
 
+aa <- lm(CUE ~ DepthSection + Subsite + cluster, data = totalCUEwithCluster)
+bb <- lm(CUE ~ DepthSection + Subsite, data = totalCUEwithCluster)
+
+
+summary(aa) ## this seems promising. The clusters have different CUEs, 
+            ## even given 
+
+
+## but really, we want a mixed model:
+
+cc <- lme4::lmer(CUE ~ DepthSection + (DepthSection | Subsite),
+              data = totalCUEwithCluster)
+
+cc <- lme4::lmer(CUE ~ (DepthSection | Subsite),
+              data = totalCUEwithCluster)
+
+coef(cc)
+
+
+ranova(cc)
+
+summary(ranova(cc))
+
+summary(cc)
+
+model_normal <- lmer(Number.of.plates ~ Days.after.isolation + (Days.after.isolation | treatment),
+              data = Data)
+
+## weird, all significance drops away when we pose it as a hierarchical model, 
+## at least coded that way. 
+## well, back up, get the figures we need, update notebook:
+
+## we never plotted CUE as a function by depth:
+
+head(totalCUEwithCluster)
+
+## plot CUE, oxic palsa ##
+cueOxPalsFilt <- totalCUEwithCluster$Treatment == "oxic" & totalCUEwithCluster$Subsite == "Palsa"
+cueOxPals <- totalCUEwithCluster[ cueOxPalsFilt,]
+
+dev.new()
+ggp <- ggplot(cueOxPals, aes(DepthSection, CUE)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+##########################
+
+## plot CUE, anoxic palsa ##
+cueanOxPalsFilt <- totalCUEwithCluster$Treatment == "anoxic" & totalCUEwithCluster$Subsite == "Palsa"
+cueanOxPals <- totalCUEwithCluster[ cueanOxPalsFilt,]
+
+dev.new()
+ggp <- ggplot(cueanOxPals, aes(DepthSection, CUE)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+##########################
+
+## plot CUE, oxic thermokarst ##
+cueOxTkFilt <- totalCUEwithCluster$Treatment == "oxic" & totalCUEwithCluster$Subsite == "Thermokarst"
+cueOxTk <- totalCUEwithCluster[ cueOxTkFilt,]
+dev.new()
+ggp <- ggplot(cueOxTk, aes(DepthSection, CUE)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+##########################
+
+## plot CUE, anoxic thermokarst ##
+cueanOxTkFilt <- totalCUEwithCluster$Treatment == "anoxic" & totalCUEwithCluster$Subsite == "Thermokarst"
+cueanOxTk <- totalCUEwithCluster[ cueanOxTkFilt,]
+dev.new()
+ggp <- ggplot(cueanOxTk, aes(DepthSection, CUE)) +           
+  geom_point()
+ggp +                                     
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth")
+##########################
+
+## could we have done that by faceting in ggplot?:
+ggplot(totalCUEwithCluster, aes(DepthSection, CUE)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth") +
+  facet_grid(Treatment ~ Subsite)
+
+## yes, that's a lot easier....
+
+##############################
+
+## side note, we never checked the raw differences in 
+## alpha diversity among different types of samples:
+
+plot_richness(ps007, x="Subsite", measures=c("Chao1", "Shannon"))
+
+plot_richness(ps007, x="Subsite", measures=c("Chao1", "Shannon"))
+
+plot_richness(ps007_cleaned_sqrt_prop, x="cluster", measures=c("Chao1", "Shannon"))
+## they won't do it for non-integers.
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+aa <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+bb <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+cc <- data.frame(cluster=as.factor(1:5), specNumber=specnumber(aa, bb$cluster), colrs=clusterCols)
+
+## with base plotter
+barplot(specnumber(aa, bb$cluster), 
+        ylab="ASVs", 
+        xlab="Microbial community cluster", 
+        col = clusterCols,
+        main="Species richness of Microbial Clusters",
+)
+
+ggplot(cc, aes(x=cluster, y=specNumber, fill=cluster )) +  
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = clusterCols ) +
+  theme(legend.position="none")
+
+
+diversity(aa, index = "shannon", groups=bb$cluster)
+## the active, upper layers of the palsa  and the thermokarst layers
+## are all much more active than the permafrost (cluster 5) and lower active 
+## palsa layer (cluster 4)
+
+## need to catch up the notebook a bit...
 ## werner would like to talk about:
 ## low respiration, and low MBC, unexpectedly, even after thawing 
-##  
+
+
