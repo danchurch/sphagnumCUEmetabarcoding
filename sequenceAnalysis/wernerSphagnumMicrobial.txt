@@ -3234,12 +3234,142 @@ indic2sitesAll <- multipatt(otutab, envData$cluster,
 indSpecResults <- indic2sitesAll$sign
 indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 indSpecResults <- indSpecResults[ complete.cases(indSpecResults),]
-indSpecResults_corrected <- indSpecResults[indSpecResults$fdr < 0.05 & indSpecResults$stat > 0.9,]
 
-indSpecResults_corrected
+indSpecResults_corrected <- indSpecResults[indSpecResults$fdr < 0.05 & indSpecResults$stat > 0.8,]
+## indicators of single clusters:
+clust1IndSpec <- subset(indSpecResults_corrected, s.1 == 1 & 
+                                                  s.2 == 0 &
+                                                  s.3 == 0 &
+                                                  s.4 == 0 &
+                                                  s.5 == 0 )
+clust2IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                  s.2 == 1 &
+                                                  s.3 == 0 &
+                                                  s.4 == 0 &
+                                                  s.5 == 0 )
+clust3IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                  s.2 == 0 &
+                                                  s.3 == 1 &
+                                                  s.4 == 0 &
+                                                  s.5 == 0 )
+clust4IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                  s.2 == 0 &
+                                                  s.3 == 0 &
+                                                  s.4 == 1 &
+                                                  s.5 == 0 )
+clust5IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                  s.2 == 0 &
+                                                  s.3 == 0 &
+                                                  s.4 == 0 &
+                                                  s.5 == 1 )
+s.1_asvs <- rownames(clust1IndSpec)
+s.2_asvs <- rownames(clust2IndSpec)
+s.3_asvs <- rownames(clust3IndSpec)
+s.4_asvs <- rownames(clust4IndSpec)
+s.5_asvs <- rownames(clust5IndSpec)
+lengths <- print(c(length(s.1_asvs),
+                   length(s.2_asvs),
+                   length(s.3_asvs),
+                   length(s.4_asvs),
+                   length(s.5_asvs)))
 
-s.1_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.1 == 1,])
-dim(tax_table(ps007_cleaned_sqrt_prop)[ s.1_asvs,])
+dev.new()
+barplot(lengths)
+
+## check the taxonomy of these:
+tax_table(ps007_cleaned_sqrt_prop)[ s.1_asvs,]
+tax_table(ps007_cleaned_sqrt_prop)[ s.2_asvs,]
+tax_table(ps007_cleaned_sqrt_prop)[ s.3_asvs,]
+tax_table(ps007_cleaned_sqrt_prop)[ s.4_asvs,]
+tax_table(ps007_cleaned_sqrt_prop)[ s.5_asvs,]
+
+## is there an easy way to make a krona table for these?
+
+## this looks promising:
+https://markschl.github.io/taxplore/articles/phyloseq.html
+https://markschl.github.io/taxplore/articles/tutorial.html 
+## latter includes snapshot options, may be necessary
+## wait on that, first nice heat maps:
+
+## how to present these? We want to use the tabasco-style 
+## heatmap. 
+
+## subset to just those species found as indicators 
+## for cluster 1 
+
+psClust1 <- prune_taxa(s.1_asvs, ps007_cleaned_sqrt_prop)
+psClust2 <- prune_taxa(s.2_asvs, ps007_cleaned_sqrt_prop)
+psClust3 <- prune_taxa(s.3_asvs, ps007_cleaned_sqrt_prop)
+psClust4 <- prune_taxa(s.4_asvs, ps007_cleaned_sqrt_prop)
+psClust5 <- prune_taxa(s.5_asvs, ps007_cleaned_sqrt_prop)
+
+## don't know why, but empty rows (sites) makes it through
+rowSums(otu_table(psClust1))
+rowSums(otu_table(psClust2))
+rowSums(otu_table(psClust3))
+rowSums(otu_table(psClust4))
+rowSums(otu_table(psClust5))
+
+## to clean this up:
+#psClust1 <- prune_samples(rowSums(otu_table(psClust1)) != 0, psClust1)
+## but not sure if we want this?, heatmaps are based on 
+## the hclust object.
+
+## to build one heatmap with trees:
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+treeClust1 <- as.dendrogram.phylo(phy_tree(psClust1))
+evenTipdendro_1 <- hang.dendrogram(treeClust1, hang = -1)
+
+
+
+help(package=dendextend)
+
+commBray <- vegdist(otutab)
+comm.ward <- hclust(commBray, method='ward.D2')
+evenTipdendro <- hang.dendrogram(treeClust1, hang = -1)
+
+dev.new()
+
+tabasco(otutab, use=comm.ward, sp.ind=evenTipdendro)  ## works, but...
+## how can we enforce strict retention of order?
+
+## with Rowv=FALSE:
+dev.new()
+tabasco(otutab, 
+        use=comm.ward, 
+        sp.ind=evenTipdendro_1, 
+        Rowv=FALSE,
+        labCol=hclustlabels
+        ) 
+
+## okay, that looks nice
+## should we merge by genus? 
+## would also be nice to include a 
+## higher level classification...
+## maybe couple each heatmap with a krona 
+## diagram.
+
+## original cluster object looks like this:
+comm <- otu_table(ps007_cleaned_sqrt_prop)
+envData <- sample_data(ps007_cleaned_sqrt_prop)
+commBray <- vegdist(comm)
+comm.ward <- hclust(commBray, method='ward.D2')
+k=5
+clusterCols <- c("green","blue","red","black","brown","orange")[1:k]
+names(clusterCols) <- as.character(1:k)
+hclustlabels <- paste(substr(envData$SampleID,1,3),
+                      envData$DepthSection, sep="_")
+#par(oma=c(3,3,3,3)) 
+#par(mar=c(10,4,4,2) + 0.1)
+
+dev.new()
+plot(comm.ward,labels=hclustlabels)
+
+clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
+
+
+
+
 s.2_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.2 == 1,])
 dim(tax_table(ps007_cleaned_sqrt_prop)[ s.2_asvs,])
 s.3_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.3 == 1,])
@@ -3249,74 +3379,12 @@ dim(tax_table(ps007_cleaned_sqrt_prop)[ s.4_asvs,])
 s.5_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.5 == 1,])
 dim(tax_table(ps007_cleaned_sqrt_prop)[ s.5_asvs,])
 
-## to plot the genera of one of these:
 
-s.1_asvs
-
-
-## get the taxonomy of these.
-## for instance, cluster 1 (upper thermokarst):
-
-s.1_asvs <- rownames(indSpecResults[indSpecResults$s.1 == 1,])
-tax_table(ps007_cleaned_sqrt_prop)[ s.1_asvs,]
-
-s.2_asvs <- rownames(indSpecResults[indSpecResults$s.2 == 1,])
-tax_table(ps007_cleaned_sqrt_prop)[ s.2_asvs,]
-
-s.3_asvs <- rownames(indSpecResults[indSpecResults$s.3 == 1,])
-tax_table(ps007_cleaned_sqrt_prop)[ s.3_asvs,]
-
-s.4_asvs <- rownames(indSpecResults[indSpecResults$s.4 == 1,])
-tax_table(ps007_cleaned_sqrt_prop)[ s.4_asvs,]
-
-s.5_asvs <- rownames(indSpecResults[indSpecResults$s.5 == 1,])
-tax_table(ps007_cleaned_sqrt_prop)[ s.5_asvs,]
-
-## how to present these? We want to use the tabasco-style 
-## heatmap. 
-
-## subset to just those species found as indicators 
-## for cluster 1 
-
-psClust1 <- prune_taxa(s.1_asvs, ps007_cleaned_sqrt_prop)
-envData_1 <- data.frame(sample_data(psClust1))
-## don't know why, but an empty row makes it through, clean it up:
-#psClust1 <- prune_samples(rowSums(otu_table(psClust1)) != 0, psClust1)
-tax_1 <- data.frame(tax_table(psClust1))
-otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
-
-######### this worked before: #########
-aa <- as.dendrogram(phy_tree(psAbu))
-evenTipdendro <- hang.dendrogram(aa, hang = -1) 
-## from the dendextend package, make tips even
-########################################
-
-## doesn't work now. This seems to work:
-treeClust1 <- as.dendrogram.phylo(phy_tree(psClust1))
-evenTipdendro <- hang.dendrogram(treeClust1, hang = -1)
-
-dev.new()
-plot(evenTipdendro)
-
-help(package=dendextend)
-
-
-
-
-commBray <- vegdist(otutab)
-comm.ward <- hclust(commBray, method='ward.D2')
+head(indSpecResults)
 
 dev.new()
 
-tabasco(otutab, use=comm.ward, sp.ind=evenTipdendro) 
-
-## stopping here Aug 7 2026 ##
-
-dev.new()
-plot(specTree)
-
-
-
+## 10.08.26
 ## ralstonia seems strongly associated with the lowest layer of the 
 ## the palsa. 
 
@@ -3325,7 +3393,6 @@ aa <- tax_glom(ps007_cleaned_sqrt_prop, taxrank="Genus")
 ralstFilt <- data.frame(tax_table(aa))[,"Genus"] == "Ralstonia"
 
 ralstFilt <- tax_table(aa)[,"Genus"] == "Ralstonia"
-
 
 otu_table(aa)[,ralstFilt] ## Ralstonia seems quite common, but let's check visually:
 
