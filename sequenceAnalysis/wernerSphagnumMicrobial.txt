@@ -3226,7 +3226,13 @@ head(indSpecResults)
 
 barplot(colSums(indSpecResults)[c("s.1","s.2","s.3","s.4","s.5")])
 
+## starting here from notebook
 ## revise the variable names a bit:
+
+load("ps007_cleaned_sqrt_prop.rda")
+tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 indic2sitesAll <- multipatt(otutab, envData$cluster,
                     max.order=2,
                     control = how(nperm=999))
@@ -3234,7 +3240,7 @@ indic2sitesAll <- multipatt(otutab, envData$cluster,
 indSpecResults <- indic2sitesAll$sign
 indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 indSpecResults <- indSpecResults[ complete.cases(indSpecResults),]
-
+## keeping only those with a very strong association metric (> 0.8):
 indSpecResults_corrected <- indSpecResults[indSpecResults$fdr < 0.05 & indSpecResults$stat > 0.8,]
 ## indicators of single clusters:
 clust1IndSpec <- subset(indSpecResults_corrected, s.1 == 1 & 
@@ -3267,11 +3273,18 @@ s.2_asvs <- rownames(clust2IndSpec)
 s.3_asvs <- rownames(clust3IndSpec)
 s.4_asvs <- rownames(clust4IndSpec)
 s.5_asvs <- rownames(clust5IndSpec)
-lengths <- print(c(length(s.1_asvs),
-                   length(s.2_asvs),
-                   length(s.3_asvs),
-                   length(s.4_asvs),
-                   length(s.5_asvs)))
+## create ps objects subsetted to just those species found as indicators 
+psClust1 <- prune_taxa(s.1_asvs, ps007_cleaned_sqrt_prop)
+psClust2 <- prune_taxa(s.2_asvs, ps007_cleaned_sqrt_prop)
+psClust3 <- prune_taxa(s.3_asvs, ps007_cleaned_sqrt_prop)
+psClust4 <- prune_taxa(s.4_asvs, ps007_cleaned_sqrt_prop)
+psClust5 <- prune_taxa(s.5_asvs, ps007_cleaned_sqrt_prop)
+
+lengths <- c(length(s.1_asvs),
+             length(s.2_asvs),
+             length(s.3_asvs),
+             length(s.4_asvs),
+             length(s.5_asvs))
 
 dev.new()
 barplot(lengths)
@@ -3294,15 +3307,6 @@ https://markschl.github.io/taxplore/articles/tutorial.html
 ## how to present these? We want to use the tabasco-style 
 ## heatmap. 
 
-## subset to just those species found as indicators 
-## for cluster 1 
-
-psClust1 <- prune_taxa(s.1_asvs, ps007_cleaned_sqrt_prop)
-psClust2 <- prune_taxa(s.2_asvs, ps007_cleaned_sqrt_prop)
-psClust3 <- prune_taxa(s.3_asvs, ps007_cleaned_sqrt_prop)
-psClust4 <- prune_taxa(s.4_asvs, ps007_cleaned_sqrt_prop)
-psClust5 <- prune_taxa(s.5_asvs, ps007_cleaned_sqrt_prop)
-
 ## don't know why, but empty rows (sites) makes it through
 rowSums(otu_table(psClust1))
 rowSums(otu_table(psClust2))
@@ -3315,77 +3319,317 @@ rowSums(otu_table(psClust5))
 ## but not sure if we want this?, heatmaps are based on 
 ## the hclust object.
 
-## to build one heatmap with trees:
-otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
-treeClust1 <- as.dendrogram.phylo(phy_tree(psClust1))
-evenTipdendro_1 <- hang.dendrogram(treeClust1, hang = -1)
-
-
-
 help(package=dendextend)
 
-commBray <- vegdist(otutab)
+## to build one heatmap with trees:
+
+otutab <- as.data.frame(otu_table(psClust1))
+treeClust1 <- as.dendrogram.phylo(phy_tree(psClust1))
+evenTipdendro_1 <- hang.dendrogram(treeClust1, hang = -1)
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
 comm.ward <- hclust(commBray, method='ward.D2')
-evenTipdendro <- hang.dendrogram(treeClust1, hang = -1)
-
-dev.new()
-
-tabasco(otutab, use=comm.ward, sp.ind=evenTipdendro)  ## works, but...
-## how can we enforce strict retention of order?
-
 ## with Rowv=FALSE:
 dev.new()
 tabasco(otutab, 
         use=comm.ward, 
         sp.ind=evenTipdendro_1, 
-        Rowv=FALSE,
+        Rowv=FALSE, ## forces retention of site tree order
+        Colv=FALSE, 
+        #labCol=hclustlabels
+        ) 
+
+dev.new()
+plot(evenTipdendro_1)
+
+## can we build a function out of this?
+## probably not, the phyloseq accessors get all
+## weird when we try.
+
+## but fairly compact code. To change the cluster:
+treeClust3 <- as.dendrogram.phylo(phy_tree(psClust3))
+evenTipdendro_1 <- hang.dendrogram(treeClust3, hang = -1)
+## with Rowv=FALSE:
+dev.new()
+tabasco(otutab, 
+        use=comm.ward, 
+        sp.ind=evenTipdendro_1, 
+        Rowv=FALSE, ## forces retention of site tree order
         labCol=hclustlabels
         ) 
 
-## okay, that looks nice
-## should we merge by genus? 
+## this is our most diverse cluster, the upper palsa. 
+
+## what if we merge by genus first?
+
+psClust3_gen <- tax_glom(psClust3, taxrank="Genus")
+treeClust3_gen <- as.dendrogram.phylo(phy_tree(psClust3_gen))
+evenTipdendro_1 <- hang.dendrogram(treeClust3_gen, hang = -1)
+hclustlabels <- paste(substr(envData$SampleID,1,3),
+                      envData$DepthSection, sep="_")
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+
+plot(treeClust3_gen)
+
+dev.new()
+plot(evenTipdendro_1)
+
+dev.new()
+tabasco(data.frame(otu_table(psClust3_gen)),
+        use=comm.ward, 
+        sp.ind=evenTipdendro_1, 
+        Rowv=FALSE, ## forces retention of site tree order
+        labCol=hclustlabels
+        ) 
+
+## something is wrong, the OTU names seemed to be
+## disassociated from the tree, order seems random. 
+## posted an issue on vegan github repo about this
+## but anyway, can we relabel this with genus names?
+
+genera <- tax_table(psClust3_gen)[ colnames(data.frame(otu_table(psClust3_gen))),"Genus"]
+phyla <- tax_table(psClust3_gen)[ colnames(data.frame(otu_table(psClust3_gen))),"Phylum"]
+
+tax_table(ps007_cleaned_sqrt_prop)["ASV3622",]
+
+tax_table(ps007_cleaned_sqrt_prop)["ASV96",]
+
+dev.new()
+tabasco(data.frame(otu_table(psClust3_gen)),
+        use=comm.ward,
+        sp.ind=evenTipdendro_1,
+        Rowv=FALSE, ## forces retention of site tree order
+        labCol=hclustlabels,
+        #labRow=phyla
+        labRow=genera
+        )
+
+## doesn't work. Why not?
+## this function is a mystery to me. 
+
+## looks like you need to fix the labels early in this process, in the community data
+
+psClust3_gen <- tax_glom(psClust3, taxrank="Genus")
+treeClust3_gen <- as.dendrogram.phylo(phy_tree(psClust3_gen))
+evenTipdendro_3 <- hang.dendrogram(treeClust3_gen, hang = -1)
+labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Genus"]
+#labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Phylum"]
+commData <- data.frame(otu_table(psClust3_gen))
+commDataGenus <- commData 
+colnames(commDataGenus) <- tax_table(psClust3_gen)[colnames(commData),"Genus"]
+
+
+dev.new()
+plot(evenTipdendro_3)
+
+
+
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind=evenTipdendro_3,
+        Rowv=FALSE,
+        main="Rowv"
+        )
+
+
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind=evenTipdendro_3,
+        main="no Rowv"
+        )
+
+## adding the Rowv argument changes the site tree as bit,
+## maintains the exact topology of the site cluster results
+
+## if we relax that, and use Colv?:
+
+dev.new()
+plot(evenTipdendro_3)
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind=evenTipdendro_3,
+        Colv=FALSE,
+        main="Colv"
+        )
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind=evenTipdendro_3,
+        main="no Colv"
+        )
+
+## doesn't help. The species dendrogram is changed. 
+
+## and if we relax both?
+dev.new()
+plot(evenTipdendro_3)
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind=evenTipdendro_3,
+        Colv=FALSE,
+        Rowv=FALSE,
+        )
+
+## still fucked. maybe they will respond to my issue 
+
+
+## No reordering of taxonomy
+tabasco(dune, plotree, sp.ind = taxontree, Colv = FALSE)
+
+colnames(otutab)
+
+
+
+###################### issue ##########################
+
+## I don't understand. Maybe post an issue on vegan?
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/tabascoIssue")
+
+## save some files:
+write.csv(otutab, file= "otutab.csv")
+save(comm.ward, file="comm.ward.rda")
+evenTipdendro <- evenTipdendro_1
+save(evenTipdendro, file="evenTipdendro.rda")
+write.csv(hclustlabels, file="hclustlabels.txt", row.names = FALSE) ## can't seem to prevent column name "X"
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/tabascoIssue")
+
+## load from scratch, code for issue
+library(vegan)
+otutab <- read.csv("otutab.csv", row.names=1)
+hclustlabels <- scan("hclustlabels.txt", what="character")
+load("comm.ward.rda")
+load("evenTipdendro.rda")
+
+#png("phylotreeItrust.png")
+plot(evenTipdendro)
+#dev.off()
+
+dev.new()
+
+#png("tabascoOut.png")
+tabasco(otutab, 
+        use=comm.ward, 
+        sp.ind=evenTipdendro, 
+        #Colv=FALSE, 
+        Rowv=FALSE, ## forces retention of site tree order
+        #labCol=hclustlabels
+        ) 
+#dev.off()
+
+sessionInfo()
+
+## vegan_2.7-5
+## R version 4.6.1
+
+###################### ^issue^ ##########################
+
+## and Oksanen himself responded, acknowledged the bug.
+## He says apparently the function isn't handling 
+## dendrogram objects well.
+## I'm in the presence of greatness. 
+
+## anyway, try his suggestion:
+
+psClust3_gen <- tax_glom(psClust3, taxrank="Genus")
+treeClust3_gen <- as.dendrogram.phylo(phy_tree(psClust3_gen))
+commData <- data.frame(otu_table(psClust3_gen))
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+
+## for genus
+evenTipdendro_3 <- hang.dendrogram(treeClust3_gen, hang = -1)
+labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Genus"]
+commDataGenus <- commData 
+colnames(commDataGenus) <- tax_table(psClust3_gen)[colnames(commData),"Genus"]
+
+## for phyla
+evenTipdendro_3 <- hang.dendrogram(treeClust3_gen, hang = -1)
+labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Phylum"]
+commDataPhyla <- commData 
+colnames(commDataPhyla) <- tax_table(psClust3_gen)[colnames(commData),"Phylum"]
+
+
+dev.new()
+plot(evenTipdendro_3)
+
+dev.new()
+par(mfrow = c(1,2))
+evenCommDendro <- hang.dendrogram(as.dendrogram(comm.ward), hang = -1)
+plot(comm.ward)
+plot(evenCommDendro)
+
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
+        Rowv=FALSE,
+        Colv=TRUE,
+        main="Rowv=FALSE, Colv=TRUE"
+        )
+
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
+        Rowv=TRUE,
+        Colv=TRUE,
+        main="Rowv=TRUE, Colv=TRUE"
+        )
+
+dev.new()
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
+        Rowv=FALSE,
+        Colv=TRUE,
+        main="Rowv=FALSE, Colv=TRUE"
+        )
+
+## this is the one we want, I think:
+dev.new()
+
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="Rowv=FALSE, Colv=FALSE"
+        )
+
+## check with phyla:
+dev.new()
+tabasco(commDataPhyla,
+        use=comm.ward,
+        sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="Rowv=FALSE, Colv=FALSE"
+        )
+
+## looks good, a little puzzled why changing the names 
+## changes the intensities
+## looks like somehow it takes the same values for all members of 
+## the phylum...
+## also, why are the phyla not really grouped? There are two 
+## clades of Actinomycetota. 
+## not sure. Not my doing...
+
 ## would also be nice to include a 
 ## higher level classification...
 ## maybe couple each heatmap with a krona 
 ## diagram.
 
-## original cluster object looks like this:
-comm <- otu_table(ps007_cleaned_sqrt_prop)
-envData <- sample_data(ps007_cleaned_sqrt_prop)
-commBray <- vegdist(comm)
-comm.ward <- hclust(commBray, method='ward.D2')
-k=5
-clusterCols <- c("green","blue","red","black","brown","orange")[1:k]
-names(clusterCols) <- as.character(1:k)
-hclustlabels <- paste(substr(envData$SampleID,1,3),
-                      envData$DepthSection, sep="_")
-#par(oma=c(3,3,3,3)) 
-#par(mar=c(10,4,4,2) + 0.1)
+## last check, do the phyla labels make sense...switching over above
 
-dev.new()
-plot(comm.ward,labels=hclustlabels)
+## stopping here 10.09.26
 
-clustGroups <- rect.hclust(comm.ward, k=k, border=clusterCols)
-
-
-
-
-s.2_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.2 == 1,])
-dim(tax_table(ps007_cleaned_sqrt_prop)[ s.2_asvs,])
-s.3_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.3 == 1,])
-dim(tax_table(ps007_cleaned_sqrt_prop)[ s.3_asvs,])
-s.4_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.4 == 1,])
-dim(tax_table(ps007_cleaned_sqrt_prop)[ s.4_asvs,])
-s.5_asvs <- rownames(indSpecResults_corrected[indSpecResults_corrected$s.5 == 1,])
-dim(tax_table(ps007_cleaned_sqrt_prop)[ s.5_asvs,])
-
-
-head(indSpecResults)
-
-dev.new()
-
-## 10.08.26
-## ralstonia seems strongly associated with the lowest layer of the 
+## btw, ralstonia seems strongly associated with the lowest layer of the 
 ## the palsa. 
 
 aa <- tax_glom(ps007_cleaned_sqrt_prop, taxrank="Genus")
