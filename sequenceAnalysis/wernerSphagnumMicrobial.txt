@@ -3707,9 +3707,6 @@ labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
 rownames(commData) <- samplelabels
 
 
-
-
-
 dev.new()
 plot(evenTipdendro)
 
@@ -3729,6 +3726,10 @@ dim(commDataGenus)
 
 evenTipdendro
 
+## should repeat with contrasts between parts of the cores that 
+## are the same "age." 
+
+
 ## would also be nice to include a 
 ## higher level classification...
 ## maybe couple each heatmap with a krona 
@@ -3740,7 +3741,26 @@ evenTipdendro
 
 
 ## let's try taxplore:
-remotes::install_github('markschl/taxplore')
+#remotes::install_github('markschl/taxplore')
+
+library(taxplore)
+library(phyloseq)
+
+data(GlobalPatterns)
+
+GlobalPatterns
+
+plot_krona(GlobalPatterns, ) ## doesn't work, temp html not found. 
+
+make_krona(GlobalPatterns, outfile = 'krona_chart.html')
+
+data(grasslandfungi.records)
+make_krona(grasslandfungi.records, outfile = 'krona_chart.html')
+
+
+
+
+#### a look at ralstonia #####
 
 ## btw, ralstonia seems strongly associated with the lowest layer of the 
 ## the palsa. 
