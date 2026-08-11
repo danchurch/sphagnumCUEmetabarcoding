@@ -3236,7 +3236,6 @@ envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 indic2sitesAll <- multipatt(otutab, envData$cluster,
                     max.order=2,
                     control = how(nperm=999))
-
 indSpecResults <- indic2sitesAll$sign
 indSpecResults$fdr <- p.adjust(indSpecResults$p.value, method = "fdr")
 indSpecResults <- indSpecResults[ complete.cases(indSpecResults),]
@@ -3285,7 +3284,6 @@ lengths <- c(length(s.1_asvs),
              length(s.3_asvs),
              length(s.4_asvs),
              length(s.5_asvs))
-
 dev.new()
 barplot(lengths)
 
@@ -3328,6 +3326,7 @@ treeClust1 <- as.dendrogram.phylo(phy_tree(psClust1))
 evenTipdendro_1 <- hang.dendrogram(treeClust1, hang = -1)
 commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
 comm.ward <- hclust(commBray, method='ward.D2')
+
 ## with Rowv=FALSE:
 dev.new()
 tabasco(otutab, 
@@ -3360,12 +3359,14 @@ tabasco(otutab,
 ## this is our most diverse cluster, the upper palsa. 
 
 ## what if we merge by genus first?
+## try with cluster3
 
 psClust3_gen <- tax_glom(psClust3, taxrank="Genus")
 treeClust3_gen <- as.dendrogram.phylo(phy_tree(psClust3_gen))
 evenTipdendro_1 <- hang.dendrogram(treeClust3_gen, hang = -1)
 hclustlabels <- paste(substr(envData$SampleID,1,3),
                       envData$DepthSection, sep="_")
+
 commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
 comm.ward <- hclust(commBray, method='ward.D2')
 
@@ -3412,6 +3413,7 @@ tabasco(data.frame(otu_table(psClust3_gen)),
 psClust3_gen <- tax_glom(psClust3, taxrank="Genus")
 treeClust3_gen <- as.dendrogram.phylo(phy_tree(psClust3_gen))
 evenTipdendro_3 <- hang.dendrogram(treeClust3_gen, hang = -1)
+
 labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Genus"]
 #labels(evenTipdendro_3) <- tax_table(psClust3_gen)[labels(evenTipdendro_3),"Phylum"]
 commData <- data.frame(otu_table(psClust3_gen))
@@ -3592,8 +3594,8 @@ tabasco(commDataGenus,
         )
 
 ## this is the one we want, I think:
-dev.new()
 
+dev.new()
 tabasco(commDataGenus,
         use=comm.ward,
         sp.ind = as.hclust(evenTipdendro_3), ## fix is here, 
@@ -3619,15 +3621,126 @@ tabasco(commDataPhyla,
 ## also, why are the phyla not really grouped? There are two 
 ## clades of Actinomycetota. 
 ## not sure. Not my doing...
+## that will need some time, we need to see if the error
+## is from the original 16S tree or if it occurred sometime
+## during all the subsetting of the phyloseq objects.
+
+## deal with this later. 
+
+## stopping here 10.09.26
+
+## checking now, Oksanen updated the function, should work to 
+## to use the old code:
+
+dev.new()
+plot(treeClust3_gen)
+
+dev.new()
+plot(evenTipdendro_3)
+
+dev.new()
+
+tabasco(commDataGenus,
+        use=comm.ward,
+        sp.ind = evenTipdendro_3, ## fix is here, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="Rowv=FALSE, Colv=FALSE, GithubVersion"
+        )
+
+## nope. Try the github install.
+
+library(remotes)
+install_github("vegandevs/vegan")
+
+## now the above code works. 
+
+## update note book with a heatmap from each plot. 
+
+## backing up, what do we need to make a heat map for each 
+## of these clusters?
+
+
+## these should already be in the environment, in several forms:
+
+load("ps007_cleaned_sqrt_prop.rda")
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+
+
+## but this should be new code for the notebook:
+psObject <- psClust3
+psObject_gen <- tax_glom(psObject, taxrank="Genus")
+tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
+evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
+labels(evenTipdendro) <- tax_table(psObject_gen)[labels(evenTipdendro),"Genus"]
+commData <- data.frame(otu_table(psObject_gen))
+colnames(commData) <- tax_table(psObject_gen)[colnames(commData),"Genus"]
+
+dev.new()
+plot(evenTipdendro)
+dev.new()
+tabasco(commData,
+        use=comm.ward,
+        sp.ind = evenTipdendro, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="IndicSpecies Cluster3"
+        )
+
+
+### ^ works ##
+
+## relabeling the samples is more complicated...
+psObject <- psClust3
+psObject_gen <- tax_glom(psObject, taxrank="Genus")
+tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
+evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
+labels(evenTipdendro) <- tax_table(psObject_gen)[labels(evenTipdendro),"Genus"]
+commData <- data.frame(otu_table(psObject_gen))
+colnames(commData) <- tax_table(psObject_gen)[colnames(commData),"Genus"]
+samplelabels <- paste(substr(sample_data(psObject)$SampleID,1,3), 
+                      sample_data(psObject)$DepthSection, sep="_")
+names(samplelabels) <- sample_names(psObject)
+samplelabels[ labels(comm.ward) ]
+labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
+rownames(commData) <- samplelabels
+
+
+
+
+
+dev.new()
+plot(evenTipdendro)
+
+dev.new()
+tabasco(commData,
+        use=comm.ward,
+        sp.ind = evenTipdendro, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="IndicSpecies Cluster3"
+        )
+
+
+plot(evenTipdendro)
+
+dim(commDataGenus)
+
+evenTipdendro
 
 ## would also be nice to include a 
 ## higher level classification...
 ## maybe couple each heatmap with a krona 
 ## diagram.
 
-## last check, do the phyla labels make sense...switching over above
+## link above leads to taxplore. Is this sort of the standard for R?
+## the real standard is Kronatools, which use html, spreadsheets, and 
+## browsers  
 
-## stopping here 10.09.26
+
+## let's try taxplore:
+remotes::install_github('markschl/taxplore')
 
 ## btw, ralstonia seems strongly associated with the lowest layer of the 
 ## the palsa. 
