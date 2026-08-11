@@ -6638,28 +6638,7 @@ function zoomOut()
 }
 */
   </script>
-  <script type="text/javascript">
-// this script to triggers a snapshot after loading; to be included after krona-2.0.js
-window.onload = function() {
-  const update_ = update;
-  // prevent timed update() calls
-  update = function() {};
-  load();
-  update_();
-  tweenFactor = 1;
 
-  // prevent window.open in snapshot()
-  window.open = function() { return {document: document}; };
-  snapshot();
-
-  // fix eternal loading issue in htmlwidgets IFrame
-  document.close();
-
-  // remove download link
-  document.querySelector("a").remove();
-};
-
-</script>
  </head>
  <body>
   <img id="hiddenImage" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9oLCBQhNQwWVnsAAAAidEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVAgb24gYSBNYWOHqHdDAAABE0lEQVQYGQEIAff+AwAAABkAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAAAMAwAAAAAAAAANAAAAAAAAAPoAAAAAAAAADAAAAAYAAAD0AwAAAPoAAAAAAAAAAAAAAPoAAAAMAAAADQAAAPoAAAD6AAAAAAAAAAAAAAAAAAAAAAwAAAAZAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAABkAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAGQAAAAwAAAAAAAAADAAAAAwAAAAABAAAAAAAAAAAAAAA8wAAAPQAAAAAAAAAAAAAAA0AAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAZRssKC5OpXwYAAAAASUVORK5CYII=" style="display:none" alt="Hidden Image"/>

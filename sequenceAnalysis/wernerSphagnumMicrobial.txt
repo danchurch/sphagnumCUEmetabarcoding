@@ -3726,8 +3726,118 @@ dim(commDataGenus)
 
 evenTipdendro
 
+## one more comparison might be of interest, pertaining to clusters
+## the deepest layer and the horseshoe we observe in our ordinations
+## this would be clusters 2 and 5:
+
+clust_2_5_IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                      s.2 == 1 &
+                                                      s.3 == 0 &
+                                                      s.4 == 0 &
+                                                      s.5 == 1 )
+
+
+s.2_5_asvs <- rownames(clust_2_5_IndSpec)
+
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+psClust_2_5 <- prune_taxa(s.2_5_asvs, ps007_cleaned_sqrt_prop)
+psObject <- psClust_2_5
+
+psObject_gen <- tax_glom(psObject, taxrank="Genus")
+
+psObject_gen_NAs <- tax_glom(psObject, taxrank="Genus", NArm=TRUE)
+
+
+psClust_2_5_gen <- tax_glom(psClust_2_5, taxrank="Genus")
+
+psClust_2_5_gen_NA <- tax_glom(psClust_2_5, taxrank="Genus", NArm=FALSE)
+
+psClust_2_5 
+
+psClust_2_5_gen
+
+psClust_2_5_gen_NA
+
+tax_table(psClust_2_5 )
+
+tax_table(psClust_2_5_gen )
+
+## can we substitute the last level of identification
+## for these row names?:
+
+aa <- data.frame(tax_table(psClust_2_5_gen_NA))
+
+## iterate through the row names 
+
+for(i in taxa_names(psClust_2_5_gen_NA)) {
+print(i)
+print(aa[i,])
+}
+
+## how to identify the last row?
+
+bb <- is.na(aa[i,])
+
+rev(bb)
+
+aa[i,]
+
+!is.na(i)
+
+for (i in rev(aa[,])) 
+{
+if (!is.na(i)){ print(i)}
+}
+
+## ugh, braindead. Stopping here.
+
+## the goal was to prevent the loss of species
+## in our heat maps due to lack of genus-level 
+## identifications.
+
+
+!is.na(i)
+
+rownames(aa)
+
+is.na(aa)
+
+for (i in aa){print(i)}
+
+
+
+
+psObject_gen
+psObject_gen_NAs 
+
+tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
+evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
+labels(evenTipdendro) <- tax_table(psObject_gen)[labels(evenTipdendro),"Genus"]
+commData <- data.frame(otu_table(psObject_gen))
+colnames(commData) <- tax_table(psObject_gen)[colnames(commData),"Genus"]
+samplelabels <- paste(substr(sample_data(psObject)$SampleID,1,3), 
+                      sample_data(psObject)$DepthSection, sep="_")
+names(samplelabels) <- sample_names(psObject)
+labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
+rownames(commData) <- samplelabels
+
+dev.new()
+plot(evenTipdendro)
+
+dev.new()
+tabasco(commData,
+        use=comm.ward,
+        sp.ind = evenTipdendro, 
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="IndicSpecies Cluster3"
+        )
+
 ## should repeat with contrasts between parts of the cores that 
 ## are the same "age." 
+
+
 
 
 ## would also be nice to include a 
@@ -3735,22 +3845,23 @@ evenTipdendro
 ## maybe couple each heatmap with a krona 
 ## diagram.
 
+######### kronas ############
+
 ## link above leads to taxplore. Is this sort of the standard for R?
 ## the real standard is Kronatools, which use html, spreadsheets, and 
-## browsers  
+## browsers. But no one is really maintaining the package...
 
-
-## let's try taxplore:
+## so let's try taxplore:
 #remotes::install_github('markschl/taxplore')
 
 library(taxplore)
 library(phyloseq)
 
+## actually, super easy.
+
 data(GlobalPatterns)
 
 GlobalPatterns
-
-plot_krona(GlobalPatterns, ) ## doesn't work, temp html not found. 
 
 make_krona(GlobalPatterns, outfile = 'krona_chart.html')
 
@@ -3761,31 +3872,14 @@ make_krona(grasslandfungi.records,
            outfile = 'chart.html',
            snapshot = TRUE)
 
-
+## to make a krona of the cluster indicator spp:
 psObs <- list(psClust1, psClust2, psClust3, psClust4, psClust5)
-
-for (i in 1:5){print(psObs[[i]])}
-
 for (i in 1:5){
   ps <- psObs[[i]]
   make_krona(ps,
-             outfile = paste0('kronas/psClust',as.character(i),'_krona.html'),
-             snapshot = TRUE)
+             outfile = paste0('kronas/psClust',as.character(i),'_krona.html'))
+             #snapshot = TRUE)
 }
-
-paste0('kronas/psClust',as.character(i),'_krona.html')
-
-make_krona(i,
-           outfile = 'kronas/psClust1_krona.html',
-           snapshot = TRUE)
-}
-
-make_krona(psClust1,
-           outfile = 'kronas/psClust1_krona.html',
-           snapshot = TRUE)
-
-webshot2::webshot('chart.html', 'chart-snapshot.png', 672, 480)
-# file.remove('chart.html')
 
 
 #### a look at ralstonia #####
