@@ -3757,7 +3757,35 @@ make_krona(GlobalPatterns, outfile = 'krona_chart.html')
 data(grasslandfungi.records)
 make_krona(grasslandfungi.records, outfile = 'krona_chart.html')
 
+make_krona(grasslandfungi.records, 
+           outfile = 'chart.html',
+           snapshot = TRUE)
 
+
+psObs <- list(psClust1, psClust2, psClust3, psClust4, psClust5)
+
+for (i in 1:5){print(psObs[[i]])}
+
+for (i in 1:5){
+  ps <- psObs[[i]]
+  make_krona(ps,
+             outfile = paste0('kronas/psClust',as.character(i),'_krona.html'),
+             snapshot = TRUE)
+}
+
+paste0('kronas/psClust',as.character(i),'_krona.html')
+
+make_krona(i,
+           outfile = 'kronas/psClust1_krona.html',
+           snapshot = TRUE)
+}
+
+make_krona(psClust1,
+           outfile = 'kronas/psClust1_krona.html',
+           snapshot = TRUE)
+
+webshot2::webshot('chart.html', 'chart-snapshot.png', 672, 480)
+# file.remove('chart.html')
 
 
 #### a look at ralstonia #####
