@@ -3284,6 +3284,7 @@ lengths <- c(length(s.1_asvs),
              length(s.3_asvs),
              length(s.4_asvs),
              length(s.5_asvs))
+
 dev.new()
 barplot(lengths)
 
@@ -3781,6 +3782,7 @@ bb <- is.na(aa[i,])
 
 rev(bb)
 
+i=6
 aa[i,]
 
 !is.na(i)
@@ -3796,43 +3798,90 @@ if (!is.na(i)){ print(i)}
 ## in our heat maps due to lack of genus-level 
 ## identifications.
 
+## we need a function that can take one row
+## of a dataframe and go to the left-most value
+## that is not NA. It is possible that NAs 
+## may occur to both the left and right of this
+## value. It is also possible that all values 
+## are NA, so a default is needed. 
 
-!is.na(i)
+## this looks perfect:
+## https://stackoverflow.com/questions/7532639/select-last-non-na-value-in-a-row-by-row
 
-rownames(aa)
+## brilliant. forgot about the tail function in R:
 
-is.na(aa)
+lastValue <- function(x)   tail(x[!is.na(x)], 1)
 
-for (i in aa){print(i)}
+## does it work for NAs before the "last" non-NA value, also? 
+i=6
+x <- aa[i,]
+
+x["Kingdom"] <- NA
+
+x["Class"] <- NA
 
 
+## and if the organism is entirely unidentified?:
+
+xNAs <- c(NA,NA,NA,NA,NA,NA)
+names(xNAs) <- names(x)
 
 
-psObject_gen
-psObject_gen_NAs 
+lastValue(x)
 
+lastValue(xNAs) ## breaks. Do we need to fix this? Let's see.
+
+## Try out the function on real data
+
+apply(aa, 1, lastValue)
+
+
+psClust_2_5_gen_NA <- tax_glom(psClust_2_5, taxrank="Genus", NArm=FALSE)
+## works for small tax_table
+apply(tax_table(psClust_2_5_gen_NA), 1, lastValue)
+
+aa <- apply(tax_table(ps007_cleaned_sqrt_prop), 1, lastValue)
+
+length(aa) ## agrees with:
+dim(tax_table(ps007_cleaned_sqrt_prop))
+
+any(is.na(aa)) 
+any(aa == "")
+## seems ok. 
+
+## so how to integrate this back into our heat maps?
+## bring up all that mess:
+
+
+psObject <- psClust1
+#psObject <- psClust2
+#psObject <- psClust3
+#psObject <- psClust4
+#psObject <- psClust5
+lastValue <- function(x)   tail(x[!is.na(x)], 1)
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+psObject_gen <- tax_glom(psObject, taxrank="Genus", NArm=FALSE)
 tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
 evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
-labels(evenTipdendro) <- tax_table(psObject_gen)[labels(evenTipdendro),"Genus"]
+taxNames <- apply(tax_table(psObject_gen), 1, lastValue)
+labels(evenTipdendro) <- taxNames[labels(evenTipdendro)]
 commData <- data.frame(otu_table(psObject_gen))
-colnames(commData) <- tax_table(psObject_gen)[colnames(commData),"Genus"]
+colnames(commData) <- taxNames[colnames(commData)]
 samplelabels <- paste(substr(sample_data(psObject)$SampleID,1,3), 
                       sample_data(psObject)$DepthSection, sep="_")
 names(samplelabels) <- sample_names(psObject)
 labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
 rownames(commData) <- samplelabels
 
-dev.new()
-plot(evenTipdendro)
-
-dev.new()
 tabasco(commData,
         use=comm.ward,
-        sp.ind = evenTipdendro, 
+        sp.ind = evenTipdendro,
         Rowv=FALSE,
         Colv=FALSE,
-        main="IndicSpecies Cluster3"
+        main="Indicator species Cluster 1"
         )
+
 
 ## should repeat with contrasts between parts of the cores that 
 ## are the same "age." 
@@ -3881,6 +3930,14 @@ for (i in 1:5){
              #snapshot = TRUE)
 }
 
+
+
+## anything else to check before moving on to  CUE?
+
+## get the indic species for the two deepest soils, visualize
+
+## how to quantitavely make comparisons between soils of the 
+## same age? needs some pondering...
 
 #### a look at ralstonia #####
 
@@ -5037,11 +5094,8 @@ meanSpRich + geom_errorbar(aes(x=cluster, ymin=specRichMean-specRichSD, ymax=spe
 
 ?specnumber
 
- Load ggplot2
 library(ggplot2)
 
-
-## need to catch up the notebook a bit...
 
 
 ## werner would like to talk about:
