@@ -3727,70 +3727,6 @@ dim(commDataGenus)
 
 evenTipdendro
 
-## one more comparison might be of interest, pertaining to clusters
-## the deepest layer and the horseshoe we observe in our ordinations
-## this would be clusters 2 and 5:
-
-clust_2_5_IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
-                                                      s.2 == 1 &
-                                                      s.3 == 0 &
-                                                      s.4 == 0 &
-                                                      s.5 == 1 )
-
-
-s.2_5_asvs <- rownames(clust_2_5_IndSpec)
-
-commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
-comm.ward <- hclust(commBray, method='ward.D2')
-psClust_2_5 <- prune_taxa(s.2_5_asvs, ps007_cleaned_sqrt_prop)
-psObject <- psClust_2_5
-
-psObject_gen <- tax_glom(psObject, taxrank="Genus")
-
-psObject_gen_NAs <- tax_glom(psObject, taxrank="Genus", NArm=TRUE)
-
-
-psClust_2_5_gen <- tax_glom(psClust_2_5, taxrank="Genus")
-
-psClust_2_5_gen_NA <- tax_glom(psClust_2_5, taxrank="Genus", NArm=FALSE)
-
-psClust_2_5 
-
-psClust_2_5_gen
-
-psClust_2_5_gen_NA
-
-tax_table(psClust_2_5 )
-
-tax_table(psClust_2_5_gen )
-
-## can we substitute the last level of identification
-## for these row names?:
-
-aa <- data.frame(tax_table(psClust_2_5_gen_NA))
-
-## iterate through the row names 
-
-for(i in taxa_names(psClust_2_5_gen_NA)) {
-print(i)
-print(aa[i,])
-}
-
-## how to identify the last row?
-
-bb <- is.na(aa[i,])
-
-rev(bb)
-
-i=6
-aa[i,]
-
-!is.na(i)
-
-for (i in rev(aa[,])) 
-{
-if (!is.na(i)){ print(i)}
-}
 
 ## ugh, braindead. Stopping here.
 
@@ -3905,6 +3841,9 @@ tabasco(commData,
 
 library(taxplore)
 library(phyloseq)
+library(RColorBrewer)
+library(patchwork)
+library(ggnewscale)
 
 ## actually, super easy.
 
@@ -3931,13 +3870,202 @@ for (i in 1:5){
 }
 
 
+###### get the indic species for the two deepest soils, visualize ######
 
-## anything else to check before moving on to  CUE?
+## let's try this pipeline to identify any possibly shared species 
+## that might be driving the proximity of the deep soils on the 
+## ordinations
 
-## get the indic species for the two deepest soils, visualize
+## this would be clusters 2 and 5:
+
+clust_2_5_IndSpec <- subset(indSpecResults_corrected, s.1 == 0 & 
+                                                      s.2 == 1 &
+                                                      s.3 == 0 &
+                                                      s.4 == 0 &
+                                                      s.5 == 1 )
+s.2_5_asvs <- rownames(clust_2_5_IndSpec)
+
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+lastValue <- function(x)   tail(x[!is.na(x)], 1) ## useful for getting last level of tax id
+psClust_2_5 <- prune_taxa(s.2_5_asvs, ps007_cleaned_sqrt_prop)
+psObject_gen <- tax_glom(psObject, taxrank="Genus", NArm=FALSE)
+tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
+evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
+
+## these two lines rename otus with no genus id:
+taxNames <- apply(tax_table(psObject_gen), 1, lastValue) 
+labels(evenTipdendro) <- taxNames[labels(evenTipdendro)]
+commData <- data.frame(otu_table(psObject_gen))
+colnames(commData) <- taxNames[colnames(commData)]
+samplelabels <- paste(substr(sample_data(psObject)$SampleID,1,3),
+                      sample_data(psObject)$DepthSection, sep="_")
+names(samplelabels) <- sample_names(psObject)
+labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
+rownames(commData) <- samplelabels 
+
+tabasco(commData,
+        use=comm.ward,
+        sp.ind = evenTipdendro,
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="Indicator species Cluster 2 & 5"
+        )
+
+
+plot_krona(psClust1, height=600)
+
+make_krona(psClust_2_5, outfile = 'kronas/clust2_5_krona.html')
+
+## some kind of Clostridiaceae, and a clostridium, and other bacillota
+
+## mostly firmicutes = fermenters and acetogens?
+
+## if we exclude these, how does the NMS change?
+ps007_cleaned_sqrt_prop
+ps.notDeepInder
+
+#psObject <- ps007_cleaned_sqrt_prop
+psObject <- ps.notDeepInder
+psObject.ord <- ordinate(psObject, "NMDS", "bray")
+clusterPoints <- as.data.frame(cbind(psObject.ord$points[,'MDS1'],
+                                     psObject.ord$points[,'MDS2'],
+                                     envData$cluster,
+                                     envData$DepthSection,
+                                     envData$Subsite
+                                     ))
+colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
+clusterPoints$MDS1 <- as.numeric(clusterPoints$MDS1)
+clusterPoints$MDS2 <- as.numeric(clusterPoints$MDS2)
+clusterPoints$cluster <- as.factor(clusterPoints$cluster)
+clusterPoints$DepthSection <- as.numeric(clusterPoints$DepthSection)
+peatNMS <- ggplot(data=clusterPoints)
+MDSpts <- geom_point(data=clusterPoints,
+                     aes(x=MDS2, y=MDS1,
+                         color=DepthSection,
+                         shape=Subsite),
+                     size=8)
+clusterCols <- c("green","blue","red","black","brown")
+depthPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = depthPalette(100), limits=c(5, 0), trans="reverse")
+els <- stat_ellipse(data=clusterPoints, aes(x=MDS2, y=MDS1,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
+elCS <- scale_color_manual(values = clusterCols)
+
+## old plot
+dev.new()
+peatNMS + MDSpts + dCS +
+new_scale_color() + els + elCS
+
+## rename, rinse and repeat
+peatNMS_old <- peatNMS
+MDSpts_old <- MDSpts
+els_old <- els
+rm(peatNMS)
+rm(MDSpts)
+rm(els)
+
+## rerun, but without the OTUs that might be bringing the lower clusters together: 
+notDeepInderFilt <- !(taxa_names(ps007_cleaned_sqrt_prop) %in% s.2_5_asvs)
+ps.notDeepInder <- prune_taxa(notDeepInderFilt, ps007_cleaned_sqrt_prop)
+## plug in above.
+
+## nope, removing these doesn't change the NMS. 
+## not sure, but probably not much time to figure this out. 
 
 ## how to quantitavely make comparisons between soils of the 
 ## same age? needs some pondering...
+
+## would be nice to include this somehow in our jsdm models.
+## maybe a model that just includes the soil sections 
+## that are comparable between the thermokarst and palsa, sections 1,2,4,5.
+## ??
+## meh, still not sure. 
+
+### phylogenetic comparisons between parallel soil sections ####
+
+## the comparison of the deep clusters is a good example of how to 
+## find commonalities among the soil sections, but how do we 
+## identify what is different between them? As in, 
+## after palsa collapse what changes in these peat samples,
+## as far as microbial community?
+
+## no idea how to model this properly. For the moment, just plot 
+## differences via bar graphs?:
+
+## each depth section should get its own plot. 
+## for depth section 1:
+
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps007_cleaned_sqrt_prop
+
+howManyPhyla <- 10
+
+str(sample_data(psObject))
+
+aa <- subset_samples(ps007_cleaned_sqrt_prop, DepthSection=="1")
+psObject.ord <- ordinate(aa, "NMDS", "bray")
+cc <- plot_ordination(aa, psObject.ord,
+   color="Subsite",
+   shape="Subsite",
+   ) 
+
+## first, find the top phyla in each, the tk and palsa of a given depth:
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps.Phyla <- tax_glom(ps007_cleaned_sqrt_prop, taxrank="Phylum")
+
+ps.phyla.depth1 <-
+            ps007_cleaned_sqrt_prop |>
+            tax_glom(taxrank="Phylum") |>
+            subset_samples(DepthSection=="1")
+
+ps.depth1.phyla.palsa <-
+  ps.phyla.depth1 |>
+  subset_samples(Subsite=="Palsa") 
+
+ps.depth1.phyla.tk <-
+  ps.phyla.depth1 |>
+  subset_samples(Subsite=="Thermokarst")
+
+## find the top _ phyla for each geomorphology
+howManyPhyla <- 10
+topPhyla.palsa <- names(sort(colSums(otu_table(ps.depth1.phyla.palsa)), decreasing=TRUE)[1:howManyPhyla])
+topPhyla.tk <- names(sort(colSums(otu_table(ps.depth1.phyla.tk)), decreasing=TRUE)[1:howManyPhyla])
+comboTopPhyla <- unique(c(topPhyla.palsa, topPhyla.tk))
+
+## subset to these, plot
+## faceting doesn't work well, make them separate and patch together:
+ps.depth1.phyla.palsa.topPhyla <- prune_taxa(comboTopPhyla, ps.depth1.phyla.palsa)
+aa <- plot_bar(ps.depth1.phyla.palsa.topPhyla) + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+ps.depth1.phyla.tk.topPhyla <- prune_taxa(comboTopPhyla, ps.depth1.phyla.tk)
+
+bb <- plot_bar(ps.depth1.phyla.tk.topPhyla) + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack", width=0.7)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+bb$layers[[1]] <- NULL
+
+## put it together.
+aa + bb & ylim(min(0), max(1))
+
+## needs subplot title for each
+## remove redundant legend and y-axis values (but make sure colors match first!)
+## great, repeat for the other 3 depths that are comparable.
+
+## and do a differential abundance analysis for each pair, I guess. 
+
+## accompanied somehow with a comparison of edaphic features.
+
+
+
+
 
 #### a look at ralstonia #####
 
@@ -3986,7 +4114,6 @@ ralstoniaPlot <- genusTop.Pal + genusTop.tk
 ralstoniaPlot
 
 ralstoniaPlot & ylim(min(0), max(0.20))
-
 
 ## ralstonia seems strongly associated with the lowest layer of the 
 ## the palsa. Interesting that is observed reliably only
@@ -4341,6 +4468,7 @@ sample_data(ps007_cleaned_sqrt_prop)$sulfur_content_1 <- NULL
 ## combine it all and keep it in one ps object:
 #sample_data(ps007_cleaned_sqrt_prop) <- soilData
 #save(ps007_cleaned_sqrt_prop, file= "/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 
 ## explore a bit:
 plot(soilData$DepthSection, soilData$pH)
