@@ -3999,71 +3999,113 @@ ps.notDeepInder <- prune_taxa(notDeepInderFilt, ps007_cleaned_sqrt_prop)
 ## differences via bar graphs?:
 
 ## each depth section should get its own plot. 
-## for depth section 1:
-
 
 load("ps007_cleaned_sqrt_prop.rda")
-
-ps007_cleaned_sqrt_prop
-
-howManyPhyla <- 10
-
-str(sample_data(psObject))
-
-aa <- subset_samples(ps007_cleaned_sqrt_prop, DepthSection=="1")
-psObject.ord <- ordinate(aa, "NMDS", "bray")
-cc <- plot_ordination(aa, psObject.ord,
-   color="Subsite",
-   shape="Subsite",
-   ) 
-
-## first, find the top phyla in each, the tk and palsa of a given depth:
-
-load("ps007_cleaned_sqrt_prop.rda")
-
-ps.Phyla <- tax_glom(ps007_cleaned_sqrt_prop, taxrank="Phylum")
-
-ps.phyla.depth1 <-
-            ps007_cleaned_sqrt_prop |>
-            tax_glom(taxrank="Phylum") |>
-            subset_samples(DepthSection=="1")
-
-ps.depth1.phyla.palsa <-
-  ps.phyla.depth1 |>
-  subset_samples(Subsite=="Palsa") 
-
-ps.depth1.phyla.tk <-
-  ps.phyla.depth1 |>
-  subset_samples(Subsite=="Thermokarst")
-
+depthSect = 1
+#depthSect = 2
+#depthSect = 3
+#depthSect = 4 
+#depthSect = 5 
+howManyPhylaPalsa <- 12
+howManyPhylaTK <- 15
+ps.phyla.depth <-
+  ps007_cleaned_sqrt_prop |>
+  tax_glom(taxrank="Phylum") |>
+  subset_samples(DepthSection==depthSect)
+ps.depth.phyla.palsa <- subset_samples(ps.phyla.depth, Subsite=="Palsa") 
+ps.depth.phyla.tk <- subset_samples(ps.phyla.depth, Subsite=="Thermokarst")
 ## find the top _ phyla for each geomorphology
-howManyPhyla <- 10
-topPhyla.palsa <- names(sort(colSums(otu_table(ps.depth1.phyla.palsa)), decreasing=TRUE)[1:howManyPhyla])
-topPhyla.tk <- names(sort(colSums(otu_table(ps.depth1.phyla.tk)), decreasing=TRUE)[1:howManyPhyla])
+topPhyla.palsa <- names(sort(colSums(otu_table(ps.depth.phyla.palsa)), decreasing=TRUE)[1:howManyPhylaPalsa])
+topPhyla.tk <- names(sort(colSums(otu_table(ps.depth.phyla.tk)), decreasing=TRUE)[1:howManyPhylaTK])
 comboTopPhyla <- unique(c(topPhyla.palsa, topPhyla.tk))
-
 ## subset to these, plot
 ## faceting doesn't work well, make them separate and patch together:
-ps.depth1.phyla.palsa.topPhyla <- prune_taxa(comboTopPhyla, ps.depth1.phyla.palsa)
-aa <- plot_bar(ps.depth1.phyla.palsa.topPhyla) + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
-ps.depth1.phyla.tk.topPhyla <- prune_taxa(comboTopPhyla, ps.depth1.phyla.tk)
-
-bb <- plot_bar(ps.depth1.phyla.tk.topPhyla) + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack", width=0.7)
+ps.depth.phyla.palsa.topPhyla <- prune_taxa(comboTopPhyla, ps.depth.phyla.palsa)
+aa <- plot_bar(ps.depth.phyla.palsa.topPhyla) + 
+      geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack") +
+      #theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa") 
+ps.depth.phyla.tk.topPhyla <- prune_taxa(comboTopPhyla, ps.depth.phyla.tk)
+bb <- plot_bar(ps.depth.phyla.tk.topPhyla) + 
+      geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack", width=0.7) +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL) 
 ## get rid of the old gray bars hiding underneath, these are plotted by the original function.
 bb$layers[[1]] <- NULL
+aa$layers[[1]] <- NULL
+## put it together.
+dev.new()
+aa + bb + plot_annotation(title = paste0('Depth/Age class ',as.character(depthSect)),
+                             theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+ylim(min(0), max(1))
+
+## ^^works ##
+
+##### genera pairwise comparisons ########
+
+load("ps007_cleaned_sqrt_prop.rda")
+#### vars ####
+depthSect = 1
+#depthSect = 2
+#depthSect = 3
+#depthSect = 4 
+#depthSect = 5 
+howManyOTUsPalsa <- 12
+howManyOTUsTK <- 15
+#taxRank="Phylum" ## also have to change lines below for coloring graphs
+taxRank="Order" 
+#### ^^ vars ^^ ####
+ps.taxRank.depth <-
+  ps007_cleaned_sqrt_prop |>
+  tax_glom(taxrank=taxRank) |>
+  subset_samples(DepthSection==depthSect)
+ps.depth.taxRank.palsa <- subset_samples(ps.taxRank.depth, Subsite=="Palsa") 
+ps.depth.taxRank.tk <- subset_samples(ps.taxRank.depth, Subsite=="Thermokarst")
+## find the top _ phyla for each geomorphology
+topOTUs.palsa <- names(sort(colSums(otu_table(ps.depth.taxRank.palsa)), decreasing=TRUE)[1:howManyOTUsPalsa])
+topOTUs.tk <- names(sort(colSums(otu_table(ps.depth.taxRank.tk)), decreasing=TRUE)[1:howManyOTUsTK])
+comboTopOTUs <- unique(c(topOTUs.palsa, topOTUs.tk))
+## subset to these, plot
+## faceting doesn't work well, make them separate and patch together:
+ps.depth.taxRank.palsa.topOTUs <- prune_taxa(comboTopOTUs, ps.depth.taxRank.palsa)
+aa <- plot_bar(ps.depth.taxRank.palsa.topOTUs) + 
+      geom_bar(aes(fill=Order), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa") 
+ps.depth.taxRank.tk.topOTUs <- prune_taxa(comboTopOTUs, ps.depth.taxRank.tk)
+bb <- plot_bar(ps.depth.taxRank.tk.topOTUs) + 
+      geom_bar(aes(fill=Order), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL) 
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+bb$layers[[1]] <- NULL
+aa$layers[[1]] <- NULL
 
 ## put it together.
-aa + bb & ylim(min(0), max(1))
+aa + bb + plot_annotation(title = paste('Depth/Age class',as.character(depthSect), "top", as.character(length(comboTopOTUs)),"OTUs \n(Palsa =", howManyOTUsPalsa, ", thermokarst =", howManyOTUsTK, "), tax level =", taxRank),
+                             theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+ylim(min(0), max(1))
 
-## needs subplot title for each
-## remove redundant legend and y-axis values (but make sure colors match first!)
-## great, repeat for the other 3 depths that are comparable.
+as.numeric(howManyOTUsPalsa)
+as.numeric(howManyOTUsTK)
+
+##### ^^ pairwise depth comparison plots ^^ ########
+
+
+### pairwise microbial community comparisons
+
+## update notebook, show multiple taxonomic comparisons: phylum, order, genus
 
 ## and do a differential abundance analysis for each pair, I guess. 
+## do this with ancomb.
+
+
 
 ## accompanied somehow with a comparison of edaphic features.
-
-
 
 
 
