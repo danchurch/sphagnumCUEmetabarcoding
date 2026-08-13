@@ -4101,13 +4101,147 @@ as.numeric(howManyOTUsTK)
 ## update notebook, show multiple taxonomic comparisons: phylum, order, genus
 
 ## and do a differential abundance analysis for each pair, I guess. 
-## do this with ancomb.
+## do this with ancomb, seems to be what everyone wants to 
+## see these days
+
+## so try again with ancomb. As per this website:
+## https://jojyjohn28.github.io/blog/differential-abundance-analysis-mag-genomes/
+## we should use +/- raw reads. 
+
+rm(list=ls())
+
+library("ANCOMBC")
+library("phyloseq")
+library("vegan")
+library("ggplot2")
+
+load("ps007_cleaned.rda")
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps <- ps007_cleaned
+
+## does this code from above let us make the comparison?
+## runs forever...
+
+sample_data(ps)$DepthSection  <- factor(sample_data(ps)$DepthSection)
+output = ancombc2(data = ps, 
+                  assay_name = "counts", 
+                  taxa_are_rows = FALSE,
+                  tax_level = "Genus",
+                  fix_formula = "DepthSection + Subsite",  ## first variable is the primary one
+                  prv_cut = 0.10, 
+                  group = "DepthSection", 
+                  struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 2, verbose = TRUE,
+                  global = TRUE, pairwise = TRUE, dunnet = FALSE, trend = FALSE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
 
 
 
-## accompanied somehow with a comparison of edaphic features.
+str(output, max.level=1)
+
+str(output$res_pair, max.level=1)
+
+## nope, this does a pairwise comparison among all
+## depths, and I can't find the effect of the 
+## geomorphology anywhere.
+
+## maybe we have to make it simple for ancomb,
+## and subset down to our specific pairs of groups of samples
+## that we want to compare? I think the sample sizes 
+## will be too small...
+
+rm(list=ls())
+load("ps007_cleaned.rda")
+
+psDepth1 <- subset_samples(ps007_cleaned, DepthSection==1)
+
+?ancombc2
+
+output = ancombc2(data = psDepth1, 
+                  assay_name = "counts", 
+                  taxa_are_rows = FALSE,
+                  tax_level = "Phylum",
+                  p_adj_method = "fdr",
+                  fix_formula = "Subsite",  ## first variable is the primary one
+                  prv_cut = 0.10, 
+                  group = "Subsite", 
+                  struc_zero = TRUE, neg_lb = TRUE,
+                  alpha = 0.05, n_cl = 2, verbose = TRUE,
+                  global = FALSE, pairwise = TRUE, dunnet = FALSE, trend = FALSE,
+                  iter_control = list(tol = 1e-2, max_iter = 20, 
+                                      verbose = TRUE),
+                  mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
+
+saveRDS(output, file="ancomb.13.8.26.rds")
+output <- readRDS(file="ancomb.13.8.26.rds")
+str(output, max.level=1)
+str(output$res_pair, max.level=1)
+
+## I think I confused it by asking for pairwise comparisons
+## but the test seems to have worked:
+
+ancombDepth1 <- output$res
+rownames(ancombDepth1) <- ancombDepth1$taxon
+
+ancombDepth1["Bacillota",]
+
+diffAbund_1 <- ancombDepth1[ancombDepth1$diff_robust_SubsiteThermokarst,]
 
 
+diffAbund_1
+
+## just three phyla, some of the expected groups are in there:
+## Bacillota, RCP2-54, Thermodesulfobacteriota
+## there are some others I would have expected, but I guess
+## the numbers don't add up.
+
+diffAbund_1["Bacillota",]
+
+## seems like this should be accompanied by a heat map, as before
+## use the variance stabilized ps object, see if it agrees:
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps.Depth1.diffAbund <- ps007_cleaned_sqrt_prop |>
+                        subset_taxa(Phylum %in% rownames(diffAbund_1)) |>
+                        subset_samples(DepthSection==1) |>
+                        tax_glom(taxrank="Phylum", NArm=FALSE)
+commData <- data.frame(otu_table(ps.Depth1.diffAbund))
+tabasco(commData, main="depth1")
+
+## also this kind of diagram from the vignette.
+
+## need a summary log-fold change dataframe by these  
+
+diffAbund_1[1:5,1:5]
+
+diffAbund_1 <- diffAbund_1[ order(diffAbund_1$lfc_SubsiteThermokarst),]
+
+diffAbund_1$direct <- ifelse(diffAbund_1$lfc_SubsiteThermokarst > 0, "Positive LFC", "Negative LFC")
+diffAbund_1$taxon <- as.factor(diffAbund_1$taxon)
+
+
+## show the lfc in a pretty plot:
+ggplot(diffAbund_1, aes(x = reorder(taxon, lfc_SubsiteThermokarst), y = lfc_SubsiteThermokarst, fill = direct)) +
+    geom_bar(stat = "identity", width = 0.7, color = "black") +
+    geom_errorbar(aes(ymin = lfc_SubsiteThermokarst - se_SubsiteThermokarst, 
+                      ymax = lfc_SubsiteThermokarst + se_SubsiteThermokarst), 
+                          width = 0.2,  color = "black") 
+
+## okay.
+
+## apply to other 3 depth contrasts
+
+## accompanied somehow with a comparison of change in edaphic features?
+
+## maybe this falls into the realm of the JSDM 
+
+
+## then be done with this and get to CUE
+## then JSDM, then start writing. Oh god. 
 
 #### a look at ralstonia #####
 
@@ -5238,7 +5372,6 @@ spRich + geom_errorbar( aes(x=cluster, ymin=specNumber-100, ymax=specNumber+100)
 
 ## this is fine, but it would be nice to have this in mean/variance form by sample...
 
-
 getMeanSD <- function(i){
   iFilt <- sample_data(ps007_cleaned_sqrt_prop)[,"cluster"] == i
   iClustSamps <- rownames(sample_data(ps007_cleaned_sqrt_prop)[iFilt,])
@@ -5265,8 +5398,6 @@ meanSpRich + geom_errorbar(aes(x=cluster, ymin=specRichMean-specRichSD, ymax=spe
 ?specnumber
 
 library(ggplot2)
-
-
 
 ## werner would like to talk about:
 ## low respiration, and low MBC, unexpectedly, even after thawing 
