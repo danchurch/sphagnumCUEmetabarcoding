@@ -4219,7 +4219,6 @@ tabasco(commData, main="depth1")
 diffAbund_1[1:5,1:5]
 
 diffAbund_1 <- diffAbund_1[ order(diffAbund_1$lfc_SubsiteThermokarst),]
-
 diffAbund_1$direct <- ifelse(diffAbund_1$lfc_SubsiteThermokarst > 0, "Positive LFC", "Negative LFC")
 diffAbund_1$taxon <- as.factor(diffAbund_1$taxon)
 
@@ -4229,11 +4228,90 @@ ggplot(diffAbund_1, aes(x = reorder(taxon, lfc_SubsiteThermokarst), y = lfc_Subs
     geom_bar(stat = "identity", width = 0.7, color = "black") +
     geom_errorbar(aes(ymin = lfc_SubsiteThermokarst - se_SubsiteThermokarst, 
                       ymax = lfc_SubsiteThermokarst + se_SubsiteThermokarst), 
-                          width = 0.2,  color = "black") 
+                          width = 0.2,  color = "black") +
+labs(x = NULL, y = "Log fold change", 
+         title = "Log fold changes in thermokarst, compared to palsa") + 
 
-## okay.
+paste('Depth/Age class',as.character(depthSect), "top", as.character(length(comboTopOTUs)),"OTUs \n(Palsa =", howManyOTUsPalsa, ", thermokarst =", howManyOTUsTK, "), tax level =", taxRank)
 
-## apply to other 3 depth contrasts
+
+## okay. can we generalize this to handle the other three comparisons?
+
+rm(list=ls())
+
+pairwiseDepthAncomb <- function(ps,taxRank){
+         ancombRes <- ancombc2(data = ps, 
+                        assay_name = "counts", 
+                        taxa_are_rows = FALSE,
+                        tax_level = taxRank,
+                        p_adj_method = "fdr",
+                        fix_formula = "Subsite", 
+                        prv_cut = 0.10, 
+                        group = "Subsite", 
+                        struc_zero = TRUE, neg_lb = TRUE,
+                        alpha = 0.05, n_cl = 2, verbose = TRUE,
+                        global = TRUE, pairwise = FALSE, dunnet = FALSE, trend = FALSE,
+                        iter_control = list(tol = 1e-2, max_iter = 20, 
+                                            verbose = TRUE),
+                        mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
+         return(ancombRes)}
+
+load("ps007_cleaned.rda")
+load("ps007_cleaned_sqrt_prop.rda")
+
+depthSect=1
+taxRank="Phylum"
+
+psDepth <- subset_samples(ps007_cleaned, DepthSection==depthSect)
+#output <- pairwiseDepthAncomb(psDepth, taxRank)
+## here ##
+
+ancombDepth <- output$res
+rownames(ancombDepth) <- ancombDepth$taxon
+diffAbund <- ancombDepth[ancombDepth$diff_robust_SubsiteThermokarst,]
+
+
+
+ps.Depth.diffAbund <- ps007_cleaned_sqrt_prop |>
+                        subset_taxa(get(taxRank) %in% rownames(diffAbund)) |>
+                        subset_samples(DepthSection==depthSect) |>
+                        tax_glom(taxrank="Phylum", NArm=FALSE)
+
+
+var.name = "x"
+
+assign(var.name, 5)
+
+eval(as.symbol(var.name))
+
+eval(as.symbol(taxRank))
+
+get(taxRank)
+
+subset_taxa(GlobalPatterns, Phylum=="Bacteroidetes")
+
+
+commData <- data.frame(otu_table(ps.Depth.diffAbund))
+rownames(commData) <- data.frame(sample_data(ps.Depth.diffAbund))[rownames(commData),"Core"]
+colnames(commData) <- data.frame(tax_table(ps.Depth.diffAbund))[colnames(commData),taxRank]
+
+tabasco(commData, main="depthSect")
+
+## plot of differential abundance
+diffAbund <- diffAbund[ order(diffAbund$lfc_SubsiteThermokarst),]
+diffAbund$direct <- ifelse(diffAbund$lfc_SubsiteThermokarst > 0, "Positive LFC", "Negative LFC")
+diffAbund$taxon <- as.factor(diffAbund$taxon)
+tit <- paste('Depth/Age class',as.character(depthSect), "differentally abundant OTUs at", taxRank,"level\nLog fold changes in thermokarst, compared to palsa")
+lfcPlot <- ggplot(diffAbund, aes(x = reorder(taxon, lfc_SubsiteThermokarst), y = lfc_SubsiteThermokarst, fill = direct)) +
+               geom_bar(stat = "identity", width = 0.7, color = "black") +
+               geom_errorbar(aes(ymin = lfc_SubsiteThermokarst - se_SubsiteThermokarst, 
+                                 ymax = lfc_SubsiteThermokarst + se_SubsiteThermokarst), 
+                                     width = 0.2,  color = "black") +
+               labs(x = NULL, y = "Log fold change", title = tit)
+
+## stopping here 14 Aug 26
+
+## apply to other 3 depth contrasts. Also do lower taxonomic levels, genus or order or both
 
 ## accompanied somehow with a comparison of change in edaphic features?
 
@@ -5026,10 +5104,11 @@ dev.off()
 c("Subsite","DepthSection","EcoCont","Core","cluster","N","C","H","S","O","CN","CH","HC","OC")
 
 ## we probably want to two models, one for each kind of subsite/geomorphology
+## definitely need to separate the aerobic/anaerobic incubations for models
 
 ## additional variables from FTIR
 
-## CUE - what to do there? 
+#### CUE - what to do there? 
 
 library(phyloseq)
 library("openxlsx")
@@ -5044,6 +5123,7 @@ setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
 
 load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
@@ -5096,7 +5176,7 @@ sample_data(ps007)[sample_data(ps007)$SampleID %in% noAnoxData,]
 ## S28  AT2_63-83 Thermokarst            2 Ecological  AT2
 ## S33 AT3_80-100 Thermokarst            2 Ecological  AT3
 
-## 35, 36, 41 not in our sample data. Makes sense, these were the failed 
+## S27, S28, S33 not in our sample data. Makes sense, these were the failed 
 ## PCR reactions
 
 ## Anyway, for these we cannot test effects of microbial community. 
@@ -5105,8 +5185,6 @@ sample_data(ps007)[sample_data(ps007)$SampleID %in% noAnoxData,]
 anoxCUE$Sample %in% sample_data(ps007)$SampleID
 
 head(sample_data(ps007))
-
-which(sample_data(ps007)$SampleID == anoxCUE$Sample)
 
 ## for the moment, just look at the oxygen incubations.
 ## what are the main predictors we want to look at?
@@ -5137,7 +5215,6 @@ sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 
 ## anyway, one step at a time...
 ## we want to ask if CUE is predicted by microbial community
-
 
 ## quick check with ANOVA, do microbial communities 
 ## seem to have different CUE?
@@ -5182,6 +5259,13 @@ boxplot(oxCUE_anovadf$CUE ~ oxCUE_anovadf$DepthSection)
 
 oxDeCue + oxClCue & ylim(min(0), max(33))
 
+## let's save this for future use:
+
+#save(oxCUE, file="../oxCUE.rda")
+#save(anoxCUE, file="../anoxCUE.rda")
+
+rownames(anoxCUE) %in% rownames(oxCUE)
+rownames(oxCUE) %in% rownames(anoxCUE)
 
 ## also really significant and higher effect, F=11.37, p = 0.002, when taken as a numerical predictor
 ## when used as a categorical predictor F=4.329, p = 0.001
