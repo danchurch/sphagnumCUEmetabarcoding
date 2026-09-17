@@ -1,0 +1,9 @@
+,,Depth section
+,,Newly formed peat, Active layer/former active layer, Permafrost layer/former permafrost layer
+Geomorphic feature, Plot,0(cm), 1(cm), 2(cm), 3(cm),  4(cm),  5(cm)
+             Palsa,AP1-4,    -,  0-20, 20-40, 50-70, 80-100,100-120
+       Thermokarst,  AT1, 0-40, 63-83,83-103, -    ,143-163,163-183
+       Thermokarst,  AT2, 0-40, 43-63, 63-83, -    ,123-143,143-163
+       Thermokarst,  AT3, 0-40, 60-80,80-100, -    ,140-160,160-180
+       Thermokarst,  AT5, 0-40, 50-70, 70-90, -    ,130-150,150-170
+

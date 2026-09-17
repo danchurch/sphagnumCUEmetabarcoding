@@ -5449,7 +5449,6 @@ spRich <- ggplot(cc, aes(x=cluster, y=specNumber, fill=cluster )) +
 ## if we were to add error bars
 spRich + geom_errorbar( aes(x=cluster, ymin=specNumber-100, ymax=specNumber+100), width=0.4, colour="orange", alpha=0.9, size=1.3)
 
-
 ## the active, upper layers of the palsa  and the thermokarst layers
 ## are all much more active than the permafrost (cluster 5) and lower active 
 ## palsa layer (cluster 4)
@@ -5486,6 +5485,147 @@ library(ggplot2)
 ## werner would like to talk about:
 ## low respiration, and low MBC, unexpectedly, even after thawing 
 
-## while we are at it, what is the general picture of our 
+
+#### looking for methanoperedens ####
+
+## somehow our net for ANME archaea missed methanoperedens
+
+## weird, 6000+ sequences of ANME archaea, and this genus didn't come up?
+
+## This is an important one, so we should make sure we aren't 
+## missing this. 
+
+## quick search would be to search for the name:
+
+
+library(phyloseq)
+library(ggplot2)
+library(Biostrings)
+load("ps007_cleaned_sqrt_prop.rda")
+
+"Methanoperedens" %in% tax_table(ps007_cleaned_sqrt_prop)[,"Genus"]
+
+aa <- grep(pattern="meth",x=tax_table(ps007_cleaned_sqrt_prop)[,"Genus"], ignore.case=T)
+
+aa <- grep(pattern="methanoperedens",x=tax_table(ps007_cleaned_sqrt_prop), ignore.case=T)
+
+
+aa <- grep(pattern="Methanoper",x=tax_table(ps007_cleaned_sqrt_prop), ignore.case=T)
+
+tax_table(ps007_cleaned_sqrt_prop)[aa,]
+
+## nope. But it also isn't in our database of ANME from Silva. Maybe worth doing a quick
+## blast search:
+
+
+## make a blastdb from our archaea
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/blastdbOurArchaea/
+myArchaeaFasta=ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa
+makeblastdb -in $myArchaeaFasta -parse_seqids -dbtype nucl
+
+## there are not that many 16s sequences for Methanoperedens on genbank.
+## And Silva is not functioning right now. 
+## try this random 16S from NCBI
+
+cd /home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME
+myArchaeaDB=blastdbOurArchaea/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa 
+
+blastn -db $myArchaeaDB \
+  -query OM165377.fa \
+  -num_threads 3 \
+  -num_alignments 10 \
+  -out search4methanoperedens.csv \
+  -outfmt 10 &
+
+sed -i '1i qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' search4methanoperedens.csv
+
+blastn -db $myArchaeaDB \
+  -query OM165377.fa \
+  -num_threads 4 \
+  -num_alignments 10 \
+  -out search4methanoperedens_Verbose.txt &
+
+## gives us the following suspects:
+ASV4164
+ASV4840
+ASV1674
+ASV2903
+ASV2037
+
+possMethanoperOTUs <- c("ASV4164", "ASV4840", "ASV1674", "ASV2903", "ASV2037")
+
+tax_table(ps007_cleaned_sqrt_prop)[possMethanoperOTUs]
+
+## funny, most of these were came up before, in our 
+## general search for ANME archaea.
+
+## ASV4164 - mostly just matches to "uncultured archaeon" from Wei and Cui et al. study Need to read this paper. 
+## ASV4840 - same, from another study
+## ASV1674
+## ASV2903
+## ASV2037
+## etc, etc. I don't want to spend too much time on this.
+
+## fish out consensus sequences for these:
+
+writeXStringSet(refseq(ps007_cleaned_sqrt_prop)[possMethanoperOTUs], "possibleMethanoperedens.fa")
+
+## if I have time, chase this down a bit more. It looks like perhaps we have
+## a few ANMEs, but it is difficult to prove. Just ~5 methanosarcinales
+## that don't match to anything know exactly, but kind well to 
+## a few known ANME sequences.
+
+## finish depth-by-depth comparison, figure out the take-aways. 
+##  - depth by depth, but also compare cluster 2 to cluster 5 (deep clusters)
+##    and also cluster 1 to cluster 3 (shallow clusters)
+
+## models of CUE as a function of species
+## sJSDM, species as function of?
+##  - maybe model just those species of interest, methanogens and methanotrophs
+##  - as function of depth, carbon quality, 
+## Methanoperedens in there somewhere? - answer = probably not, but maybe.
+
+### checking ancomb contrasts ###
+
+## ancomb2 is funny, it is throwing out what look like obviously 
+## differences. Something to do with the constant it adds to 
+## zeros before taking the log in the models
+
+## I think part of the problem may be that I fed the models
+## my sqRt-transformed data, as opposed to the 
+## raw read counts 
+
+## my graphs are all from relative abundance, so it's hard to 
+## predict the sensitivity to the constant. They add 1 to counts,
+## which I guess might be a large addition to our abundances that 
+## are already square-rooted...
+
+load("ps007.rda")
+
+
+## say, depth 4, phyla level, Acidobacteriota
+
+ps007
+
+depthSect <- 4
+
+psDepth <- subset_samples(ps007_cleaned, DepthSection==depthSect)
+
+## stopping here 17.Sept.25
+
+## resolve the ANCOMB issue. Probably just remove the pseudocount test.
+## rerun and cleanup the pairwise tests
+## run contrasts on clusters (more interesting), and make sure prominent 
+## methanogen and methanotroph groups are looked at. 
+
+## we can frame the general contrast of these lower vs. upper clusters,
+## in terms of Cristian's hypothesis. 
+
+## and check changes in CUE accordingly. 
+### ancomb contrasts on clusters ###
+
+
+
 
 
