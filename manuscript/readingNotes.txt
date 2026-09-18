@@ -1,0 +1,13 @@
+Notes from the papers as I read them:
+
+Cooper, Estop-Aragonés et al. "limited contribution of permafrost carbon to methane release from thawing peatlands."
+
+- nice intro notes about the importance of the balance between CO2 and CH4, tiny amounts of CH4 will have large radiative forcing, etc
+- typical, high fluxes from peatland submerged 60 years ago, ~20 g/m2 in one growing season.
+- but only maybe 10% of that came from old peat
+- aged with radiocarbon (C14) dating
+- a dry summer dropped CH4 emmissions dramatically at one site
+- they sampled a chronosequence by going from the margins to the center of the thermokarst, but there was no change in relative contribution of old/young carbon.
+- just the wet/dry contrast
+- they hypothesize that long-term buildup of phenolics and other inhibitory compounds may suppress already low rates of decomposition at depth. 
+- but note that these sites still produce a lot of methane, ~20g/m^2/year. Which we would rather be CO2, or just have lower emissions generally.

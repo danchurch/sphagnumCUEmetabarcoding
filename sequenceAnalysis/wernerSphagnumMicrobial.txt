@@ -5610,22 +5610,148 @@ ps007
 
 depthSect <- 4
 
-psDepth <- subset_samples(ps007_cleaned, DepthSection==depthSect)
 
-## stopping here 17.Sept.25
 
-## resolve the ANCOMB issue. Probably just remove the pseudocount test.
+## let's remove the pseudocount test, it is too sensitive for this 
+## kind of exploratory analysis
+
+## make a function to barplot just those groups that are considered 
+## differentially abundant by ancomb
+
+#### vars ####
+depthSect = 1
+## try to set these to get bars as close to 100% as possible, but still readable
+howManyOTUsPalsa <- 10
+howManyOTUsTK <- 10
+## also have to change lines below for coloring graphs
+taxRank="Phylum" 
+#taxRank="Order" 
+#taxRank="Genus"
+#### ^^ vars ^^ ####
+
+daTax <- as.character(diffAbund$taxon)
+#daTax <- c("RCP2-54","Candidatus","Eremiobacterota","Bdellovibrionota","Cyanobacteriota","Bacillota","Thermodesulfobacteriota")
+
+ps.depthSigDiffTax <-
+  ps007_cleaned_sqrt_prop |>
+  tax_glom(taxrank=taxRank) |>
+  subset_samples(DepthSection==depthSect) |>
+  subset_taxa(physeq=_, get(taxRank) %in% daTax)
+
+ps.depth.taxRank.palsa <- subset_samples(ps.depthSigDiffTax, Subsite=="Palsa")
+ps.depth.taxRank.tk <- subset_samples(ps.depthSigDiffTax, Subsite=="Thermokarst")
+
+aa <- plot_bar(ps.depth.taxRank.palsa) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa")
+
+bb <- plot_bar(ps.depth.taxRank.tk) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+bb$layers[[1]] <- NULL
+aa$layers[[1]] <- NULL
+aa + bb  + plot_annotation(title = paste("Differentially abundant OTUs, Depth/Age class = ",as.character(depthSect), "tax level = ", taxRank),
+                             theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+                              ylim(min(0), max(.15))
+
+
 ## rerun and cleanup the pairwise tests
+
 ## run contrasts on clusters (more interesting), and make sure prominent 
 ## methanogen and methanotroph groups are looked at. 
 
 ## we can frame the general contrast of these lower vs. upper clusters,
 ## in terms of Cristian's hypothesis. 
 
-## and check changes in CUE accordingly. 
+## check changes in CUE accordingly. 
+
+## find indicator species of high CUE/ low CUE
+## pick these out, make JSDM of these as a function of environmental predictors
+
 ### ancomb contrasts on clusters ###
 
+## here we would want to compare the upper layers 
+## of the thermo karst to the upper layers of 
+## the palso. 
+
+## it's not clear to me whether Cristian hypothesizes 
+## that the new-carbon methane comes from the 
+## decomposition of the vegetation and fresh (unfrozen) peat
+## that was on the palsa when it collapsed alone, or also
+## from the layer of sphagnum that now builds up in the
+## thermokarst. 
+
+## sort of matters, because it decides what we compare. 
+
+## for now, I guess don't overthink it, just compare the
+## upper layers. 
+## for instance, let's compare cluster 1 (upper thermokarst, depth sections 0-2)
+## with cluster 3 (upper palsa, depth sections 1-2)
+
+## cluster four is Palsa depth section 3, doesn't have a thermokarst equivalent, don't know why.
+
+## cluster five is Palsa depth sections 4+5, compare this to cluster 2, which has depth sections 4 &5 
+sample_data(ps007_cleaned_sqrt_prop)[1:15,1:6]
+
+aa <- sample_data(ps007_cleaned_sqrt_prop)
+aa[aa$cluster == 1, 1:6]
+aa[aa$cluster == 2, 1:6]
+aa[aa$cluster == 3, 1:6]
+aa[aa$cluster == 4, 1:6]
+aa[aa$cluster == 5, 1:6]
+
+## we want the same code as from our depth comparisons, adapted to clusters.
+## as far as the phyloseq object, should be:
+
+load("ps007_cleaned.rda")
+
+## add the cluster data to this older ps object:
 
 
+all(sample_names(ps007_cleaned_sqrt_prop) == sample_names(ps007_cleaned))
+sample_data(ps007_cleaned)['cluster'] = sample_data(ps007_cleaned_sqrt_prop)$cluster
 
+clusts <- c(1,3)
+psClust <- subset_samples(ps007_cleaned, cluster %in% clusts)
 
+pairwiseDepthAncomb <- function(ps,taxRank){
+         ancombRes <- ancombc2(data = ps,
+                        assay_name = "counts",
+                        taxa_are_rows = FALSE,
+                        tax_level = taxRank,
+                        p_adj_method = "fdr",
+                        pseudo_sens = FALSE,
+                        fix_formula = "Subsite",
+                        prv_cut = 0.10,
+                        group = "cluster",
+                        struc_zero = TRUE, neg_lb = TRUE,
+                        alpha = 0.05, n_cl = 2, verbose = TRUE,
+                        global = TRUE, pairwise = FALSE, dunnet = FALSE, trend = FALSE,
+                        iter_control = list(tol = 1e-2, max_iter = 20,
+                                            verbose = TRUE),
+                        mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
+         return(ancombRes)}
+
+aa <- pairwiseDepthAncomb(ps007_cleaned,"Phylum")
+
+aa$res[aa$res$diff_SubsiteThermokarst,]
+
+## the pipeline should be roughly the same as with the depth:
+
+#### vars ####
+clusts <- c(1,3)
+#clusts <- c(2,5)
+
+## try to set these to get bars as close to 100% as possible, but still readable
+howManyOTUsPalsa <- 10
+howManyOTUsTK <- 10
+## also have to change lines below for coloring graphs
+#taxRank="Phylum" 
+taxRank="Order" 
+#taxRank="Genus"
+#### ^^ vars ^^ ####
