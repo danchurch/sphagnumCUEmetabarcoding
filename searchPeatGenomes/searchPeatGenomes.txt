@@ -1,0 +1,146 @@
+## there are two really pertinent papers about peat microbial genomes, 
+## one from northern minnesota (Duchesneau et al. 2025) and 
+## one from Sweden (Woodcroft 2018). 
+
+## if we find no other way, then the brute force method 
+## would be to download all MAGs associated with the
+## two sites/studies, extract 16S, and blast for 
+## 16S matches. 
+ 
+## Sweden (Woodcroft 2018) has 1,529 MAGs - where can we download these?
+## list for the bioproject at NCBI:
+
+https://www.ncbi.nlm.nih.gov/bioproject/PRJNA386568
+https://www.ncbi.nlm.nih.gov/datasets/genome/?bioproject=PRJNA386568 
+## and supp data file 3, now in Zotero
+
+## and for N. Minnesota (Duschesneau)?, 697 mags
+BioProject PRJNA1084886 (see also Supplementary Data 1)
+https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1084886/
+https://www.ncbi.nlm.nih.gov/datasets/genome/?bioproject=PRJNA1084886
+
+## plan would be:
+- download all genomes from both
+- run barrnap 
+- build blast database
+- blast all of our 16s sequences against this
+- maybe do reciprocal blast, also?
+
+## before we download all genomes, let's try just a few as a 
+## proof of concept.
+
+https://www.ncbi.nlm.nih.gov/datasets/docs/v2/how-tos/genomes/
+wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/datasets
+wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/dataformat
+## putting these in:
+/home/daniel/.local/bin
+
+## example
+## datasets download genome accession GCA_003156215.1 --include gff3,rna,cds,protein,genome,seq-report
+
+## try1:
+datasets download genome accession GCA_049522835.1
+## try2:
+datasets download genome accession GCA_050018315.1
+
+unzip ncbi_dataset.zip
+
+#conda create -n barrnap bioconda::barrnap
+conda activate barrnap
+
+## sample genome
+#sg=/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/ncbi_dataset/data/GCA_049522835.1/GCA_049522835.1_ASM4952283v1_genomic.fna
+sg=/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/ncbi_dataset/data/GCA_050018315.1/GCA_050018315.1_ASM5001831v1_genomic.fna
+
+less $sg
+
+barrnap  -k bac -o temp_16s.fa  < $sg
+
+## no 16s found for try1 - how common is this?
+## try2 (random mycobacterium) works, but only for a
+## small fragment. 
+
+## try a larger dataset.
+
+## to get the swedish genomes:
+
+datasets summary genome accession PRJNA386568
+
+nohup datasets download genome accession PRJNA386568 --filename theSwedes.zip &
+
+## let's optimistically assume that worked (probably didn't, but assume)
+## should get started on the other download, also
+
+nohup datasets download genome accession PRJNA1084886 --filename theMinnesotans.zip &
+
+## check out one dataset:
+unzip theSwedes.zip
+
+mv ncbi_dataset/ theSwedes/
+
+## for example:
+
+sg=/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theSwedes/data/GCA_003168235.1/GCA_003168235.1_20110700_P1S_genomic.fna
+
+
+barrnap  -k bac -o temp_16s.fa  < $sg ## nothing found, but code works. 
+## looks like a lot of these are going to be missing 16S.
+
+## anyway, how to apply barrnap across all of these?
+## flatten the directory:
+
+cd theSwedes/data/
+
+find . -name *.fna -exec cp {} ../ \;
+## clear the directories
+#find . -type d -exec rm -r {} \;
+#rm -r data
+
+## now we have a big pile of genomes...
+
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theSwedes
+
+barrnap  -k bac -o temp_16s.fa  < $sg 
+
+barrnap  -k bac -o temp_16s.fa  < $sg ## nothing found, but code works. 
+
+barrnap  -k bac -o temp_16s.fa GCA_003161235.1_20110600_P1M_genomic.fna
+
+barrnap  -k bac GCA_003161235.1_20110600_P1M_genomic.fna
+
+barrnap  -k arc GCA_003161235.1_20110600_P1M_genomic.fna
+
+barrnap -k arc - < GCA_003161235.1_20110600_P1M_genomic.fna
+
+barrnap --quiet -k arc GCA_003161235.1_20110600_P1M_genomic.fna
+
+barrnap --quiet -k arc < GCA_003161235.1_20110600_P1M_genomic.fna > test.fna
+
+## meh, doesn't look like we can get barrnap to go to standard out
+## instead of a file. Let's just run it on the files in the directory
+## and see if we can parse the results
+
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theSwedes
+
+## nohup it
+nohup bash -c '
+  for i in *fna; do
+    echo ${i}
+    outFileName=${i%%.*fna}_bactrRNA.fna 
+    echo ${outFileName}
+    barrnap  -k bac -o ../theSwedesRRNAmatches/${outFileName} < $i
+  done
+' &
+
+## run another one for archeal matches
+
+nohup bash -c '
+  for i in *fna; do
+    echo ${i}
+    outFileName=${i%%.*fna}_archrRNA.fna 
+    echo ${outFileName}
+    barrnap  -k arc -o ../theSwedesRRNAmatches/${outFileName} < $i
+  done
+' &
+
+## and let that run for a while.

@@ -5675,6 +5675,7 @@ aa + bb  + plot_annotation(title = paste("Differentially abundant OTUs, Depth/Ag
 
 ### ancomb contrasts on clusters ###
 
+
 ## here we would want to compare the upper layers 
 ## of the thermo karst to the upper layers of 
 ## the palso. 
@@ -5693,6 +5694,15 @@ aa + bb  + plot_annotation(title = paste("Differentially abundant OTUs, Depth/Ag
 ## for instance, let's compare cluster 1 (upper thermokarst, depth sections 0-2)
 ## with cluster 3 (upper palsa, depth sections 1-2)
 
+library(ANCOMBC)
+library(ggplot2)
+library(phyloseq)
+library(patchwork)
+library(vegan)
+
+load("ps007_cleaned.rda")
+load("ps007_cleaned_sqrt_prop.rda")
+
 ## cluster four is Palsa depth section 3, doesn't have a thermokarst equivalent, don't know why.
 
 ## cluster five is Palsa depth sections 4+5, compare this to cluster 2, which has depth sections 4 &5 
@@ -5708,10 +5718,7 @@ aa[aa$cluster == 5, 1:6]
 ## we want the same code as from our depth comparisons, adapted to clusters.
 ## as far as the phyloseq object, should be:
 
-load("ps007_cleaned.rda")
-
 ## add the cluster data to this older ps object:
-
 
 all(sample_names(ps007_cleaned_sqrt_prop) == sample_names(ps007_cleaned))
 sample_data(ps007_cleaned)['cluster'] = sample_data(ps007_cleaned_sqrt_prop)$cluster
@@ -5719,7 +5726,9 @@ sample_data(ps007_cleaned)['cluster'] = sample_data(ps007_cleaned_sqrt_prop)$clu
 clusts <- c(1,3)
 psClust <- subset_samples(ps007_cleaned, cluster %in% clusts)
 
-pairwiseDepthAncomb <- function(ps,taxRank){
+sample_data(psClust)
+
+clusterAncomb <- function(ps,taxRank){
          ancombRes <- ancombc2(data = ps,
                         assay_name = "counts",
                         taxa_are_rows = FALSE,
@@ -5737,21 +5746,164 @@ pairwiseDepthAncomb <- function(ps,taxRank){
                         mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
          return(ancombRes)}
 
-aa <- pairwiseDepthAncomb(ps007_cleaned,"Phylum")
+aa <- clusterAncomb(psClust,"Phylum")
 
 aa$res[aa$res$diff_SubsiteThermokarst,]
 
+## looks right. 
+
+## for the notebook...
 ## the pipeline should be roughly the same as with the depth:
 
 #### vars ####
 clusts <- c(1,3)
 #clusts <- c(2,5)
-
 ## try to set these to get bars as close to 100% as possible, but still readable
 howManyOTUsPalsa <- 10
 howManyOTUsTK <- 10
 ## also have to change lines below for coloring graphs
-#taxRank="Phylum" 
-taxRank="Order" 
+taxRank="Phylum" 
+#taxRank="Order" 
 #taxRank="Genus"
 #### ^^ vars ^^ ####
+
+## make our phyloseq objects and while we're at it set up the first plot
+
+howManyOTUsPalsa <- 10
+howManyOTUsTK <- 10
+taxRank <- "Phylum"
+clusts <- c(1,3)
+
+psClust <- 
+  subset_samples(ps007_cleaned_sqrt_prop, cluster %in% clusts) |>
+  tax_glom(taxrank=taxRank) 
+ps.Clust.palsa <- subset_samples(psClust, Subsite=="Palsa")
+ps.Clust.tk <- subset_samples(psClust, Subsite=="Thermokarst")
+topOTUs.palsa <- names(sort(colSums(otu_table(ps.Clust.palsa)), decreasing=TRUE)[1:howManyOTUsPalsa])
+topOTUs.tk <- names(sort(colSums(otu_table(ps.Clust.tk)), decreasing=TRUE)[1:howManyOTUsTK])
+comboTopOTUs <- unique(c(topOTUs.palsa, topOTUs.tk))
+ps.Clust.palsa.topOTUs <- prune_taxa(comboTopOTUs, ps.Clust.palsa)
+ps.Clust.tk.topOTUs <- prune_taxa(comboTopOTUs, ps.Clust.tk)
+
+
+
+aa <- plot_bar(ps.Clust.palsa.topOTUs) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa")
+bb <- plot_bar(ps.Clust.tk.topOTUs) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+bb$layers[[1]] <- NULL
+aa$layers[[1]] <- NULL
+
+aa + bb
+
+aa + bb + plot_annotation(title = paste('Upper soil section comparison', 
+                                        "top", as.character(length(comboTopOTUs)),
+                                        "OTUs (Palsa =", howManyOTUsPalsa, ", 
+                                         thermokarst =", howManyOTUsTK, "), 
+                                       tax level =", taxRank),
+                             theme = theme(plot.title = element_text(size = 18, hjust =0.5))) #&
+
+                              ylim(min(0), max(.15)) ## may need to change y-max
+
+
+as.character( c(1,3))
+
+## run test
+print(paste("Clusters are:", as.character(clusts)[1],"and", as.character(clusts)[2],". Rank is:", taxRank))
+
+psClust_raw <- subset_samples(ps007_cleaned_sqrt_prop, cluster %in% clusts)
+
+output <- clusterAncomb(psClust_raw, taxRank)
+
+
+####
+
+diffAbund <- output$res[output$res$diff_SubsiteThermokarst == TRUE,]
+diffAbundTaxa <- diffAbund$taxon
+
+## for tabasco heat map:
+ps.Depth.diffAbund <- ps007_cleaned_sqrt_prop |>
+                        subset_taxa(get(taxRank) %in% diffAbundTaxa) |>
+                        subset_samples(cluster %in% clusts) |>
+                        tax_glom(taxrank=taxRank, NArm=FALSE)
+
+sample_data(ps.Depth.diffAbund)[,1:6]
+
+commData <- data.frame(otu_table(ps.Depth.diffAbund))
+rownames(commData) <- data.frame(sample_data(ps.Depth.diffAbund))[rownames(commData),"SampleID"]
+colnames(commData) <- data.frame(tax_table(ps.Depth.diffAbund))[colnames(commData),taxRank]
+
+## for ggplot of LFCs:
+diffAbund <- diffAbund[ order(diffAbund$lfc_SubsiteThermokarst),]
+diffAbund$direct <- ifelse(diffAbund$lfc_SubsiteThermokarst > 0, "Positive LFC", "Negative LFC")
+diffAbund$taxon <- as.factor(diffAbund$taxon)
+
+print(paste("Clusters are:", as.character(clusts)[1],"and", as.character(clusts)[2],". Rank is:", taxRank))
+
+tit <- paste("Clusters are:", as.character(clusts)[1],"and", as.character(clusts)[2],", differentally abundant OTUs at", taxRank,"level Log fold changes in thermokarst, compared to palsa")
+
+lfcPlot <- ggplot(diffAbund, aes(x = reorder(taxon, lfc_SubsiteThermokarst), y = lfc_SubsiteThermokarst, fill = direct)) +
+               geom_bar(stat = "identity", width = 0.7, color = "black") +
+               geom_errorbar(aes(ymin = lfc_SubsiteThermokarst - se_SubsiteThermokarst, 
+                                 ymax = lfc_SubsiteThermokarst + se_SubsiteThermokarst), 
+                                     width = 0.2,  color = "black") +
+               labs(x = NULL, y = "Log fold change", title = tit) +
+               theme(plot.title = element_text(hjust = 0.5),
+                     panel.grid.minor.y = element_blank(),
+                     axis.text.x = element_text(angle = 60, hjust = 1))
+
+## for barplot comparisons of % abundance, with just the diff abund taxa:
+daTax <- as.character(diffAbund$taxon)
+
+ps.clustSigDiffTax <-
+  ps007_cleaned_sqrt_prop |>
+  tax_glom(taxrank=taxRank) |>
+  subset_samples(cluster %in% clusts) |>
+  subset_taxa(physeq=_, get(taxRank) %in% daTax)
+
+
+ps.clustSigDiffTax
+
+ps.clust.palsa <- subset_samples(ps.clustSigDiffTax, Subsite=="Palsa")
+ps.clust.tk <- subset_samples(ps.clustSigDiffTax, Subsite=="Thermokarst")
+cc <- plot_bar(ps.clust.palsa) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa")
+dd <- plot_bar(ps.clust.tk) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+cc$layers[[1]] <- NULL
+dd$layers[[1]] <- NULL
+
+
+print(diffAbund)
+
+tit <- paste("Clusters are:", as.character(clusts)[1],"and", as.character(clusts)[2],", abundant OTUs at", taxRank,"level Log fold changes in thermokarst, compared to palsa")
+aa + bb + plot_annotation(title = tit, theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+            ylim(min(0), max(1))
+
+tit <- paste("Clusters are:", as.character(clusts)[1],"and", as.character(clusts)[2],", differentially abundant OTUs at", taxRank,"level Log fold changes in thermokarst, compared to palsa")
+
+cc + dd  + plot_annotation(title = tit, theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+                              ylim(min(0), max(.7)) ## may need to change y-max
+
+dev.new()
+lfcPlot
+
+par(oma=(c(0, 0, 0, 15)))
+tabasco(commData, main="depthSect")
+
+## looks good, add to jupyter
+

@@ -6,4 +6,6 @@ sampleData/sequencingSamples/filteredReads/
 sampleData/sequencingSamples/originalSeqs/
 sampleData/sequencingSamples/trimmed_reads/
 sampleData/sequencingSamples/combinedSamps/
+searchPeatGenomes/theSwedes/
+searchPeatGenomes/theSwedesRRNAmatches/
 dadaPeat.rda
