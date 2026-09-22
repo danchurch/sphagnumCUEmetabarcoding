@@ -11,3 +11,25 @@ Cooper, Estop-Aragonés et al. "limited contribution of permafrost carbon to met
 - just the wet/dry contrast
 - they hypothesize that long-term buildup of phenolics and other inhibitory compounds may suppress already low rates of decomposition at depth. 
 - but note that these sites still produce a lot of methane, ~20g/m^2/year. Which we would rather be CO2, or just have lower emissions generally.
+
+Duchesneau et al. (2025) "Northen Peatland microbial communities exhibit resistance to warming and acquire electron acceptors from soil organic matter."
+
+- intriguing for its discussion of TEOs suppressing methanogenesis
+- they note not a lot of change in microbial communities due to experimental warming.
+- but the site is releasing increasing methane emissions with warming but not anywhere near the 1:1 ch3 CO2 ratio predicted by mostly methanogenesis.
+- One reason maybe that the methanogens and other microbes of interest have multiple pathways for energy harvest
+- but also that terminal electron acceptors like SO4 and NO3 might be more abundant than previously thought, because some microbes appear to be capable of cleaving these compounds when they are bound to organic matter of the peat
+- they have lots of MAGs. I am mining them for 16S matches to our data
+- like the swedish group, they believe that Methanoflorens is a really important group of Methanogens for peatlands.
+- they don't predict Fe+++ as an electron acceptor directly for organisms, but say it may be what oxidizes NH4 after NO3 is reduced
+- in general, they emphasize the importances of sulfur oxidation in their system. They show sulfate reduction in several Acidobacteriota MAGs, and sulfite reduction in some Bathyarchaeia. 
+- The potential metabolic pathways for each MAG are available in Data S7
+
+Woodcroft et al. (2018) Genome-centric view of carbon processing in thawing permafrost
+- similar system as ours.
+- no discussion of sulfur cycling
+- main shortcut I can find for annotation of mags is supplementary data 5
+- looking at their kegg pathways list, it looks like they generally didn't do much annotation, mostly cazymes?, fermentation pathways, acetogenesis and methanogenesis
+- so it might be better to focus on matches in the Duchesneau, unless we have time to do our own speculative annotations based on matches to this data set. 
+- Methanoflo
+

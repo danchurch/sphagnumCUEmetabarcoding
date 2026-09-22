@@ -5709,10 +5709,14 @@ load("ps007_cleaned_sqrt_prop.rda")
 sample_data(ps007_cleaned_sqrt_prop)[1:15,1:6]
 
 aa <- sample_data(ps007_cleaned_sqrt_prop)
+
 aa[aa$cluster == 1, 1:6]
 aa[aa$cluster == 2, 1:6]
+
 aa[aa$cluster == 3, 1:6]
+
 aa[aa$cluster == 4, 1:6]
+
 aa[aa$cluster == 5, 1:6]
 
 ## we want the same code as from our depth comparisons, adapted to clusters.
@@ -5906,4 +5910,14 @@ par(oma=(c(0, 0, 0, 15)))
 tabasco(commData, main="depthSect")
 
 ## looks good, add to jupyter
+## repeat for lower layer comparison
 
+## if time, compare within geomorphologies:
+
+## how are permafrost in palsa different 
+## from upper layers?
+
+## and how are upper thermokarst different from 
+## lower?
+
+## take a break, want to move forward with the MAG identifications

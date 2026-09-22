@@ -144,3 +144,69 @@ nohup bash -c '
 ' &
 
 ## and let that run for a while.
+
+## and done. Now what?
+
+## clean up, remove all empty and non-16S matches. 
+## then run blast matches
+## if any strong matches, look for annotations and functions
+## found by the study authors (sulfate reducers, methanogens, methanotrophs, etc, etc).
+
+## group by function, and model the presence of the group as a function of depth, whatever else. 
+
+## cleaning results:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theSwedesRRNAmatches
+
+grep ">16S_rRNA" . -r | wc -l ## 732 genomes with some sort of 16S match
+
+grep ">16S_rRNA" . -r | cut -f2 -d"/" | cut -f1 -d":" > swedishMAGsWith16S.txt
+
+## that our list of files with 16S. Let's go to biopython to make a single 
+## fasta of 16S:
+
+python3
+import os
+from Bio import SeqIO
+
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes")
+
+with open("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/swedishMAGsWith16S.txt", "r") as swedeFile:
+  magsWith16S = swedeFile.read().splitlines()
+
+## we want just the 16S from each of these.
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes")
+
+
+## for one:
+magRNAfile="GCA_003134155_bactrRNA.fna"
+
+for seq_record in SeqIO.parse("theSwedesRRNAmatches/" + magRNAfile, "fasta"):
+    print(seq_record.id)
+    print(repr(seq_record.seq))
+    print(len(seq_record))
+
+## we want to pull out just the 16S matches, and add them to a file
+## the id of the record should contain the genome 
+
+for seq_record in SeqIO.parse("theSwedesRRNAmatches/" + magRNAfile, "fasta"):
+    #print(seq_record.id)
+    print(seq_record.seq)
+    #print(repr(seq_record.seq))
+
+identifiers = [seq_record.id for seq_record in SeqIO.parse("theSwedesRRNAmatches/" + magRNAfile, "fasta")]
+
+identifiers16S = [ i for i in identifiers if "16S" in i ]
+identifiers16S = [ i for i in identifiers if "16S" in i ]
+
+
+## ugh, back up. This paper only did very basic annotations, or at least only 
+## published very basic annotations. So it might be better to repeat with the 
+## better-annotated paper from Minnesota. 
+
+gzip 
+
+
+tar -zcvf theSwedesRRNAmatches.tar.gz theSwedesRRNAmatches
+
+theMinnesotans.zip &
