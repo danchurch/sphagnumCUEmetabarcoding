@@ -231,19 +231,19 @@ nohup bash -c '
 nohup bash -c '
   for i in *fna; do
     echo ${i}
-    outFileName=${i%%.*fna}_bactrRNA.fna 
+    outFileName=${i%%.*fna}_archrRNA.fna 
     echo ${outFileName}
-    barrnap  -k bac -o ../theMinnesRRNAmatches/${outFileName} < $i
+    barrnap  -k arc -o ../theMinnesRRNAmatches/${outFileName} < $i
   done
 ' &
 
 
-/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches
 
-grep ">16S_rRNA" . -r | wc -l ## 254 genomes with some sort of 16S match. Not a lot. 
+grep ">16S_rRNA" . -r | wc -l ## 491 genomes with some sort of 16S match. Not a lot, because so many are repeated since we tried both arch and bact settings. 
 
 
-grep ">16S_rRNA" . -r | cut -f2 -d"/" | cut -f1 -d":" > minneMAGsWith16S.txt
+grep ">16S_rRNA" . -r | cut -f2 -d"/" | cut -f1 -d":" > ../minneMAGsWith16S.txt
 
 ## and start again with biopython
 
@@ -299,32 +299,31 @@ SeqIO.write(listOf16seqs, "my_example.faa", "fasta")
 ## great, so how do we generalize this across the entire 
 ## list of 16S containing genomes?:
 
-
 ## function for getting all 16S matches out of one of these:
 def pullOut16S(barrnapFile):
     allSeqsOneBarrnap = [seq_record for seq_record in SeqIO.parse(barrnapFile, "fasta")]
     recs16S_i = [ i for i in allSeqsOneBarrnap if "16S_rRNA" in i.id ]
     genomeNCBInum = "_".join(barrnapFile.split("_")[0:2])
-    for i in recs16S_i: i.id = genomeNCBInum
+    bactOrArch = barrnapFile.split("_")[2].replace("rRNA.fna", "")
+    for i in recs16S_i: i.id = genomeNCBInum; i.name = i.name + " " + bactOrArch 
     return(recs16S_i)
 
-os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches")
-
 ## check it
-magsWith16S[20]
-aa = pullOut16S(magsWith16S[20])
+pullOut16S("theMinnesRRNAmatches/GCA_050008535_bactrRNA.fna")
 
-pullOut16S("GCA_050008535_bactrRNA.fna")
+pullOut16S("theMinnesRRNAmatches/GCA_050008535_archrRNA.fna")
 
 ## seems okay.
 
 ## so go through all of them:
 
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches")
+
 listOf16seqs = [] 
 for i in magsWith16S:
   listOf16seqs += pullOut16S(i)
 
-SeqIO.write(listOf16seqs, "../minnesotan16s.fna", "fasta")
+SeqIO.write(listOf16seqs, "../minnesotan16s.fna", "fasta") ## 571
 
 ## that looks like that worked. Can we use it to find 
 ## matches to our 16s rep seqs?
@@ -368,7 +367,6 @@ getSpruceNu(genomeFiles[455])
 ## looks okay, make list:
 spruceNum = [ getSpruceNu(i) for i in genomeFiles ]
 
-
 ## seems to work. Make a dataframe:
 file2Spruce =  pd.DataFrame(data =
                   {"genomeFile":genomeFiles, 
@@ -389,5 +387,26 @@ file2Spruce.set_index("ncbiNum", inplace=True)
 file2Spruce = pd.read_csv("file2Spruce.csv", index_col="ncbiNum")
 
 ##### ^^^ make dataframe of spruce number and ncbi number ^^^ ####
+
+## now make a blastn database and look for strong matches:
+
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes
+
+mkdir minnesotan16s_blastdb/
+cp minnesotan16s.fna minnesotan16s_blastdb/
+
+makeblastdb -in minnesotan16s_blastdb/minnesotan16s.fna -parse_seqids -dbtype nucl
+
+anmeDB=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/blast/ANME_from_SILVA.fasta
+myArchaea=/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/findANME/ps007_cleaned_sqrt_prop_ArchaeaRefSeqs_cleaned.fa
+
+blastn -db $anmeDB \
+  -query $myArchaea \
+  -num_threads 4 \
+  -num_alignments 1 \
+  -out myArchaea2silvaANME.csv \
+  -outfmt 10 &
+
+sed -i '1i qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' myArchaea2silvaANME.csv
 
 
