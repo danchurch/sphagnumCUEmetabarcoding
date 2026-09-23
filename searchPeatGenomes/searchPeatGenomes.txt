@@ -204,9 +204,190 @@ identifiers16S = [ i for i in identifiers if "16S" in i ]
 ## published very basic annotations. So it might be better to repeat with the 
 ## better-annotated paper from Minnesota. 
 
-gzip 
-
-
 tar -zcvf theSwedesRRNAmatches.tar.gz theSwedesRRNAmatches
 
-theMinnesotans.zip &
+nohup datasets download genome accession PRJNA1084886 --filename theMinnesotans.zip &
+unzip theMinnesotans.zip
+
+cd ncbi_dataset/data/
+find . -name *.fna -exec cp {} ../ \;
+
+mv ncbi_dataset/ theMinnesotans/
+
+
+
+cd /home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesotans
+
+## repeat barrnap search
+nohup bash -c '
+  for i in *fna; do
+    echo ${i}
+    outFileName=${i%%.*fna}_bactrRNA.fna 
+    echo ${outFileName}
+    barrnap  -k bac -o ../theMinnesRRNAmatches/${outFileName} < $i
+  done
+' &
+
+nohup bash -c '
+  for i in *fna; do
+    echo ${i}
+    outFileName=${i%%.*fna}_bactrRNA.fna 
+    echo ${outFileName}
+    barrnap  -k bac -o ../theMinnesRRNAmatches/${outFileName} < $i
+  done
+' &
+
+
+/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches
+
+grep ">16S_rRNA" . -r | wc -l ## 254 genomes with some sort of 16S match. Not a lot. 
+
+
+grep ">16S_rRNA" . -r | cut -f2 -d"/" | cut -f1 -d":" > minneMAGsWith16S.txt
+
+## and start again with biopython
+
+
+python3
+
+import os, re
+import pandas as pd
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes")
+
+with open("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/minneMAGsWith16S.txt", "r") as minneFile:
+  magsWith16S = minneFile.read().splitlines()
+
+## we need to retain info that lets us link up to sheet 7, column 1 of their supplementary information
+## this is in the header lines of these fastas, but to link to the fasta will be the trick.
+## this will have to be with the name of the genome fna file
+
+## anyway, first step extract genome filename and 16S sequence from each of these.
+## remove redundancies from the arch/bact searches if easy to do so  
+
+## just one:
+magRNAfile=magsWith16S[0]
+magRNAfile
+
+## this should also be robust to multiple 16S matches in one fasta:
+path2barrnap="/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches/" 
+
+listOf16seqs = [] ## our big list of 16S data, someday
+
+## get the information out of the barrnap fasta:
+allSeqsOneBarrnap = [seq_record for seq_record in SeqIO.parse(path2barrnap + magRNAfile, "fasta")]
+
+## get just the 16s records out of this:
+recs16S_i = [ i for i in allSeqsOneBarrnap if "16S_rRNA" in i.id ]
+
+## in each of these, change the name to include the ncbi genome name   
+recs16S_i[0].id = "_".join(magRNAfile.split("_")[0:2])
+
+## add to our master list of 16S
+listOf16seqs += recs16S_i
+
+len(listOf16seqs)
+
+genome_i = "_".join(magRNAfile.split("_")[0:2])
+
+## make a new seq record(s) out of this:
+SeqIO.write(listOf16seqs, "my_example.faa", "fasta")
+
+## great, so how do we generalize this across the entire 
+## list of 16S containing genomes?:
+
+
+## function for getting all 16S matches out of one of these:
+def pullOut16S(barrnapFile):
+    allSeqsOneBarrnap = [seq_record for seq_record in SeqIO.parse(barrnapFile, "fasta")]
+    recs16S_i = [ i for i in allSeqsOneBarrnap if "16S_rRNA" in i.id ]
+    genomeNCBInum = "_".join(barrnapFile.split("_")[0:2])
+    for i in recs16S_i: i.id = genomeNCBInum
+    return(recs16S_i)
+
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesRRNAmatches")
+
+## check it
+magsWith16S[20]
+aa = pullOut16S(magsWith16S[20])
+
+pullOut16S("GCA_050008535_bactrRNA.fna")
+
+## seems okay.
+
+## so go through all of them:
+
+listOf16seqs = [] 
+for i in magsWith16S:
+  listOf16seqs += pullOut16S(i)
+
+SeqIO.write(listOf16seqs, "../minnesotan16s.fna", "fasta")
+
+## that looks like that worked. Can we use it to find 
+## matches to our 16s rep seqs?
+
+##### make dataframe of spruce number and ncbi number ####
+## can we identify which genome in supp data 7 spreadsheet these genomes 
+## are, using file names?
+
+## this means making a dataframe with the NCBI genome name
+## and the corresponding Spruce number
+
+os.chdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesotans")
+
+genomeFiles = os.listdir("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes/theMinnesotans")
+
+patt = re.compile("(SPRUCE.*)SPRUCE")
+
+
+with open(genomeFiles[0], "r") as gen_i:
+    first_line = next(gen_i)
+
+genNumber = patt.search(first_line)
+
+genNumber.group(1).strip()
+
+## can we condense into a function?
+
+del(patt,first_line, genNumber)
+
+def getSpruceNu(genomeFiles_i):
+  patt = re.compile("(SPRUCE.*)SPRUCE")
+  with open(genomeFiles_i, "r") as gen_i:
+      first_line = next(gen_i)
+  genNumber = patt.search(first_line)
+  return(genNumber.group(1).strip())
+
+## sanity check
+genomeFiles[455]
+getSpruceNu(genomeFiles[455])
+
+## looks okay, make list:
+spruceNum = [ getSpruceNu(i) for i in genomeFiles ]
+
+
+## seems to work. Make a dataframe:
+file2Spruce =  pd.DataFrame(data =
+                  {"genomeFile":genomeFiles, 
+                    "spruceNum": spruceNum }
+                  )
+
+## use the ncbi number for index?:
+file2Spruce['genomeFile'].str.split(pat=".", expand=True)[0]
+ncbiNum = file2Spruce['genomeFile'].str.split(pat=".", expand=True)[0]
+ncbiNum.is_unique ## yup
+ncbiNum.isnull().any() ## nope
+file2Spruce["ncbiNum"] = ncbiNum
+file2Spruce.set_index("ncbiNum", inplace=True)
+
+## save it out.
+#file2Spruce.to_csv("file2Spruce.csv",index=True)
+
+file2Spruce = pd.read_csv("file2Spruce.csv", index_col="ncbiNum")
+
+##### ^^^ make dataframe of spruce number and ncbi number ^^^ ####
+
+

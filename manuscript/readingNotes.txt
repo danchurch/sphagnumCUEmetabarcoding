@@ -23,7 +23,10 @@ Duchesneau et al. (2025) "Northen Peatland microbial communities exhibit resista
 - like the swedish group, they believe that Methanoflorens is a really important group of Methanogens for peatlands.
 - they don't predict Fe+++ as an electron acceptor directly for organisms, but say it may be what oxidizes NH4 after NO3 is reduced
 - in general, they emphasize the importances of sulfur oxidation in their system. They show sulfate reduction in several Acidobacteriota MAGs, and sulfite reduction in some Bathyarchaeia. 
+- interesting, it turns out from Fiorito (2026) that Halobacterota clade Rice Cluster II same as Bog-38 or Ca. Methanoflorens, which I think we have?
+  - yup, this is an indicator species for cluster 1, the upper thermokarst samples. 
 - The potential metabolic pathways for each MAG are available in Data S7
+- this is kind of the money paper. I'm looking for matches from 16s to their mags. If I find any, I would be particularly interested in 
 
 Woodcroft et al. (2018) Genome-centric view of carbon processing in thawing permafrost
 - similar system as ours.
@@ -31,5 +34,6 @@ Woodcroft et al. (2018) Genome-centric view of carbon processing in thawing perm
 - main shortcut I can find for annotation of mags is supplementary data 5
 - looking at their kegg pathways list, it looks like they generally didn't do much annotation, mostly cazymes?, fermentation pathways, acetogenesis and methanogenesis
 - so it might be better to focus on matches in the Duchesneau, unless we have time to do our own speculative annotations based on matches to this data set. 
-- Methanoflo
+- main takeaways seem to be: Methanoflorens is important, and bacteria in plant-tissue dominated organic soils can degrade carbohydrates.
+- for 1200 MAGs, that seems like a small set of takeaways. 
 
