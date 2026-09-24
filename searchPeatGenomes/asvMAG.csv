@@ -1,0 +1,224 @@
+qseqid,pident,MAG_ID,O2_respiration_cbb3,O2_respiration_cox,O2_respiration,Methanogenesis,Methane_oxidation,WLP_Bacteria,WLP_Archaea,Acetogenesis,Acetate_fermentation,Alcoholic_fermentation,Caffeate_respiration,Polyphenol_degradation,Sulfate_reduction,Sulfite_reduction,Sulfur_OM_cleveage,DMSO_respiration,Denitrification,N2O_producing,N2O_scavengers,Dissimilatory_nitrate_reduction,Nitrogen_fixation,Domain,Phylum,Class,Order,Family,Genera,Species
+ASV13,98.905,SPRUCE 336,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp015661395
+ASV23,98.54,SPRUCE 336,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp015661395
+ASV29,98.905,SPRUCE 336,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp015661395
+ASV57,99.27,SPRUCE 336,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp015661395
+ASV70,98.905,SPRUCE 336,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp015661395
+ASV85,99.27,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV92,98.905,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV135,99.27,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV137,98.905,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV268,99.635,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV323,99.27,SPRUCE 510,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,Bog-38 sp003139855
+ASV100,98.901,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV104,98.535,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV186,98.901,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV271,98.901,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV283,99.267,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV380,98.535,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV829,98.535,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV1303,98.168,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV1686,98.535,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV1895,99.267,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV3528,98.901,SPRUCE 50,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,Bog-877,Bog-877,Bog-877 sp003164475
+ASV141,98.535,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV2251,99.267,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV2408,98.901,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV2870,98.535,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV3052,98.901,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV3777,98.535,SPRUCE 595,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,UBA4810,UBA4810 sp002479215
+ASV143,98.168,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV236,99.634,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV281,99.267,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV346,99.634,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV449,98.901,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV670,100.0,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV726,98.168,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV788,98.901,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV1249,98.168,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV1381,98.168,SPRUCE 586,0,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,UBA7540,0
+ASV179,98.535,SPRUCE 649,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1169,98.901,SPRUCE 649,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1325,98.901,SPRUCE 649,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1581,98.168,SPRUCE 649,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1779,98.535,SPRUCE 649,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV191,98.535,SPRUCE 197,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Chloroflexota,Anaerolineae,Anaerolineales,EnvOPS12,UBA877,0
+ASV1292,98.535,SPRUCE 197,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Chloroflexota,Anaerolineae,Anaerolineales,EnvOPS12,UBA877,0
+ASV229,98.535,SPRUCE 513,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,FEN-1191,0
+ASV230,98.168,SPRUCE 88,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-465,0
+ASV400,98.168,SPRUCE 88,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-465,0
+ASV811,98.535,SPRUCE 88,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-465,0
+ASV1585,98.168,SPRUCE 88,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-465,0
+ASV263,98.168,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV505,98.901,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV546,98.901,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV627,98.901,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1208,98.901,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1505,98.168,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1676,98.168,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1904,98.901,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1970,98.535,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV2111,98.168,SPRUCE 289,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV264,98.901,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV356,99.267,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV509,98.901,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV810,98.901,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV854,99.267,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV977,98.168,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV1308,98.535,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV1311,98.535,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV1454,98.901,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV1925,98.168,SPRUCE 62,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Rhizobiales,Xanthobacteraceae,BOG-931,0
+ASV289,98.901,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV398,98.168,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV403,98.535,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV764,98.168,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV1195,98.168,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV1322,98.535,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV1493,98.168,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV1539,98.175,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV2002,98.168,SPRUCE 334,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoproteota,Bathyarchaeia,B26-1,UBA233,PALSA-986,0
+ASV366,98.535,SPRUCE 208,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Bacteroidota,Bacteroidia,Bacteroidales,CG2-30-32-10,CAINEZ01,0
+ASV3470,98.901,SPRUCE 208,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Bacteroidota,Bacteroidia,Bacteroidales,CG2-30-32-10,CAINEZ01,0
+ASV395,98.529,SPRUCE 181,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV1317,99.634,SPRUCE 181,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV427,98.901,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV564,98.535,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV731,99.267,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV1247,98.535,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV1584,98.901,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV1600,99.634,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV2199,98.168,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV3353,99.634,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV4417,98.168,SPRUCE 538,1,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,Bacteria,Pseudomonadota,Gammaproteobacteria,Steroidobacterales,Steroidobacteraceae,Bog-1198,0
+ASV451,99.265,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV528,98.529,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV575,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV607,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV754,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV967,98.162,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV1137,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV1151,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV1173,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV1569,98.529,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV2210,99.265,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV2937,99.632,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV3001,98.897,SPRUCE 303,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV459,98.168,SPRUCE 660,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,UBA8260,UBA8260,0
+ASV580,98.535,SPRUCE 660,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,UBA8260,UBA8260,0
+ASV684,98.535,SPRUCE 660,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,UBA8260,UBA8260,0
+ASV807,98.168,SPRUCE 660,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,UBA8260,UBA8260,0
+ASV1410,98.901,SPRUCE 660,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,Bacteria,Dormibacterota,Dormibacteria,UBA8260,UBA8260,UBA8260,0
+ASV460,99.634,SPRUCE 606,0,1,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,Bacteria,Spirochaetota,Spirochaetia,Treponematales,Rectinemataceae,UBA1306,0
+ASV1540,99.634,SPRUCE 606,0,1,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,Bacteria,Spirochaetota,Spirochaetia,Treponematales,Rectinemataceae,UBA1306,0
+ASV2718,99.634,SPRUCE 606,0,1,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,Bacteria,Spirochaetota,Spirochaetia,Treponematales,Rectinemataceae,UBA1306,0
+ASV489,98.901,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV525,99.267,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV743,99.634,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV755,98.901,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV821,99.267,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1024,99.267,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1265,98.901,SPRUCE 652,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV541,99.634,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV817,99.267,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV1189,99.267,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV1535,98.901,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV1627,99.267,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV1710,99.267,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV2065,98.901,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV2351,98.901,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV2527,98.168,SPRUCE 404,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,Smithellaceae,Smithella,0
+ASV559,98.535,SPRUCE 428,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV1035,98.535,SPRUCE 428,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Terriglobales,Acidobacteriaceae,Terracidiphilus,0
+ASV562,100.0,SPRUCE 643,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV629,99.267,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV775,98.535,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV1703,98.168,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV1941,98.535,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV2187,98.901,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV3319,98.901,SPRUCE 454,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Chloroflexota,Limnocylindria,Limnocylindrales,CSP1-4,Fen-1039,0
+ASV836,98.901,SPRUCE 183,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Thermoplasmatota,Thermoplasmata,Methanomassiliicoccales,UBA472,0,0
+ASV866,98.901,SPRUCE 616,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Gemmatimonadota,Gemmatimonadetes,Gemmatimonadales,JACORV01,Fen-1245,0
+ASV3352,99.634,SPRUCE 616,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Gemmatimonadota,Gemmatimonadetes,Gemmatimonadales,JACORV01,Fen-1245,0
+ASV882,98.901,SPRUCE 370,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Palsa-1439,Palsa-1439,Palsa-1439,0
+ASV886,98.535,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV1075,98.535,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV1260,98.901,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV1484,98.168,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV1899,98.168,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV2377,99.634,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV2388,99.634,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV2879,98.901,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV3588,98.901,SPRUCE 592,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,0,0
+ASV947,99.267,SPRUCE 359,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1077,98.901,SPRUCE 359,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1142,98.535,SPRUCE 359,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1425,99.634,SPRUCE 359,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV970,98.901,SPRUCE 38,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Eremiobacterota,Eremiobacteria,Baltobacterales,Baltobacteraceae,Cybelea,0
+ASV2328,98.535,SPRUCE 38,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Eremiobacterota,Eremiobacteria,Baltobacterales,Baltobacteraceae,Cybelea,0
+ASV1080,98.901,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV2650,98.901,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV2832,99.267,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV3028,98.168,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV3435,98.535,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV3437,98.535,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV4559,99.634,SPRUCE 451,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Myxococcota,Polyangia,Polyangiales,Polyangiaceae,Palsa-1150,0
+ASV1096,98.535,SPRUCE 415,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-513,0
+ASV1502,98.901,SPRUCE 415,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-513,0
+ASV1100,98.901,SPRUCE 108,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,Bacteria,Desulfobacterota,Syntrophia,Syntrophales,UBA2185,Fen-1135,Fen-1135 sp003142295
+ASV1178,98.901,SPRUCE 623,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1364,99.634,SPRUCE 623,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1794,99.267,SPRUCE 623,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV2123,98.901,SPRUCE 623,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Actinomycetota,Thermoleophilia,Solirubrobacterales,Solirubrobacteraceae,Palsa-744,0
+ASV1185,98.168,SPRUCE 384,1,1,1,0,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,1,1,Bacteria,Desulfobacterota,Syntrophobacteria,Syntrophobacterales,Syntrophobacteraceae,SbD1,0
+ASV1430,99.634,SPRUCE 384,1,1,1,0,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,1,1,Bacteria,Desulfobacterota,Syntrophobacteria,Syntrophobacterales,Syntrophobacteraceae,SbD1,0
+ASV3121,99.267,SPRUCE 384,1,1,1,0,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,1,1,Bacteria,Desulfobacterota,Syntrophobacteria,Syntrophobacterales,Syntrophobacteraceae,SbD1,0
+ASV1219,98.905,SPRUCE 511,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,Archaea,Thermoproteota,Nitrososphaeria,Nitrososphaerales,CADDZS01,CADDZS01,0
+ASV1337,98.168,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1374,98.535,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1736,98.168,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV2282,98.535,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV2478,98.901,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV2637,98.168,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV2782,98.901,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV3620,99.267,SPRUCE 514,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA7542,0
+ASV1406,99.634,SPRUCE 600,1,1,1,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,1,0,Bacteria,Pseudomonadota,Gammaproteobacteria,Burkholderiales,Burkholderiaceae,BOG-994,0
+ASV1407,98.901,SPRUCE 269,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Acidobacteriota,Terriglobia,Acidoferrales,UBA7541,Palsa-295,0
+ASV1411,99.267,SPRUCE 218,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,0,0
+ASV1745,99.267,SPRUCE 218,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,0,0
+ASV2979,99.267,SPRUCE 218,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Acidobacteriota,Terriglobia,UBA7540,UBA7540,0,0
+ASV1580,98.175,SPRUCE 443,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Bog-38,Bog-38,Bog-38,Bog-38,0
+ASV1743,98.901,SPRUCE 95,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,Bacteria,Acidobacteriota,Terriglobia,Bryobacterales,Bryobacteraceae,Bog-375,0
+ASV1800,98.168,SPRUCE 95,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,Bacteria,Acidobacteriota,Terriglobia,Bryobacterales,Bryobacteraceae,Bog-375,0
+ASV2227,98.535,SPRUCE 95,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,Bacteria,Acidobacteriota,Terriglobia,Bryobacterales,Bryobacteraceae,Bog-375,0
+ASV1806,98.535,SPRUCE 272,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Planctomycetota,Phycisphaerae,Tepidisphaerales,Tepidisphaeraceae,PALSA-1353,0
+ASV3967,98.535,SPRUCE 272,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Planctomycetota,Phycisphaerae,Tepidisphaerales,Tepidisphaeraceae,PALSA-1353,0
+ASV1845,98.901,SPRUCE 564,1,0,1,0,0,1,0,1,0,1,1,0,1,1,0,0,1,1,0,1,1,Bacteria,Desulfobacterota,Syntrophobacteria,Syntrophobacterales,Syntrophobacteraceae,SbD1,0
+ASV1876,99.634,SPRUCE 250,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,J093,JAJXZJ01,0
+ASV2411,99.267,SPRUCE 250,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,J093,JAJXZJ01,0
+ASV1893,99.634,SPRUCE 408,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Bacteroidota,UBA10030,UBA10030,UBA10030,Fen-1298,0
+ASV1965,99.265,SPRUCE 206,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV2357,98.897,SPRUCE 206,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV3298,98.529,SPRUCE 206,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Actinomycetota,Acidimicrobiia,Acidimicrobiales,Bog-793,Bog-793,0
+ASV2063,99.27,SPRUCE 556,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Methanobacteriota,Methanobacteria,Methanobacteriales,Methanobacteriaceae,Methanobacterium_A,Methanobacterium_A sp015661405
+ASV2196,98.54,SPRUCE 366,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Methanomicrobia,Methanomicrobiales,Methanoregulaceae,Methanoregula,0
+ASV2595,98.905,SPRUCE 366,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Methanomicrobia,Methanomicrobiales,Methanoregulaceae,Methanoregula,0
+ASV2794,98.175,SPRUCE 366,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Methanomicrobia,Methanomicrobiales,Methanoregulaceae,Methanoregula,0
+ASV2922,98.175,SPRUCE 366,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Methanomicrobia,Methanomicrobiales,Methanoregulaceae,Methanoregula,0
+ASV3656,98.54,SPRUCE 366,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,Archaea,Halobacteriota,Methanomicrobia,Methanomicrobiales,Methanoregulaceae,Methanoregula,0
+ASV2209,98.901,SPRUCE 401,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Desulfobacterota_B,Binatia,Binatales,Binataceae,Binatus,0
+ASV2375,98.901,SPRUCE 30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,Bacteria,Acidobacteriota,UBA6911,UBA6911,UBA6911,JAFNAG01,0
+ASV3211,99.267,SPRUCE 30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,Bacteria,Acidobacteriota,UBA6911,UBA6911,UBA6911,JAFNAG01,0
+ASV2475,98.535,SPRUCE 383,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,Bacteria,Chloroflexota,Anaerolineae,Anaerolineales,Anaerolineaceae,UBA700,0
+ASV2492,99.634,SPRUCE 468,1,0,1,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,Bacteria,Desulfobacterota,RBG-13-43-22,RBG-13-43-22,RBG-13-43-22,RBG-13-43-22,0
+ASV2887,98.168,SPRUCE 389,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,0,0,0,Bacteria,Pseudomonadota,Alphaproteobacteria,Micropepsales,Micropepsaceae,Rhizomicrobium,0
+ASV3090,98.168,SPRUCE 119,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Planctomycetota,Phycisphaerae,Sedimentisphaerales,SG8-4,Fen-1362,0
+ASV3229,98.901,SPRUCE 622,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Opitutales,Opitutaceae,Fen-1467,0
+ASV3236,98.168,SPRUCE 39,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,1,1,Bacteria,Myxococcota,Polyangia,Fen-1088,Fen-1088,Fen-1137,0
+ASV3461,99.267,SPRUCE 130,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,Bacteria,Patescibacteria,Paceibacteria,UBA6257,2-01-FULL-56-20,JAKAGE01,0
+ASV3799,98.901,SPRUCE 125,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA11358,0
+ASV4446,99.267,SPRUCE 125,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,0,Bacteria,Verrucomicrobiota,Verrucomicrobiae,Pedosphaerales,UBA11358,UBA11358,0
+ASV3983,98.901,SPRUCE 450,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Bacteria,Fibrobacterota,Chitinivibrionia,Chitinivibrionales,Chitinispirillaceae,BOG-1184,0
+ASV4492,98.168,SPRUCE 341,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,0,Bacteria,Planctomycetota,SZUA-567,H5-PLA8,H5-PLA8,0,0
+ASV5081,98.901,SPRUCE 687,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,Bacteria,Spirochaetota,Brevinematia,Brevinematales,JABLXN01,0,0
+ASV5206,98.529,SPRUCE 318,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Archaea,Thermoplasmatota,Thermoplasmata,UBA184,UBA184,UBA184,0

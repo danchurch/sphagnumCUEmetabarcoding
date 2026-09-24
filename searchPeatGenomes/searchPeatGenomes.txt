@@ -453,12 +453,75 @@ blastn -db $refDB \
   -num_alignments 10 \
   -out areMyOTUsMAGsinMinnesota_Verbose.txt &
 
-
 ## look at these a little closer
 
 head areMyOTUsMAGsinMinnesota.csv
 
 python3
+
+import pandas as pd
+import matplotlib.pyplot as plt; plt.ion()
+
+## our data
+areOTUsMags = pd.read_csv("areMyOTUsMAGsinMinnesota.csv")
+file2Spruce = pd.read_csv("file2Spruce.csv", index_col="ncbiNum")
+sprucePathways = pd.read_csv("spruceGenomePathways.csv")
+
+## so are our OTUs actually minnesotan MAGs?
+
+## well, some are:
+areOTUsMags["pident"].hist(bins=40)
+
+areOTUsMags[ areOTUsMags["pident"] > 98] ## 254 OTUs at 98% or higher sim to a mag
+## but these aren't really taking the entire sequence into account.
+
+## reorganize and cleanup a little:
+
+## keep only good matches
+goodMatches = (areOTUsMags["pident"] > 98 ) & (areOTUsMags["length"] >270 )
+probablyMAGs = areOTUsMags[ goodMatches ].copy()
+## get the NCBI genome name out of this:
+probablyMAGs["ncbiGen"] = probablyMAGs["sseqid"].str.split(".", expand=True)[0]
+## to get the spruce number:
+probablyMAGs["MAG_ID"] = probablyMAGs["ncbiGen"].apply(lambda x: file2Spruce.loc[x,"spruceNum"])
+probablyMAGs.drop(["sseqid","gapopen","length","mismatch",
+                   "qstart","qend","sstart","send","evalue",
+                   "bitscore","ncbiGen"], 
+                    axis=1, inplace=True)
+## sort by ASV number:
+probablyMAGs["ASVnum"] = (probablyMAGs["qseqid"]
+                            .str.split("ASV", expand=True)[1]
+                            .astype("int"))
+probablyMAGs = probablyMAGs.sort_values(by="ASVnum").drop("ASVnum", axis=1)
+
+## now attach functional category and taxonomic info from the spruce paper:
+
+probablyMAGs
+
+
+#sprucePathways = pd.read_csv("spruceGenomePathways.csv", index_col="MAG_ID")
+#sprucePathways = pd.read_csv("spruceGenomePathways.csv")
+
+## sanity check:
+probablyMAGs["MAG_ID"].isin(sprucePathways["MAG_ID"]).all()
+## what a well-made dataset. So professional. I am happy. 
+
+asvMAG = probablyMAGs.merge(sprucePathways, on="MAG_ID")
+
+asvMAG.to_csv("asvMAG.csv", index=False)
+
+
+## okay, this is good. We have some of the major players, with 
+## some functional annotations. Now what?
+
+## there is a story around sulfur that we need to follow
+## including Syntrophales
+
+## still no explanation for why methanogens didn't methanogen. 
+## can offer the alternate TEO explanation, though tenuous. 
+
+## still no knowledge of the ANME. How much time do we have to chase this
+## down?
 
 
 
