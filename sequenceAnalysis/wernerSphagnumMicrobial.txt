@@ -5921,3 +5921,69 @@ tabasco(commData, main="depthSect")
 ## lower?
 
 ## take a break, want to move forward with the MAG identifications
+
+
+#### MAGs identified ####
+
+## okay, the strategy now would be to look for the 
+## stars (methanoflorens, others?) and their 
+## patterns with depth
+
+## but then subset the larger matrix to 
+## just those we have data for
+## transform to pseudocounts
+## and model each group as a function of 
+
+## start with looking for methanoflorens. 
+
+## methanoflorens - what patterns do we see?
+## in our data, these were classified as "Rice Cluster II"
+## 
+
+library(ggplot2)
+library(phyloseq)
+library(patchwork)
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+asvMAG <- read.csv("asvMAG.csv", row.names="qseqid")
+
+asvMAG[1,]
+
+asvMAG[asvMAG$Genera == "Bog-38",] ## 12 ASVs, including common ones. 
+
+## first look, lump them 
+methanoflorensASVs <- rownames(asvMAG[asvMAG$Genera == "Bog-38",])
+
+ps.methanoflorens <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+
+ps.Methylomirabilota <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+psObject <- ps.Methylomirabilota
+howManyOTUs <- 20
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
+topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
+topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
+ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
+ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+
+genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          theme( axis.text.y=element_blank(),
+                                 axis.ticks.y=element_blank(),
+                                 legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
+                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+methanotrophsPlot <- genusTop.Pal + genusTop.tk
+methanotrophsPlot & ylim(min(0), max(0.005))
