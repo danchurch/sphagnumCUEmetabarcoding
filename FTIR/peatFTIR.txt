@@ -500,9 +500,17 @@ load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_clea
 
 ## elemental analysis results are in our classic ps007_cleaned_sqrt_prop object:
 load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+head(sample_data(ps007_cleaned_sqrt_prop))[,7:
+
+load("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 elements <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
 FTIRdata <- data.frame(sample_data(ps007_cleaned_sqrt_prop_FTIR))
+
+colnames(elements)
+
 FTIRdata <- FTIRdata[,c("SampleID","sampleNum","hi1","hi2","hi3","hi4","holocellulose_content_2","klason_lignin_content_2","carbon_content_1","nitrogen_content_1","hydrogen_content_1","oxygen_content_1","phosphorus_content_1","sulfur_content_1","bulk_density_1","O_to_C_1","C_to_N_1","H_to_C_1","macroporosity_1","degree_of_decomposition_1","degree_of_decomposition_2","degree_of_decomposition_3")]
 
 colnames(FTIRdata)
@@ -514,7 +522,7 @@ N <- elements[,"N"]
 Nmir <- FTIRdata[,"nitrogen_content_1"]
 ndf <- data.frame(N=N, Nmir=Nmir)
 ggplot(ndf, aes(x=N, y=Nmir)) +
-  geom_point() ## wow, that's pretty good
+  geom_point() ## wow, that is pretty good
 
 ## carbon comparison:
 C <- elements[,"C"]
@@ -576,47 +584,68 @@ colnames(FTIRdata)
 
 ##########
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
 
 library(phyloseq)
-
 library(ggplot2)
 library(corrplot)
 library(ggcorrplot)
 
 ## great. now the question, what do we do with all this data?...
-
 ## can we do a quick visual check for changes with depth, separate by thermokarst/palsa?
 
-load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+## note: repeating this to update the notebook on 1.10.26, so some edits 
+## here and there, mostly due to fact that it is now a hybrid analysis,
+## that uses our direct elemental measurements where available instead 
+## of the FTIR measurements. Anyway, correlations showed the FTIR and 
+## direct measurements agreed quite well. 
 
-ps <- ps007_cleaned_sqrt_prop_FTIR
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis")
+
+
+## we put this data into our phyloseq object as sample data:
+#load("ps007_cleaned_sqrt_prop_FTIR.rda")
+
+load("ps007_cleaned_sqrt_prop.rda")
+
+ps <- ps007_cleaned_sqrt_prop
 
 sample_data(ps)
 
 sample_names(ps)
 
+## when we still had the error in the data:
+#envData <- data.frame(sample_data(ps)[,grep("error", sample_variables(ps), invert=TRUE, value=TRUE)])
 
-envData <- data.frame(sample_data(ps)[,grep("error", sample_variables(ps), invert=TRUE, value=TRUE)])
+envData <- data.frame(sample_data(ps))
 
 library(help=phyloseq)
 
 ## a wide-net check of all of them against depth...
 
-colnames(envData)
+head(envData)
 
-ftirData <- envData[,8:ncol(envData)]
-ftirData$Depth <- envData$DepthSection
+## when still using the old FTIR ps object, did this:
+#ftirData <- envData[,8:ncol(envData)]
 
-str(ftirData)
+## but now, we'll keep our direct elemental measurements
+## and where possible use them instead. 
+ 
+#ftirData <- envData[,7:ncol(envData)]
+soilProp <- envData[,7:ncol(envData)]
 
-cor_matrix <- cor(ftirData)
+soilProp$Depth <- envData$DepthSection
+
+soilProp$Depth
+
+str(soilProp)
+
+cor_matrix <- cor(soilProp)
 
 dev.new()
 corrplot(cor_matrix, method = "color")
 
 dev.new()
-plot(ftirData)
+plot(soilProp) ## not useful
 
 ## maybe prettier with ggcorrplot?
 ggcorrplot(cor_matrix)
@@ -688,10 +717,25 @@ ps.pa <- subset_samples(ps, Subsite=="Palsa")
 
 par(mfrow = c(1,2))
 
-plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$eac)
-plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$eac)
+## checking patterns of electron donors/acceptors
 
+## acceptors 
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$eac)
+
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$eac)
 ## same rough trend, a paucity of electron acceptors in 
 ## the middle depths
 
-## okay. back to jsdm models 
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$edc)
+## this is our clearest signal, electron donors seem to 
+## drop with depth. According to 
+
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$edc)
+
+
+## we need to record these. Add a section to the already giant 
+## notebook. 
+
+## 
+
+

@@ -5945,45 +5945,169 @@ library(phyloseq)
 library(patchwork)
 
 load("ps007_cleaned_sqrt_prop.rda")
-
 asvMAG <- read.csv("asvMAG.csv", row.names="qseqid")
 
 asvMAG[1,]
 
 asvMAG[asvMAG$Genera == "Bog-38",] ## 12 ASVs, including common ones. 
 
-## first look, lump them 
+## first look at them lumped all together:
+
 methanoflorensASVs <- rownames(asvMAG[asvMAG$Genera == "Bog-38",])
+ps.methanoflorens <- prune_taxa(methanoflorensASVs, ps007_cleaned_sqrt_prop)
 
-ps.methanoflorens <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+tax_table(ps.methanoflorens) ## yup, rice cluster II (family level). 
 
-ps.Methylomirabilota <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
-psObject <- ps.Methylomirabilota
+## Any rice cluster II asvs not in this group?
+riceFilter <- data.frame(tax_table(ps007_cleaned_sqrt_prop))[,"Family"] == "Rice Cluster II"
+riceFilter[is.na(riceFilter) ] <- FALSE
+
+tax_table(ps007_cleaned_sqrt_prop)[riceFilter]
+
+all(methanoflorensASVs %in% rownames(tax_table(ps007_cleaned_sqrt_prop)[riceFilter]))
+
+## ugly ugly code:
+all(rownames(tax_table(ps007_cleaned_sqrt_prop)[riceFilter]) %in% methanoflorensASVs) ## yup
+rownames(tax_table(ps007_cleaned_sqrt_prop)[riceFilter])[!(rownames(tax_table(ps007_cleaned_sqrt_prop)[riceFilter]) %in% methanoflorensASVs)] ## nope
+
+## looks like the only two rcII that didn't blast to the methanoflorens are: "ASV4164" "ASV4373"
+## by their number, they are rare. 
+
+## are most of the methanomicrobiales that we see in our data due to this group?
+## visualize:
+
+
+methanoflorensASVs <- rownames(asvMAG[asvMAG$Genera == "Bog-38",])
+ps.methanoflorens <- prune_taxa(methanoflorensASVs, ps007_cleaned_sqrt_prop)
+taxRank <- "Family"
+psObject <- ps.methanoflorens
 howManyOTUs <- 20
 ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
-ps.justPalsa.genus <- tax_glom(ps.justPalsa, taxrank="Genus")
+ps.justPalsa.taxRank <- tax_glom(ps.justPalsa, taxrank=taxRank)
 ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
-ps.justThermokarst.genus <- tax_glom(ps.justThermokarst, taxrank="Genus")
-topGenus_palsa <- names(sort(colSums(otu_table(ps.justPalsa.genus)), decreasing=TRUE)[1:howManyOTUs])
-topGenus_Thermokarst <- names(sort(colSums(otu_table(ps.justThermokarst.genus)), decreasing=TRUE)[1:howManyOTUs])
-ps.justPalsa_topGenus <- prune_taxa(topGenus_palsa, ps.justPalsa.genus)
-ps.justThermokarst_topGenus <- prune_taxa(topGenus_Thermokarst, ps.justThermokarst.genus)
+ps.justThermokarst.taxRank <- tax_glom(ps.justThermokarst, taxrank=taxRank)
 
-genusTop.Pal <- plot_bar(ps.justPalsa_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
-                          geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+taxRankTop.Pal <- plot_bar(ps.justPalsa.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                          geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
                           theme(axis.text=element_text(size=12)) +
                           theme( axis.text.y=element_blank(),
                                  axis.ticks.y=element_blank(),
                                  legend.position="none") +
                           labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
 
-genusTop.tk  <- plot_bar(ps.justThermokarst_topGenus, x="DepthSection", fill = "Genus", facet_grid=~Core ) +
-                                geom_bar(aes(color=Genus, fill=Genus), stat="identity", position="stack") +
+taxRankTop.tk  <- plot_bar(ps.justThermokarst.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                                geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
                                 theme(axis.text=element_text(size=12)) +
                                 theme( #axis.text.y=element_blank(),
                                        #axis.ticks.y=element_blank(),
                                        legend.text=element_text(size=20) ) +
                                 ylab(NULL) +
                                 labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
-methanotrophsPlot <- genusTop.Pal + genusTop.tk
-methanotrophsPlot & ylim(min(0), max(0.005))
+
+methanotrophsPlot <- taxRankTop.Pal + taxRankTop.tk
+methanotrophsPlot & ylim(min(0), max(0.08))
+
+## yes, at least in the case of methanomicribiales, the vast majority seem to be this methanoflorens.
+## and the vast majority of the archaea, so therefore the majority of methanogens. 
+
+## might be good to make a graphics of this.
+
+## for the moment, just add this graphic to the notebook 
+
+## and then the question of the functional groups. What do we want to do here?
+
+## divide and conquer would be to examine one functional group at a time...
+## and look 
+
+sample_variables(ps007_cleaned_sqrt_prop)
+
+## so for example, the sulfate reducers?:
+
+asvMAG[asvMAG$Sulfate_reduction == 1,] ## only a few rare ones
+
+sulfateRasvs <- rownames( asvMAG[asvMAG$Sulfate_reduction == 1,])
+
+rowSums(otu_table(ps007_cleaned_sqrt_prop)[,sulfateRasvs]) ## but not irrelevant
+
+## is there an obvious taxonomic signal here?
+tax_table(ps007_cleaned_sqrt_prop)[sulfateRasvs,]
+## All syntrophobacter.
+
+## is there a visible spatial pattern?
+
+sulfateRasvs <- rownames( asvMAG[asvMAG$Sulfate_reduction == 1,])
+ps.sulfateR <- prune_taxa(sulfateRasvs, ps007_cleaned_sqrt_prop)
+taxRank <- "Genus"
+psObject <- ps.sulfateR
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.taxRank <- tax_glom(ps.justPalsa, taxrank=taxRank)
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.taxRank <- tax_glom(ps.justThermokarst, taxrank=taxRank)
+taxRankTop.Pal <- plot_bar(ps.justPalsa.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                          geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          theme( axis.text.y=element_blank(),
+                                 axis.ticks.y=element_blank(),
+                                 legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+taxRankTop.tk  <- plot_bar(ps.justThermokarst.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                                geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+sulfateR_Plot <- taxRankTop.Pal + taxRankTop.tk
+sulfateR_Plot & ylim(min(0), max(0.08))
+
+## well, happens only in the thermokarst
+
+## cleanup
+rm( taxRank, psObject, ps.justPalsa, ps.justPalsa.taxRank, ps.justThermokarst, ps.justThermokarst.taxRank, taxRankTop.Pal, taxRankTop.tk)
+
+## Sulfite reducers
+sulfiteRasvs <- rownames( asvMAG[asvMAG$Sulfite_reduction == 1,])
+
+rowSums(otu_table(ps007_cleaned_sqrt_prop)[,sulfateRasvs]) ## but also not irrelevant
+## is there an obvious taxonomic signal here?
+
+tax_table(ps007_cleaned_sqrt_prop)[sulfateRasvs,] ## all Syntrophobacter
+
+##
+ps.sulfiteR <- prune_taxa(sulfiteRasvs, ps007_cleaned_sqrt_prop)
+taxRank <- "Genus"
+psObject <- ps.sulfiteR
+
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justPalsa.taxRank <- tax_glom(ps.justPalsa, taxrank=taxRank)
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+ps.justThermokarst.taxRank <- tax_glom(ps.justThermokarst, taxrank=taxRank)
+taxRankTop.Pal <- plot_bar(ps.justPalsa.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                          geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          theme( axis.text.y=element_blank(),
+                                 axis.ticks.y=element_blank(),
+                                 legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+taxRankTop.tk  <- plot_bar(ps.justThermokarst.taxRank, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                                geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+sulfiteR_Plot <- taxRankTop.Pal + taxRankTop.tk
+sulfiteR_Plot & ylim(min(0), max(0.08))
+
+
+
+
+
+asvMAG[asvMAG$Genera == "Bog-38",] ## 12 ASVs, including common ones. 
+
+
