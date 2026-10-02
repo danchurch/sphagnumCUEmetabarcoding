@@ -844,9 +844,12 @@ scDepthPlot(ps.pa, "bulk_density_1")
 ## humification indexes are carboxyl, aromatic, phenolic moieties, divided by polysacharide absorption.
 ## the higher they get, the less cellulose or/and more humic-type molecules you get.
 
-
+dev.new()
 (scDepthPlot(ps.pa, "hi1") + scDepthPlot(ps.pa, "hi2") ) /
-(scDepthPlot(ps.pa, "hi3") + scDepthPlot(ps.pa, "hi4") )
+(scDepthPlot(ps.pa, "hi3") + scDepthPlot(ps.pa, "hi4") ) + 
+plot_annotation(
+  title = 'Palsa humification indices',
+) #+ theme(axis.title = element_text(size = 20)) ## doesn't change anything, don't know why.
 
 (scDepthPlot(ps.tk, "hi1") + scDepthPlot(ps.tk, "hi2") ) /
 (scDepthPlot(ps.tk, "hi3") + scDepthPlot(ps.tk, "hi4") )
@@ -869,4 +872,6 @@ scDepthPlot(ps.pa, "bulk_density_1")
 ## start with?
 
 head(envData, n=2)
+
+
 
