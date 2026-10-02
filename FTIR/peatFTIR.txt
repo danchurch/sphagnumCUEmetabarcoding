@@ -589,6 +589,7 @@ library(phyloseq)
 library(ggplot2)
 library(corrplot)
 library(ggcorrplot)
+library(patchwork)
 
 ## great. now the question, what do we do with all this data?...
 ## can we do a quick visual check for changes with depth, separate by thermokarst/palsa?
@@ -649,6 +650,22 @@ plot(soilProp) ## not useful
 
 ## maybe prettier with ggcorrplot?
 ggcorrplot(cor_matrix)
+
+## break up by thermokarst/palsa:
+
+ps.pa <- subset_samples(ps, Subsite=="Palsa")
+ps.tk <- subset_samples(ps, Subsite=="Thermokarst")
+envData.pa <- data.frame(sample_data(ps.pa))
+envData.tk <- data.frame(sample_data(ps.tk))
+soilProp.pa <- envData.pa[,7:ncol(envData.pa)]
+soilProp.tk <- envData.tk[,7:ncol(envData.tk)]
+soilProp.pa$Depth <- envData.pa$DepthSection
+soilProp.tk$Depth <- envData.tk$DepthSection
+cor_matrix.pa <- cor(soilProp.pa)
+cor_matrix.tk <- cor(soilProp.tk)
+corpa <- ggcorrplot(cor_matrix.pa) + ggtitle("palsa")
+cortk <- ggcorrplot(cor_matrix.tk) + ggtitle("thermokarst")
+corpa + cortk 
 
 ## anyway, most of it makes sense. 
 ## what happened to the electron acceptor data?
@@ -726,16 +743,130 @@ plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$eac)
 ## same rough trend, a paucity of electron acceptors in 
 ## the middle depths
 
+## edc, H, H/C, and cellulose all negatively correlated with depth, makes sense 
 plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$edc)
 ## this is our clearest signal, electron donors seem to 
 ## drop with depth. According to 
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$H)
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$HC)
 
-plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$edc)
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$holocellulose_content_2)
+
+## degree of decomposition does not. These indices are noisy, but generally 
+## point to less decomposition at upper layers. Weird. Need to read about them. 
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$degree_of_decomposition_1)
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$degree_of_decomposition_2)
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$degree_of_decomposition_3)
 
 
-## we need to record these. Add a section to the already giant 
-## notebook. 
+
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$edc) ## noise, no pattern.
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$H) ## decline with depth
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$HC) ## decline with depth
+plot(sample_data(ps.pa)$DepthSection, sample_data(ps.pa)$degree_of_decomposition_3) ## same as above, upper layers less decayed?
+
+sample_variables(ps.tk)
+
 
 ## 
 
+irp_degree_of_decomposition_1
+irp_degree_of_decomposition_2
+irp_degree_of_decomposition_3
+
+## get a nice plot function for ggplot
+## then plot it all
+
+envData <- data.frame(sample_data(ps))
+soilProp <- envData[,7:ncol(envData)]
+soilProp$Depth <- envData$DepthSection
+
+## base plotter
+plot(sample_data(ps.tk)$DepthSection, sample_data(ps.tk)$edc) 
+
+## ggplot
+ggplot(sample_data(ps.tk), aes(x=DepthSection, y=edc)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+## make a function:
+
+
+scDepthPlot <- function(psObj, envVar, meth="lm"){
+                      gpl <- ggplot(sample_data(psObj), 
+                                     aes(x=DepthSection, 
+                                         y=get(envVar))) +
+                             ylab(envVar) + geom_point() 
+                      if (meth != "none"){
+                             gpl <- gpl +
+                             geom_smooth(method = get(meth)) 
+                             }
+                      return(gpl)
+}
+
+scDepthPlot(ps.tk, "holocellulose_content")
+
+aa <- scDepthPlot(ps.tk, "edc", meth="none")
+aa <- scDepthPlot(ps.tk, "OC", meth="loess")
+
+dev.new()
+
+
+## great. so now catalogue all variables of interest 
+dev.new()
+scDepthPlot(ps.tk, "degree_of_decomposition_2")
+
+scDepthPlot(ps.tk, "degree_of_decomposition_2")
+
+
+scDepthPlot(ps.tk, "S")
+scDepthPlot(ps.tk, "N")
+
+dev.new()
+scDepthPlot(ps.pa, "S")
+
+scDepthPlot(ps.pa, "N")
+
+scDepthPlot(ps.tk, "N")
+
+scDepthPlot(ps.tk, "OC")
+
+scDepthPlot(ps.pa, "OC")
+
+scDepthPlot(ps.tk, "pH")
+
+sample_variables(ps.tk)
+
+scDepthPlot(ps.pa, "klason_lignin_content_2")
+
+scDepthPlot(ps.pa, "bulk_density_1")
+
+## humification indexes are carboxyl, aromatic, phenolic moieties, divided by polysacharide absorption.
+## the higher they get, the less cellulose or/and more humic-type molecules you get.
+
+
+(scDepthPlot(ps.pa, "hi1") + scDepthPlot(ps.pa, "hi2") ) /
+(scDepthPlot(ps.pa, "hi3") + scDepthPlot(ps.pa, "hi4") )
+
+(scDepthPlot(ps.tk, "hi1") + scDepthPlot(ps.tk, "hi2") ) /
+(scDepthPlot(ps.tk, "hi3") + scDepthPlot(ps.tk, "hi4") )
+
+## hi4 is less affected by depth. can't tell which moiety it targets. 
+## according to the R script:
+## (https://github.com/henningte/irpeat/blob/main/R/irp_hi.R)
+## hi1: 1420/1090  OH and CO of phenols or CH of CH\eqn{_1} and CH\eqn{_3}
+##   groups (phenolic and aliphatic structures)/polysaccharides
+## hi2: 1510/1090  Aromatic C=C or C=O of amides/polysaccharides
+## hi3: 1630/1090  Aromatic C=C and COO^-1 (aromatics and aromatic or aliphatic carboxylates)/polysaccharides}
+## hi4: 1720/1090  carbonylic and carboxylic C=O (carboxylic acids and aromatic esters)/polysaccharides}
+
+## so lots of interesting data, which generally support the idea that 
+## the carbon . 
+
+## need to ask werner, is it normal in these peat sites that N and sulfur 
+## increase with depth?
+
+## start with?
+
+head(envData, n=2)
 
