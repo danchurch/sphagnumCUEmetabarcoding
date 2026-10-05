@@ -5123,7 +5123,6 @@ setwd("/home/daniel/Documents/projects/wernerSphagnum/sampleData")
 
 load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
-
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
@@ -5145,6 +5144,7 @@ rownames(oxCUE) <- oxCUE$workingID
 rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(oxCUE$workingID,2,3))))))
 oxCUE <- oxCUE[rownamesSorted,]
 oxCUE$workingID <- NULL
+
 ## anoxic
 anoxCUE <- CUE[CUE$Treatment == "anoxic",]
 rownames(anoxCUE) <- anoxCUE$workingID
@@ -5164,6 +5164,27 @@ anoxCUE$Sample %in% oxCUE$Sample
 all(oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## yup
 
 all(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## nope
+
+## Werner says the following about which samples were incubated (email 31.07.2026)
+
+#Palsa: all depths were incubated under oxic conditions, but only two depth under anoxic conditions 
+#Thermokarst: all depths were incubated under anoxic conditions, but only two depths under oxic conditions
+#
+#In terms of microbial communities you may perhaps use only the oxic incubations for palsa and the anoxic for the thermokarst. The two anoxic palsa and two oxic thermokarst incubations can be seen as add-on, but I wouldn't use it for hypothesis. The data could be presented in the supplement.
+#
+
+## in general, it looks like the idea was to simulate the situation 
+## of the cores - if they were anoxic (underwater), it was an anoxic
+## 
+
+## there are some additional incubations where naturally aerobic samples (palsa)
+## were subjected to anaerobic incubations, and vice versa.
+## These are potentially interesting to see if sudden loss of 
+## aerobic conditions repeats the effect of palsa collapse, 
+## conversely if sudden oxygenation reverses the effects.
+
+## one thing at a time, let's examine aerobic incubations for 
+## palsa samples, and anaerobic incubations for tk. 
 
 ## so we have anoxic CUE results for some samples without sequence data:
 anoxFilt <- !(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID)
@@ -5196,6 +5217,7 @@ oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID
 
 oxCUEnotInSeqDataFilt <- !(sample_data(ps007_cleaned_sqrt_prop)$SampleID %in% oxCUE$Sample)
 
+
 AT1_0-40, AT1_63-83, AT1_83-103
 AT2_0-40
 AT3_0-40, AT3_60-80
@@ -5206,6 +5228,10 @@ AT3_80-100
 
 sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
 
+## yup, as noted above, a lot of thermokarst samples 
+## don't have aerobic incubations
+
+## okay, so 
 ## final product would probably be a hierarchical/mixed
 ## linear model
 
@@ -5228,12 +5254,33 @@ rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
 oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
 oxCUE_anovadf$Row.names <- NULL
 aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$cluster) |> summary()
-## seems important, F=5.7, p<0.01
+
+## seems important, F=5.7, p<0.01, but looking at distributions:
 oxClCue <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
              geom_density(alpha = 0.2, na.rm = TRUE) + 
              ggtitle("oxygen incubation, microbial clusters")
 
+dev.new()
 oxClCue ## we don't have oxygen incubations of the upper thermokarst
+## hard to read with the smoothing, try histogram
+
+oxCueHist <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+                geom_histogram(binwidth = 0.01, alpha=0.7); oxCueHist
+
+
+oxCUE_anovadf[oxCUE_anovadf$cluster == 5,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 4,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 3,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 2,]
+
+## we are light years away from meeting the assumptions of ANOVA.
+## it does look like most of the samples have very low efficiency.
+## but a few from cluster 3 have a high CUE. 
+
+## might be interesting to lay this info on top of our ordinations or plot with depth somehow. 
+
+
+
 
 oxCUE_anovadf 
 
@@ -6110,4 +6157,4 @@ sulfiteR_Plot & ylim(min(0), max(0.08))
 
 asvMAG[asvMAG$Genera == "Bog-38",] ## 12 ASVs, including common ones. 
 
-
+## now returning to CUE at line 5111
