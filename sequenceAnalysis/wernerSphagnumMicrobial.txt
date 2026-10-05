@@ -5267,6 +5267,10 @@ oxClCue ## we don't have oxygen incubations of the upper thermokarst
 oxCueHist <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
                 geom_histogram(binwidth = 0.01, alpha=0.7); oxCueHist
 
+oxCueHist <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+                geom_histogram(binwidth = 0.005, alpha=0.7); oxCueHist
+
+head(oxCUE_anovadf)
 
 oxCUE_anovadf[oxCUE_anovadf$cluster == 5,]
 oxCUE_anovadf[oxCUE_anovadf$cluster == 4,]
@@ -5276,37 +5280,77 @@ oxCUE_anovadf[oxCUE_anovadf$cluster == 2,]
 ## we are light years away from meeting the assumptions of ANOVA.
 ## it does look like most of the samples have very low efficiency.
 ## but a few from cluster 3 have a high CUE. 
+## this makes sense, this is the upper palsa, the most oxygenated 
+## of the aerobic samples. 
+## cluster 2 is the lower thermokarst. Absolutely inefficient 
+## when oxygenated. 
 
-## might be interesting to lay this info on top of our ordinations or plot with depth somehow. 
+## looking at CUE as a function of depth with aerobic incubations
+## with color by geomorphology
+
+## scatterplot:
+
+## make our dataframe
+bb <- oxCUE['CUE']
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+cc$Row.names <- NULL
+cueByDepthdf <- cc[rownames(bb),]
+rm(aa,bb,cc)
+
+## this works better than the histograms
+dev.new()
+ggplot(cueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=CUE, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1)
+
+
+## how can we set the colors?...
+
+## work on this when I am not so tired. 
+
+## repeat the above for anoxicCUE:
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- anoxCUE['CUE']
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+cueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
+
+cueByDepthdf ## looks okay, other than the impossibly high CUE values. 
+
+dev.new()
+ggplot(cueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=CUE, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1)
+
+
+## problem is, CUE is a composite index. 
+## there are two ways to get high values:
+## 1 - lots of growths
 
 
 
 
-oxCUE_anovadf 
-
-## how does depth as a categorical predictor do, in comparison?
-oxCUE_CUE <- oxCUE[,"CUE", drop=F]
-oxCUE_anovadf <- merge(oxCUE_CUE, 
-            sample_data(ps007_cleaned_sqrt_prop)[,'DepthSection', drop=F],
-            by="row.names"
-            )
-oxCUE_anovadf$DepthSection <- as.factor(oxCUE_anovadf$DepthSection)
-rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
-oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
-oxCUE_anovadf$Row.names <- NULL
-aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$DepthSection) |> summary()
-oxDeCue <- ggplot(oxCUE_anovadf, aes(CUE, fill = DepthSection, colour = DepthSection)) +
-             geom_density(alpha = 0.2, na.rm = TRUE) + 
-             ggtitle("oxygen incubation, depth")
 
 
-boxplot(oxCUE_anovadf)
 
-boxplot(oxCUE_anovadf$CUE ~ oxCUE_anovadf$DepthSection)
 
-oxDeCue + oxClCue & ylim(min(0), max(33))
 
-## let's save this for future use:
+
+
 
 #save(oxCUE, file="../oxCUE.rda")
 #save(anoxCUE, file="../anoxCUE.rda")
