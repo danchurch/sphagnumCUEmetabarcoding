@@ -1,0 +1,379 @@
+#### CUE - what to do there? 
+
+library(phyloseq)
+library("openxlsx")
+library(vegan)
+library(ggplot2)
+library(patchwork)
+library(lme4)
+library(lmerTest)
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
+
+#setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
+
+load("../sequenceAnalysis/ps007.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+#load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
+
+CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
+
+## add our working ids to this, so it is compatible with the 
+## ps objects:
+
+findWorkId <- function(x){
+   aa <- which(sample_data(ps007)$SampleID == x) 
+   return(rownames(sample_data(ps007))[aa])
+   }
+CUE$workingID <- sapply(CUE$Sample, findWorkId)
+
+## split up by oxygenic and anoxygenic fermentations
+## oxic
+oxCUE <- CUE[CUE$Treatment == "oxic",]
+rownames(oxCUE) <- oxCUE$workingID
+## pain in the ass, to sort these rownames:
+rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(oxCUE$workingID,2,3))))))
+oxCUE <- oxCUE[rownamesSorted,]
+oxCUE$workingID <- NULL
+
+## anoxic
+anoxCUE <- CUE[CUE$Treatment == "anoxic",]
+rownames(anoxCUE) <- anoxCUE$workingID
+rownamesSorted <- paste0("S", as.character(sort(as.numeric((substr(anoxCUE$workingID,2,3))))))
+anoxCUE <- anoxCUE[rownamesSorted,]
+anoxCUE$workingID <- NULL
+
+oxCUE$Sample %in% anoxCUE$Sample
+
+anoxCUE$Sample %in% oxCUE$Sample
+
+## different samples used/succeeded in either case.
+## we need the "working name", or sampleid, to 
+## make this compatible with our other data
+
+## all of the successful CUE calculations have sequence data?:
+all(oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## yup
+
+all(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID) ## nope
+
+## Werner says the following about which samples were incubated (email 31.07.2026)
+
+#Palsa: all depths were incubated under oxic conditions, but only two depth under anoxic conditions 
+#Thermokarst: all depths were incubated under anoxic conditions, but only two depths under oxic conditions
+#
+#In terms of microbial communities you may perhaps use only the oxic incubations for palsa and the anoxic for the thermokarst. The two anoxic palsa and two oxic thermokarst incubations can be seen as add-on, but I wouldn't use it for hypothesis. The data could be presented in the supplement.
+#
+
+## in general, it looks like the idea was to simulate the situation 
+## of the cores - if they were anoxic (underwater), it was an anoxic
+## 
+
+## there are some additional incubations where naturally aerobic samples (palsa)
+## were subjected to anaerobic incubations, and vice versa.
+## These are potentially interesting to see if sudden loss of 
+## aerobic conditions repeats the effect of palsa collapse, 
+## conversely if sudden oxygenation reverses the effects.
+
+## one thing at a time, let's examine aerobic incubations for 
+## palsa samples, and anaerobic incubations for tk. 
+
+## so we have anoxic CUE results for some samples without sequence data:
+anoxFilt <- !(anoxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID)
+noAnoxData <- anoxCUE[ anoxFilt, ]$Sample
+
+sample_data(ps007)[sample_data(ps007)$SampleID %in% noAnoxData,]
+
+##       SampleID     Subsite DepthSection    EcoCont Core
+## S27  AT2_43-63 Thermokarst            1 Ecological  AT2
+## S28  AT2_63-83 Thermokarst            2 Ecological  AT2
+## S33 AT3_80-100 Thermokarst            2 Ecological  AT3
+
+## S27, S28, S33 not in our sample data. Makes sense, these were the failed 
+## PCR reactions
+
+## Anyway, for these we cannot test effects of microbial community. 
+## But they can still be modeled on all the other predictors
+
+anoxCUE$Sample %in% sample_data(ps007)$SampleID
+
+head(sample_data(ps007))
+
+## for the moment, just look at the oxygen incubations.
+## what are the main predictors we want to look at?
+## depth, geomorphology, microbial community, carbon quality
+
+## hunt down the sampleid as we have been using them:
+
+oxCUE$Sample %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID
+
+oxCUEnotInSeqDataFilt <- !(sample_data(ps007_cleaned_sqrt_prop)$SampleID %in% oxCUE$Sample)
+
+
+AT1_0-40, AT1_63-83, AT1_83-103
+AT2_0-40
+AT3_0-40, AT3_60-80
+AT5_0-40, AT5_50-70, AT5_70-90
+AT2_43-63
+AT2_63-83
+AT3_80-100
+
+sample_data(ps007_cleaned_sqrt_prop)[oxCUEnotInSeqDataFilt,]
+
+## yup, as noted above, a lot of thermokarst samples 
+## don't have aerobic incubations
+
+## okay, so 
+## final product would probably be a hierarchical/mixed
+## linear model
+
+## would rather do all this bayesian style, but not really an 
+## option right now, I'm not set up for it.
+## Will take longer and no one will understand it. 
+
+## anyway, one step at a time...
+## we want to ask if CUE is predicted by microbial community
+
+## quick check with ANOVA, do microbial communities 
+## seem to have different CUE?
+
+
+oxCUE_CUE <- oxCUE[,"CUE", drop=F]
+oxCUE_anovadf <- merge(oxCUE_CUE, 
+            sample_data(ps007_cleaned_sqrt_prop)[,'cluster', drop=F], 
+            by="row.names"
+            )
+rownames(oxCUE_anovadf) <- oxCUE_anovadf$Row.names
+oxCUE_anovadf <- oxCUE_anovadf[rownames(oxCUE),]
+oxCUE_anovadf$Row.names <- NULL
+aov(oxCUE_anovadf$CUE ~ oxCUE_anovadf$cluster) |> summary()
+
+## seems important, F=5.7, p<0.01, but looking at distributions:
+oxClCue <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+             geom_density(alpha = 0.2, na.rm = TRUE) + 
+             ggtitle("oxygen incubation, microbial clusters")
+
+dev.new()
+oxClCue ## we don't have oxygen incubations of the upper thermokarst
+## hard to read with the smoothing, try histogram
+
+oxCueHist <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+                geom_histogram(binwidth = 0.01, alpha=0.7); oxCueHist
+
+
+oxCueHist <- ggplot(oxCUE_anovadf, aes(CUE, fill = cluster, colour = cluster)) +
+                geom_histogram(binwidth = 0.005, alpha=0.7); oxCueHist
+
+head(oxCUE_anovadf)
+
+oxCUE_anovadf[oxCUE_anovadf$cluster == 5,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 4,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 3,]
+oxCUE_anovadf[oxCUE_anovadf$cluster == 2,]
+
+## we are light years away from meeting the assumptions of ANOVA.
+## it does look like most of the samples have very low efficiency.
+## but a few from cluster 3 have a high CUE. 
+## this makes sense, this is the upper palsa, the most oxygenated 
+## of the aerobic samples. 
+## cluster 2 is the lower thermokarst. Absolutely inefficient 
+## when oxygenated. 
+
+## looking at CUE as a function of depth with aerobic incubations
+## with color by geomorphology
+
+load("anoxCUE.rda")
+load("oxCUE.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## scatterplot:
+
+## make our dataframe
+bb <- oxCUE['CUE']
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+cc$Row.names <- NULL
+oxCueByDepthdf <- cc[rownames(bb),]
+rm(aa,bb,cc)
+
+## this works better than the histograms
+dev.new()
+
+ggplot(oxCueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=CUE, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1)
+
+
+## somewhow we have to stabilize the colors. Would be nice if we could match 
+## them to the same color scheme we always use for the clusters.
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- oxCUE['CUE']
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+cc$Row.names <- NULL
+oxCueByDepthdf <- cc[rownames(bb),]
+rm(aa,bb,cc)
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- c(1:5)
+oxCUEclusterCols <- clusterCols[ sort(unique(oxCueByDepthdf$cluster))]
+elCS <- scale_color_manual(values = oxCUEclusterCols)
+ggplot(oxCueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=CUE, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1) +
+                     geom_text(aes(label = rownames(oxCueByDepthdf)), 
+                               check_overlap = TRUE,
+                               size = 5,
+                               nudge_y = 0.02) + 
+                     elCS +
+                     labs(title = "Aerobic incubations") 
+
+dev.new()
+
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point() +
+  geom_text(aes(label = model), 
+             check_overlap = TRUE,
+             nudge_y = 0.5) + 
+  xlim(1, 8)
+
+## repeat the above for anoxicCUE:
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- anoxCUE['CUE']
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+anoxCueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
+
+anoxCueByDepthdf ## looks okay, other than the impossibly high CUE values. 
+
+dev.new()
+anoxCUEclusterCols <- clusterCols[ sort(unique(anoxCueByDepthdf$cluster))]
+anoxElCS <- scale_color_manual(values = anoxCUEclusterCols)
+ggplot(anoxCueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=CUE, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     anoxElCS +
+                     geom_jitter(width=0.1)
+
+
+## problem is, CUE is a composite index. 
+## there are two ways to get high values:
+## 1 - lots of growth and reproduction
+## 2 - very low respiration 
+
+## so what happened here?
+
+## to know, we need the respiration and growth values
+## if the respiration alone doesn't explain these values
+## then we need to look at the growth values  
+## the growth values then need to be decomposed into 
+## DNA amounts and MBC
+
+## we don't have the data for the "microbial growth" variable
+## and I don't trust myself enough to repeat these values.
+## actually, I don't think I have the DNA concentrations, etc,
+## to do this, anyway. Unless this is in Marielle's 
+## data somewhere. And that data I can't trust totally, 
+## Werner recalculated everything again. 
+
+## here is one set of numbers from Werner's calculations, where CUE=0.99
+
+Sample  Layer   Treatment   Gravimetric water content (%)   Microbial biomass C [µg/g DW]   Respiration [ng C/g/h]  CUE Microbial growth rate [1/d] Microbial turnover time [d]
+
+AT2_43-63       anoxic  154.7   321 32  0.99    0.198   5
+
+
+
+## growth from this is would be calculated as microbrial growth rate 
+## times an incubation of 64 hours for anaerobic incubations (48 hours for aerobic)
+
+(0.198 / 24) * 64 ## 0.528 ?units? 
+
+## respiration (ng C/g/h):
+
+32 * 64  ## 2048 ng C/g  ? 
+
+## ugh, going to get nowhere with this. This is Werner's world. 
+## so what to do here? 
+
+## let's compare respiration rates between the aerobic/anaerobic
+## incubations
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- oxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
+colnames(bb) <- c("CUE","MBC","Respiration")
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+cc$Row.names <- NULL
+oxBioRespByDepthdf <- cc[rownames(bb),]
+rm(aa,bb,cc)
+
+head(oxBioRespByDepthdf)
+
+## what are these outliers in the aerobic incubation resp? 
+oxBioRespByDepthdf[ oxBioRespByDepthdf$Respiration > 5000,] ## S4 and S5
+
+sample_data(ps007_cleaned_sqrt_prop)[c("S4","S5"),"SampleID"]
+## S4  AP1_80-100
+## S5 AP1_100-120
+
+## does this make these relatively poor CUE performers?
+## not really:
+## s4 CUE = 0.031553578
+## s5 CUE = 0.112676634
+
+## S4 is low, but not S5
+
+## the highest CUE in the low palsa is S15:
+oxBioRespByDepthdf[ "S15",] 
+oxCUE[ "S15",] 
+
+oxCUE ## not sure, both growth rate and resp look pretty normal. Leave it alone.
+
+## the other unexpected is S3, has way higher CUE than other mid level palsa samples
+oxBioRespByDepthdf[ "S3",] 
+oxCUE[ "S3",] 
+## this has the highest amount of growth of any of the samples
+## 0.273
+## just leave it, there is no reason to discard this.
+
+
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- c(1:5)
+oxClusterCols <- clusterCols[ sort(unique(oxBioRespByDepthdf$cluster))]
+elCS <- scale_color_manual(values = oxClusterCols)
+ggplot(oxBioRespByDepthdf, aes(x=DepthSection, 
+                         y=Respiration, 
+                         size=Respiration, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1) +
+                     elCS +
+                     labs(title = "Aerobic incubations, respiration") +
+                     annotate("text", x = c(3.7,5), y = c(5800,9000), 
+                              label = c("AP1_80-100", "AP1_100-120") , color="orange", 
+                              size=6 , angle=45, fontface="bold")
+
+
+oxBioRespByDepthdf
+
+## when we come back to aerobic resp, I think it would be good to categorize 
+## all samples into low/hi CUE, then run indicator species or differential 
+## abundance analysis on them.
