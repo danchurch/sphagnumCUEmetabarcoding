@@ -182,8 +182,19 @@ oxCUE_anovadf[oxCUE_anovadf$cluster == 2,]
 ## with color by geomorphology
 
 load("anoxCUE.rda")
+
 load("oxCUE.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## let's save these out as csvs, might be good for repeatability:
+write.csv(anoxCUE, "anoxCUE.csv")
+write.csv(oxCUE, "oxCUE.csv")
+
+aa <- read.csv("anoxCUE.csv", row.names=1)
+aa <- read.csv("oxCUE.csv", row.names=1)
+
+load("oxCUE.rda")
+
 
 ## scatterplot:
 
@@ -427,6 +438,8 @@ anoxCueByDepthdf[ anoxCueByDepthdf$CUE > 0.7,]
 ## checking - are MBC from the different incubations consistent where we have
 ## some duplication?:
 
+[Microbial respiration comparisons between incubations](#compareResp)
+
 diffMBCs <- merge(anoxCueByDepthdf['MBC'],oxBioRespByDepthdf['MBC'], by="row.names")
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", diffMBCs$Row.names))))
 rownames(diffMBCs) <- diffMBCs$Row.names; diffMBCs$Row.names <- NULL
@@ -463,6 +476,8 @@ save(diffMBCs, file="diffMBCs.rda")
 
 ## generally, the oxic results still look okay.
 ## so I guess keep marching forward
+
+80 mg/m2/day ## ~rates of thermokarst methane flux 
 
 ## I wanted, for the notebook:
 ## 1. a figure of the oxic CUE results, maybe scaling points by resp
@@ -507,28 +522,65 @@ ggplot(oxCueByDepthdf, aes(x=MBC, y=Respiration)) +
 
 head(anoxCueByDepthdf, n=2)
 
-diffRespirations <- merge(anoxCueByDepthdf['Respiration'],oxBioRespByDepthdf['Respiration'], by="row.names")
+diffRespirations <- merge(anoxCueByDepthdf['Respiration'],oxCueByDepthdf['Respiration'], by="row.names")
 rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
-aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[rownames(diffRespirations),c("DepthSection","cluster")]
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[rownames(diffRespirations),c("DepthSection","cluster","Subsite")]
 diffRespirations <- merge(diffRespirations,aa, by="row.names")
+
 rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
 diffRespirations$Sample <- oxCUE[rownames(diffRespirations),"Sample"]
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(diffRespirations)))))
 diffRespirations <- diffRespirations[rowsInOrder,]
-diffRespirations <- diffRespirations[, c("Sample","DepthSection","cluster","Respiration.x","Respiration.y")]
+diffRespirations <- diffRespirations[, c("Sample","DepthSection","Subsite","cluster","Respiration.x","Respiration.y")]
+colnames(diffRespirations) <- c("Sample","DepthSection","Subsite","cluster","anoxResp","oxResp")
+diffRespirations$DepthSection <- as.factor(diffRespirations$DepthSection)
+
 
 diffRespirations
 
-## now, we want to make a nice scatter plot, as before. Tomorrow. 
+## now, we want to make a nice scatter plot. 
 
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- c(1:5)
+diffRespCols <- clusterCols[ sort(unique(diffRespirations$cluster))]
+elCS <- scale_color_manual(values = diffRespCols)
 
+dev.new()
 
+ggplot(diffRespirations, aes(x=DepthSection, 
+                         shape=Subsite, 
+                         alpha=0.7, 
+                         size=4)) + 
+                     geom_point(aes(y=oxResp), 
+                                position=position_jitter(width = 0.1),
+                                color="red") +
+                     geom_point(aes(y=anoxResp),
+                                position=position_jitter(width = 0.1),
+                                color="blue") +
+                     scale_y_log10() +
+                     labs(title = "Zoop (size by Resp)",
+                              x = "Zoop (size by Resp)",
+                              y = expression(paste("Respiration (", mu,"g C", O[2]", g C pea", t^{-1})))
 
-colnames(diffRespirations) <- c("Sample","DepthSection","cluster","anoxResp","oxResp")
+                              y = expression(paste("Respiration (", mu,"g C", O[2]", g C pea", t^{-1})))
 
-rownames(diffRespirations) %in% sample_names(ps007_cleaned_sqrt_prop)
+## ugh, fix this tomorrow.
 
-sample_variables(ps007_cleaned_sqrt_prop)
+#ggplot(diffRespirations, aes(x=DepthSection, 
+#                         shape=Subsite, 
+#                         alpha=0.7, 
+#                         size=4)) + 
+#                     geom_point(aes(y=oxResp), 
+#                                position=position_jitter(width = 0.1),
+#                                color="red") +
+#                     geom_point(aes(y=anoxResp),
+#                                position=position_jitter(width = 0.1),
+#                                color="blue") +
+#                     scale_y_log10() +
+#                     labs(title = "Zoop (size by Resp)",
+#                              x = "Zoop (size by Resp)",
+#                              y = "Zoop (size by Resp)")
+
 
 
 ## questions for Werner
