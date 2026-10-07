@@ -255,7 +255,6 @@ rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
 cc$Row.names <- NULL
 anoxCueByDepthdf <- cc[rowsInOrder,]
 rm(aa,bb,cc,rowsInOrder)
-
 anoxCueByDepthdf ## looks okay, other than the impossibly high CUE values. 
 
 dev.new()
@@ -296,7 +295,6 @@ ggplot(anoxCueByDepthdf, aes(x=DepthSection,
 Sample  Layer   Treatment   Gravimetric water content (%)   Microbial biomass C [µg/g DW]   Respiration [ng C/g/h]  CUE Microbial growth rate [1/d] Microbial turnover time [d]
 
 AT2_43-63       anoxic  154.7   321 32  0.99    0.198   5
-
 
 
 ## growth from this is would be calculated as microbrial growth rate 
@@ -353,7 +351,6 @@ oxCUE[ "S3",]
 ## just leave it, there is no reason to discard this.
 
 
-
 clusterCols <- c("green","blue","red","black","brown")
 names(clusterCols) <- c(1:5)
 oxClusterCols <- clusterCols[ sort(unique(oxBioRespByDepthdf$cluster))]
@@ -377,3 +374,164 @@ oxBioRespByDepthdf
 ## when we come back to aerobic resp, I think it would be good to categorize 
 ## all samples into low/hi CUE, then run indicator species or differential 
 ## abundance analysis on them.
+
+## let's define "high CUE" as CUE > 0.4 or maybe 0.5
+
+## anaerobic funny CUE:
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- anoxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
+colnames(bb) <- c("CUE","MBC","Respiration")
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+anoxCueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
+
+anoxCueByDepthdf ## looks okay, other than the impossibly high CUE values. 
+head(anoxCueByDepthdf, n=2)
+
+## 
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- c(1:5)
+anoxClusterCols <- clusterCols[ sort(unique(anoxCueByDepthdf$cluster))]
+elCS <- scale_color_manual(values = anoxClusterCols)
+ggplot(anoxCueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=Respiration, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1) +
+                     elCS +
+                     labs(title = "Anaerobic incubations, CUE (size by Resp)") 
+
+
+## okay, so we have the expected pull-down by respiration in the thermokarst
+## samples. But a lot of these really high CUE do not have such t
+
+anoxCueByDepthdf[ anoxCueByDepthdf$CUE > 0.7,]
+
+## my inclination here is to discard the CUE from the anoxic incubations
+## the respiration is still interesting, and more trustworthy. 
+## just good old-fashioned GC measurements. 
+
+## so what now? for the notebook we want:
+## 1. a figure of the oxic CUE results, maybe scaling points by resp
+## 2. a comparison of respiration rates from sites that have both incubations, ox vs. anox
+##      to get an idea of the drop in respiration rates. 
+## 3. from oxic results, find what species are associated with high and low CUE
+##      which = indicator spp and DifAb for high/low samples.
+
+## checking - are MBC from the different incubations consistent where we have
+## some duplication?:
+
+diffMBCs <- merge(anoxCueByDepthdf['MBC'],oxBioRespByDepthdf['MBC'], by="row.names")
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", diffMBCs$Row.names))))
+rownames(diffMBCs) <- diffMBCs$Row.names; diffMBCs$Row.names <- NULL
+diffMBCs <- diffMBCs[rowsInOrder,]
+diffMBCs$Sample <- oxCUE[rownames(diffMBCs),"Sample"]
+diffMBCs <- diffMBCs[,c("Sample","MBC.y","MBC.x")]
+colnames(diffMBCs) <- c("Sample", "oxMBC","anoxMBC")
+
+## if we keep the 50s:
+ggplot(diffMBCs, aes(x=oxMBC, y=anoxMBC)) +
+  geom_point() + xlim(0,1500) + ylim(0,1500)  
+
+ggplot(diffMBCs, aes(x=oxMBC, y=anoxMBC)) +
+  geom_point() + xlim(0,500) + ylim(0,500)  
+
+## wow. This is some DDD (damn dirty data).
+## see for example sample S10 (AP2_100-120):
+## the MBC in oxic sample is 1370 vs 50 (undetected)
+## in anoxic sample. And a whole lot of 
+## 50 (undetected) samples, mostly in the 
+## anoxic samples.  
+
+## this makes no sense to me, why are these values different?
+## the MBC values were taken from separate soil aliquots
+## than those used for the incubation. Why should there be
+## paired aliquots with the incubabtion experiments 
+## and what could make them so different?
+## As far as I understand, there should be no 
+## differences in these samples as far as MBC,
+## they should essentially be replicates. 
+
+## save this to show Werner, though he probably already knows.
+save(diffMBCs, file="diffMBCs.rda")
+
+## generally, the oxic results still look okay.
+## so I guess keep marching forward
+
+## I wanted, for the notebook:
+## 1. a figure of the oxic CUE results, maybe scaling points by resp
+
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- oxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
+colnames(bb) <- c("CUE","MBC","Respiration")
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+oxCueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
+
+oxCueByDepthdf ## looks okay
+
+head(oxCueByDepthdf, n=2)
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- c(1:5)
+oxClusterCols <- clusterCols[ sort(unique(oxCueByDepthdf$cluster))]
+elCS <- scale_color_manual(values = oxClusterCols)
+ggplot(oxCueByDepthdf, aes(x=DepthSection, 
+                         y=CUE, 
+                         size=Respiration, 
+                         shape=Subsite, 
+                         #alpha=1, 
+                         color=cluster)) + 
+                     geom_jitter(width=0.1) +
+                     elCS +
+                     labs(title = "Aerobic incubations, CUE (size by Resp)") 
+
+## just checking, is there a correlation between the respiration and MBC?
+ggplot(oxCueByDepthdf, aes(x=MBC, y=Respiration)) +
+  geom_point()# + xlim(0,500) + ylim(0,500)  
+## sort of.
+
+## 2. a comparison of respiration rates from sites that have both incubations, ox vs. anox
+##      to get an idea of the drop in respiration rates that happens when you expose a 
+##      community of microbes that are used to oxy to anaerobic conditions, and vice-versa.
+
+head(anoxCueByDepthdf, n=2)
+
+diffRespirations <- merge(anoxCueByDepthdf['Respiration'],oxBioRespByDepthdf['Respiration'], by="row.names")
+rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[rownames(diffRespirations),c("DepthSection","cluster")]
+diffRespirations <- merge(diffRespirations,aa, by="row.names")
+rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
+diffRespirations$Sample <- oxCUE[rownames(diffRespirations),"Sample"]
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(diffRespirations)))))
+diffRespirations <- diffRespirations[rowsInOrder,]
+diffRespirations <- diffRespirations[, c("Sample","DepthSection","cluster","Respiration.x","Respiration.y")]
+
+diffRespirations
+
+## now, we want to make a nice scatter plot, as before. Tomorrow. 
+
+
+
+
+colnames(diffRespirations) <- c("Sample","DepthSection","cluster","anoxResp","oxResp")
+
+rownames(diffRespirations) %in% sample_names(ps007_cleaned_sqrt_prop)
+
+sample_variables(ps007_cleaned_sqrt_prop)
+
+
+## questions for Werner
+## where is the final "Cgrowth"? Is this Microbial growth rate? multiplied by ?incubation time?
+## why are there two MBC measurements per depth when double incubations = 2 reps?
+## will it help if we plug in the measurements that worked. 
