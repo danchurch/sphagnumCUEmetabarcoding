@@ -7,6 +7,8 @@ library(ggplot2)
 library(patchwork)
 library(lme4)
 library(lmerTest)
+library(RColorBrewer)
+library(ggnewscale)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
 
@@ -17,6 +19,9 @@ load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 #load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
+
+anoxCUE <- read.csv("anoxCUE.csv", row.names=1)
+oxCUE.csv <- read.csv("oxCUE.csv", row.names=1)
 
 ## add our working ids to this, so it is compatible with the 
 ## ps objects:
@@ -182,16 +187,21 @@ oxCUE_anovadf[oxCUE_anovadf$cluster == 2,]
 ## with color by geomorphology
 
 load("anoxCUE.rda")
-
 load("oxCUE.rda")
+
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 
 ## let's save these out as csvs, might be good for repeatability:
 write.csv(anoxCUE, "anoxCUE.csv")
 write.csv(oxCUE, "oxCUE.csv")
 
-aa <- read.csv("anoxCUE.csv", row.names=1)
-aa <- read.csv("oxCUE.csv", row.names=1)
+oxCUE <- read.csv("oxCUE.csv", row.names=1, check.names=FALSE)
+anoxCUE <- read.csv("anoxCUE.csv", row.names=1, check.names=FALSE)
+
+#anoxCUE <- read.csv("anoxCUE.csv", row.names=1)
+#oxCUE <- read.csv("oxCUE.csv", row.names=1)
+
+head(oxCUE, n=2)
 
 load("oxCUE.rda")
 
@@ -482,7 +492,6 @@ save(diffMBCs, file="diffMBCs.rda")
 ## I wanted, for the notebook:
 ## 1. a figure of the oxic CUE results, maybe scaling points by resp
 
-
 aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
 bb <- oxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
 colnames(bb) <- c("CUE","MBC","Respiration")
@@ -520,13 +529,33 @@ ggplot(oxCueByDepthdf, aes(x=MBC, y=Respiration)) +
 ##      to get an idea of the drop in respiration rates that happens when you expose a 
 ##      community of microbes that are used to oxy to anaerobic conditions, and vice-versa.
 
-head(anoxCueByDepthdf, n=2)
+## make dataframes of oxic and anoxic resp, biomass
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- oxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
+colnames(bb) <- c("CUE","MBC","Respiration")
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+oxCueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
 
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop)[,c('Subsite','DepthSection','cluster')])
+bb <- anoxCUE[c('CUE','Microbial.biomass.C.[µg/g.DW]','Respiration.[ng.C/g/h]')]
+colnames(bb) <- c("CUE","MBC","Respiration")
+cc <- merge(aa,bb,by="row.names")
+rownames(cc) <- cc$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", cc$Row.names))))
+cc$Row.names <- NULL
+anoxCueByDepthdf <- cc[rowsInOrder,]
+rm(aa,bb,cc,rowsInOrder)
+
+## combine into a df for plotting
 diffRespirations <- merge(anoxCueByDepthdf['Respiration'],oxCueByDepthdf['Respiration'], by="row.names")
 rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
 aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[rownames(diffRespirations),c("DepthSection","cluster","Subsite")]
 diffRespirations <- merge(diffRespirations,aa, by="row.names")
-
+rm(aa)
 rownames(diffRespirations) <- diffRespirations$Row.names; diffRespirations$Row.names <- NULL
 diffRespirations$Sample <- oxCUE[rownames(diffRespirations),"Sample"]
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(diffRespirations)))))
@@ -535,55 +564,114 @@ diffRespirations <- diffRespirations[, c("Sample","DepthSection","Subsite","clus
 colnames(diffRespirations) <- c("Sample","DepthSection","Subsite","cluster","anoxResp","oxResp")
 diffRespirations$DepthSection <- as.factor(diffRespirations$DepthSection)
 
+## oops, we need a single column of respiration values
+aa <- bb <- diffRespirations
+rownames(aa) <- rownames(bb) <- NULL
+aa$incub <- "oxic"
+aa$anoxResp <- NULL
+colnames(aa) <- c("Sample","DepthSection","Subsite","cluster","Resp","incub")
+bb$incub <- "anoxic"
+bb$oxResp <- NULL
+colnames(bb) <- c("Sample","DepthSection","Subsite","cluster","Resp","incub")
+cc <- rbind(aa,bb)
+diffRespPlotDF <- cc
+rm(aa,bb,cc)
 
-diffRespirations
 
 ## now, we want to make a nice scatter plot. 
 
-clusterCols <- c("green","blue","red","black","brown")
-names(clusterCols) <- c(1:5)
-diffRespCols <- clusterCols[ sort(unique(diffRespirations$cluster))]
-elCS <- scale_color_manual(values = diffRespCols)
-
 dev.new()
 
-ggplot(diffRespirations, aes(x=DepthSection, 
+ggplot(diffRespPlotDF, aes(x=DepthSection, 
+                         y=Resp, 
                          shape=Subsite, 
                          alpha=0.7, 
                          size=4)) + 
-                     geom_point(aes(y=oxResp), 
+                     geom_point(aes(fill=incub), 
                                 position=position_jitter(width = 0.1),
-                                color="red") +
-                     geom_point(aes(y=anoxResp),
-                                position=position_jitter(width = 0.1),
-                                color="blue") +
-                     scale_y_log10() +
-                     labs(title = "Zoop (size by Resp)",
-                              x = "Zoop (size by Resp)",
-                              y = expression(paste("Respiration (", mu,"g C", O[2]", g C pea", t^{-1})))
+                                color="black") + 
+                     scale_fill_manual(values=c("grey", "red")) +
+                     scale_shape_manual(values = c(21, 24)) +
+                     scale_y_log10() + 
+                     labs(title = "Respiration of permafrost and former permafrost (deep thermokarst) soils ",
+                              x = "Depth section",
+                              y = expression(paste("Respiration (", mu,"g C", O[2]," g ", Peat^{-1}, day^{-1}, ")"))) +
+                     guides(size="none", alpha="none", fill="none")
 
-                              y = expression(paste("Respiration (", mu,"g C", O[2]", g C pea", t^{-1})))
+## will need to add the legend for oxic/anoxic. Can't figure out how to do it now. 
+## Add to notebook
 
-## ugh, fix this tomorrow.
+## and 3: from oxic results, find what species are associated with high and low CUE
+##      which = indicator spp and DifAb for high/low samples.
 
-#ggplot(diffRespirations, aes(x=DepthSection, 
-#                         shape=Subsite, 
-#                         alpha=0.7, 
-#                         size=4)) + 
-#                     geom_point(aes(y=oxResp), 
-#                                position=position_jitter(width = 0.1),
-#                                color="red") +
-#                     geom_point(aes(y=anoxResp),
-#                                position=position_jitter(width = 0.1),
-#                                color="blue") +
-#                     scale_y_log10() +
-#                     labs(title = "Zoop (size by Resp)",
-#                              x = "Zoop (size by Resp)",
-#                              y = "Zoop (size by Resp)")
+## where to start...
 
+## cue is a soil-sample level property. So we would need to add a column to our
+## sample data. Let's say greater than 0.4, only from oxic incubations:
 
+oxCUE[oxCUE$CUE > 0.4,"Sample"] %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
-## questions for Werner
-## where is the final "Cgrowth"? Is this Microbial growth rate? multiplied by ?incubation time?
-## why are there two MBC measurements per depth when double incubations = 2 reps?
-## will it help if we plug in the measurements that worked. 
+highCUEfilt <- aa$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+
+aa[highCUEfilt,]
+
+## mostly upper level palsa, depth sections 1 and 2:
+
+#     SampleID Subsite DepthSection    EcoCont Core cluster
+#S3  AP1_50-69   Palsa            3 Ecological  AP1       4
+#S6   AP4_0-20   Palsa            1 Ecological  AP4       3
+#S7  AP2_20-40   Palsa            2 Ecological  AP2       3
+#S12 AP3_20-40   Palsa            2 Ecological  AP3       3
+#S16  AP2_0-20   Palsa            1 Ecological  AP2       3
+
+## there is one from depth section 3, palsa (cluster 4).
+
+## curious, are these close together on our NMS?
+
+ps007_cleaned_sqrt_prop.ord <- ordinate(ps007_cleaned_sqrt_prop, "NMDS", "bray")
+clusterPoints <- as.data.frame(cbind(ps007_cleaned_sqrt_prop.ord$points[,'MDS1'],
+                                     ps007_cleaned_sqrt_prop.ord$points[,'MDS2'],
+                                     aa$cluster,
+                                     aa$DepthSection,
+                                     aa$Subsite
+                                     ))
+colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
+clusterPoints$MDS1 <- as.numeric(clusterPoints$MDS1)
+clusterPoints$MDS2 <- as.numeric(clusterPoints$MDS2)
+clusterPoints$cluster <- as.factor(clusterPoints$cluster)
+clusterPoints$DepthSection <- as.numeric(clusterPoints$DepthSection)
+peatNMS <- ggplot(data=clusterPoints)
+MDSpts <- geom_point(data=clusterPoints,
+                     aes(x=MDS2, y=MDS1,
+                         color=DepthSection,
+                         shape=Subsite),
+                     size=8)
+depthPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = depthPalette(100), limits=c(5, 0), trans="reverse")
+els <- stat_ellipse(data=clusterPoints, aes(x=MDS2, y=MDS1,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
+elCS <- scale_color_manual(values = clusterCols)
+
+## circle the points with high CUE:
+hiCUEpts <- rownames(aa[highCUEfilt,])
+hiCUEptsDF <- clusterPoints[hiCUEpts,]
+hiCUEmdsPts <- geom_point(data=hiCUEptsDF, 
+                          aes(x=MDS2, y=MDS1),
+                         size=15,
+                         stroke=3,
+                         color="purple",
+                         shape=21)
+
+peatNMS + MDSpts + dCS +
+new_scale_color() + els + elCS + hiCUEmdsPts 
+
+## no signal there, really. The one high CUE from cluster four is 
+## not any closer to the other cluster 3 high CUE samples,  than 
+## they are to other cluster 4 points.  
+
