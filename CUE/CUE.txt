@@ -9,19 +9,24 @@ library(lme4)
 library(lmerTest)
 library(RColorBrewer)
 library(ggnewscale)
+library(indicspecies)
+library(taxplore)
+library(phylogram)
+library(dendextend)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
 
 #setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sampleData")
 
-load("../sequenceAnalysis/ps007.rda")
+#load("../sequenceAnalysis/ps007.rda")
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 #load("../sequenceAnalysis/ps007_cleaned_sqrt_prop_FTIR.rda")
 
 CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
 
-anoxCUE <- read.csv("anoxCUE.csv", row.names=1)
-oxCUE.csv <- read.csv("oxCUE.csv", row.names=1)
+## can skip the reconstruction of these below by reading them in here:
+oxCUE <- read.csv("oxCUE.csv", row.names=1, check.names=FALSE)
+anoxCUE <- read.csv("anoxCUE.csv", row.names=1, check.names=FALSE)
 
 ## add our working ids to this, so it is compatible with the 
 ## ps objects:
@@ -610,11 +615,12 @@ ggplot(diffRespPlotDF, aes(x=DepthSection,
 ## sample data. Let's say greater than 0.4, only from oxic incubations:
 
 oxCUE[oxCUE$CUE > 0.4,"Sample"] %in% sample_data(ps007_cleaned_sqrt_prop)$SampleID
-aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
-highCUEfilt <- aa$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+sampData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
-aa[highCUEfilt,]
+highCUEfilt <- sampData$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+
+sampData[highCUEfilt,]
 
 ## mostly upper level palsa, depth sections 1 and 2:
 
@@ -632,9 +638,9 @@ aa[highCUEfilt,]
 ps007_cleaned_sqrt_prop.ord <- ordinate(ps007_cleaned_sqrt_prop, "NMDS", "bray")
 clusterPoints <- as.data.frame(cbind(ps007_cleaned_sqrt_prop.ord$points[,'MDS1'],
                                      ps007_cleaned_sqrt_prop.ord$points[,'MDS2'],
-                                     aa$cluster,
-                                     aa$DepthSection,
-                                     aa$Subsite
+                                     sampData$cluster,
+                                     sampData$DepthSection,
+                                     sampData$Subsite
                                      ))
 colnames(clusterPoints) <- c("MDS1","MDS2","cluster","DepthSection","Subsite")
 clusterPoints$MDS1 <- as.numeric(clusterPoints$MDS1)
@@ -659,7 +665,7 @@ els <- stat_ellipse(data=clusterPoints, aes(x=MDS2, y=MDS1,
 elCS <- scale_color_manual(values = clusterCols)
 
 ## circle the points with high CUE:
-hiCUEpts <- rownames(aa[highCUEfilt,])
+hiCUEpts <- rownames(sampData[highCUEfilt,])
 hiCUEptsDF <- clusterPoints[hiCUEpts,]
 hiCUEmdsPts <- geom_point(data=hiCUEptsDF, 
                           aes(x=MDS2, y=MDS1),
@@ -675,3 +681,165 @@ new_scale_color() + els + elCS + hiCUEmdsPts
 ## not any closer to the other cluster 3 high CUE samples,  than 
 ## they are to other cluster 4 points.  
 
+## any other obvious indicators? Like, are they particularly undegraded samples?
+
+## doesn't really look that way, but hard to say just staring at the numbers.
+
+## need a function for highlighting the values of these sample site data
+## among the others. But maybe better to build the general model and check 
+## after. 
+
+## ok, so use these run some indicator species analysis:
+
+##
+#tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
+otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+## add column indicating high/low CUE:
+
+
+## run the indicator species analysis:
+indic2sitesAll <- multipatt(otutab, envData$cluster,
+                    max.order=2,
+                    control = how(nperm=999))
+
+
+highOxCUEfilt <- sampData$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+aa <- as.character(highOxCUEfilt * 1)
+cueMap <- c("high","low"); names(cueMap) <- c("1","0")
+envData$highOxCUE <- cueMap[aa]
+
+## probably good to save this into our phyloseq obj:
+
+rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(oxCUE)
+
+sample_data(ps007_cleaned_sqrt_prop)$oxCUE
+
+## this should allow a indicator species 
+
+indicHighCUE <- multipatt(otutab, envData$highOxCUE,
+                    max.order=1,
+                    control = how(nperm=999))
+
+dim(indicHighCUE$sign)
+sum(indicHighCUE$sign[complete.cases(indicHighCUE$sign),"p.value"] < 0.05) ## a lot, 817
+
+## add FDR to correct for multiple comparisons
+
+highCUEindSpecResults <- indicHighCUE$sign
+highCUEindSpecResults$fdr <- p.adjust(highCUEindSpecResults$p.value, method = "fdr")
+highCUEindSpecResults <- highCUEindSpecResults[ complete.cases(highCUEindSpecResults),]
+
+## keeping only those with a very strong association metric (> 0.8):
+highCUEindSpecResults_corrected <- highCUEindSpecResults[highCUEindSpecResults$fdr < 0.05 & highCUEindSpecResults$stat > 0.8,]
+
+highCUEindSpecResults_corrected
+
+dim(highCUEindSpecResults_corrected) ## down to 246 OTUS
+## all are associated with CUE. So we have a sort of high-CUE community here.
+
+## is it also necessary to do a DA? meh. 
+
+## check these against our mag matches. Maybe we can make a functional statement here. 
+
+highCUEasvs <- rownames((highCUEindSpecResults_corrected))
+
+asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names=1)
+
+highCUEasvs
+
+any(highCUEasvs %in% rownames(asvMAG))
+
+sum(highCUEasvs %in% rownames(asvMAG))
+
+asvMAG[highCUEasvs %in% rownames(asvMAG),]
+
+asvMAG[highCUEasvs,] ## 11 groups. Includes orgs capable of oxidative resp,
+## but also archaeal acetogens (Bathyarcheia), a syntrophales organism,   
+## there isn't high respiration in these samples, really. 
+
+## to me it looks like you have facultative aerobic organisms that are adapted to oxygen, as
+## these are upper palsa samples, therefore may be growing more when 
+## confronted with O2. But also other organisms that keep their respiration
+## low 
+
+## so what do with this? 
+## with the full 246 indicator OTUs, a Krona would be good 
+
+## with the MAGs, a good functional overview, enough there 
+
+## krona - need a phyloseq obj:
+
+envData$highOxCUE
+
+ps007_highCUE <- 
+  subset_samples( ps007_cleaned_sqrt_prop, highOxCUEfilt) |>
+  prune_taxa(highCUEasvs, x=_)
+ 
+make_krona(ps007_highCUE, outfile="../CUE/krona/ps007_highCUE_krona.html")
+
+## heat map would be good:
+
+highCUEindSpecResults_corrected
+
+ps007_highCUE_allSamps <- prune_taxa(highCUEasvs, ps007_cleaned_sqrt_prop)
+
+psObject <- ps007_highCUE_allSamps
+lastValue <- function(x)   tail(x[!is.na(x)], 1) ## useful for getting last level of tax id
+commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
+comm.ward <- hclust(commBray, method='ward.D2')
+psObject_gen <- tax_glom(psObject, taxrank="Genus", NArm=FALSE)
+tree_gen <- as.dendrogram.phylo(phy_tree(psObject_gen))
+evenTipdendro <- hang.dendrogram(tree_gen, hang = -1)
+## these two lines rename otus with no genus id:
+taxNames <- apply(tax_table(psObject_gen), 1, lastValue) 
+labels(evenTipdendro) <- taxNames[labels(evenTipdendro)]
+commData <- data.frame(otu_table(psObject_gen))
+colnames(commData) <- taxNames[colnames(commData)]
+samplelabels <- paste(substr(sample_data(psObject)$SampleID,1,3),
+                      sample_data(psObject)$DepthSection, sep="_")
+names(samplelabels) <- sample_names(psObject)
+labels(comm.ward) <- samplelabels[ labels(comm.ward) ]
+rownames(commData) <- samplelabels
+
+tabasco(commData,
+        use=comm.ward,
+        sp.ind = evenTipdendro,
+        Rowv=FALSE,
+        Colv=FALSE,
+        main="High CUE Indicator species"
+        ) 
+
+## which are our high CUE samples?
+
+CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
+
+CUE[CUE$Treatment == "oxic" & CUE$CUE > 0.5,]
+
+oxCUE[oxCUE$CUE > 0.5,]
+
+## interesting. most of these species are not 
+## really strongly present in our AP1_3 (S3). 
+
+## if we take the top 5 indicator species?
+## for our model...
+
+## how to define "top"... try by the association stat:
+
+highCUEindSpecResults_corrected
+
+aa <- highCUEindSpecResults_corrected[ order(highCUEindSpecResults_corrected$stat),]
+
+tail(aa)
+
+## but some pretty obscure OTUs are in there.
+## the most highly rated one is 
+
+otu_table(ps007_cleaned_sqrt_prop)[, "ASV2257"]
+
+otu_table(ps007_cleaned_sqrt_prop)[, "ASV182"]
+
+otu_table(ps007_cleaned_sqrt_prop)[, rownames(tail(aa))]
+
+##  
