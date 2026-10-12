@@ -700,21 +700,23 @@ envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
 
 ## run the indicator species analysis:
-indic2sitesAll <- multipatt(otutab, envData$cluster,
-                    max.order=2,
-                    control = how(nperm=999))
-
 
 highOxCUEfilt <- sampData$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
 aa <- as.character(highOxCUEfilt * 1)
 cueMap <- c("high","low"); names(cueMap) <- c("1","0")
 envData$highOxCUE <- cueMap[aa]
 
+envData$highOxCUE
+
 ## probably good to save this into our phyloseq obj:
+all(rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(envData))
 
-rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(oxCUE)
+sample_data(ps007_cleaned_sqrt_prop)$oxCUE <- envData$highOxCUE
 
-sample_data(ps007_cleaned_sqrt_prop)$oxCUE
+## doing this on 12.10.27, last git commit before it: 5a711587a08e9eb48792d70328cbe801ae8f942e 
+#save(ps007_cleaned_sqrt_prop, file="ps007_cleaned_sqrt_prop.rda")
+
+rownames(otutab) == rownames(envData)
 
 ## this should allow a indicator species 
 
@@ -723,6 +725,7 @@ indicHighCUE <- multipatt(otutab, envData$highOxCUE,
                     control = how(nperm=999))
 
 dim(indicHighCUE$sign)
+
 sum(indicHighCUE$sign[complete.cases(indicHighCUE$sign),"p.value"] < 0.05) ## a lot, 817
 
 ## add FDR to correct for multiple comparisons
@@ -731,12 +734,19 @@ highCUEindSpecResults <- indicHighCUE$sign
 highCUEindSpecResults$fdr <- p.adjust(highCUEindSpecResults$p.value, method = "fdr")
 highCUEindSpecResults <- highCUEindSpecResults[ complete.cases(highCUEindSpecResults),]
 
+head(highCUEindSpecResults)
+
+## funny, the FDR seems binned, many (200) matches with fdr = 0.07693182, and none with lower
+## FDR. Pvalues for all of these are quite low, 0.004-0.005. Let's keep them, explore a little.
 ## keeping only those with a very strong association metric (> 0.8):
-highCUEindSpecResults_corrected <- highCUEindSpecResults[highCUEindSpecResults$fdr < 0.05 & highCUEindSpecResults$stat > 0.8,]
+
+highCUEindSpecResults_corrected <- highCUEindSpecResults[highCUEindSpecResults$stat > 0.8 & highCUEindSpecResults$fdr < 0.08,]
+
 
 highCUEindSpecResults_corrected
 
-dim(highCUEindSpecResults_corrected) ## down to 246 OTUS
+
+dim(highCUEindSpecResults_corrected) ## down to 197 OTUS
 ## all are associated with CUE. So we have a sort of high-CUE community here.
 
 ## is it also necessary to do a DA? meh. 
@@ -749,25 +759,49 @@ asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names=1)
 
 highCUEasvs
 
-any(highCUEasvs %in% rownames(asvMAG))
+highCUEmagsFilt <- (highCUEasvs %in% rownames(asvMAG))
 
-sum(highCUEasvs %in% rownames(asvMAG))
+highCUEmags <- highCUEasvs[highCUEmagsFilt]
 
-asvMAG[highCUEasvs %in% rownames(asvMAG),]
+highCUEmags
 
-asvMAG[highCUEasvs,] ## 11 groups. Includes orgs capable of oxidative resp,
-## but also archaeal acetogens (Bathyarcheia), a syntrophales organism,   
-## there isn't high respiration in these samples, really. 
+## these have MAGs:
+## ASV829 
+## ASV271 
+## ASV1794
+## ASV1178
+## ASV1364
+## ASV2328
 
-## to me it looks like you have facultative aerobic organisms that are adapted to oxygen, as
-## these are upper palsa samples, therefore may be growing more when 
-## confronted with O2. But also other organisms that keep their respiration
-## low 
+highCUEindSpecResults_corrected[highCUEmags,]
 
-## so what do with this? 
-## with the full 246 indicator OTUs, a Krona would be good 
+## interesting, these two tax assignments are 
+## pretty different. 
 
-## with the MAGs, a good functional overview, enough there 
+asvMAG[highCUEmags,]
+tax_table(ps007_cleaned_sqrt_prop)[highCUEmags,]
+
+## actually, they essentially agree, but one has to 
+## check the latest taxonomy. The phyloseq tax table
+## based on Silva assigned ASV829 ASV271 to Chloroflexota, 
+## class "AD3", which gtdb assigns to Dormibacteria, a 
+## recent change.
+
+## the Dormibacteria often are capable of oxidizing 
+## trace gases (H2 and CO). Ours are also denitrifiers
+## and alchohol fermenters. It doesn't look like they
+## have oxidative respiration, but 
+## https://onlinelibrary.wiley.com/doi/10.1002/9781118960608.cbm00099
+
+## we also have actinomycetes (Solirubactereraceae), which
+
+## last one (ASV2328) is Eremiobacterota, which may be a similarly
+## H2 consuming bacteria, but some have been observed to 
+## fix CO2 with the calvin cycle using this energy.  
+
+## not sure how representative these are, just 6 ASVs our ~200
+
+## with the full 200 indicator OTUs, a Krona would be good 
 
 ## krona - need a phyloseq obj:
 
@@ -779,6 +813,7 @@ ps007_highCUE <-
  
 make_krona(ps007_highCUE, outfile="../CUE/krona/ps007_highCUE_krona.html")
 
+## the usual, lots of acidobacteria, lots of actinobacteria
 ## heat map would be good:
 
 highCUEindSpecResults_corrected
@@ -813,7 +848,6 @@ tabasco(commData,
 
 ## which are our high CUE samples?
 
-CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
 
 CUE[CUE$Treatment == "oxic" & CUE$CUE > 0.5,]
 
@@ -833,13 +867,108 @@ aa <- highCUEindSpecResults_corrected[ order(highCUEindSpecResults_corrected$sta
 
 tail(aa)
 
-## but some pretty obscure OTUs are in there.
-## the most highly rated one is 
+highCUEmags ## the highest association stat that we have a mag for is for ASV271, one of the Dormibacteria
 
-otu_table(ps007_cleaned_sqrt_prop)[, "ASV2257"]
+## anyway, try some models, and include ASV271 just to have one with a genome associated. 
 
-otu_table(ps007_cleaned_sqrt_prop)[, "ASV182"]
+## 
 
-otu_table(ps007_cleaned_sqrt_prop)[, rownames(tail(aa))]
+##### CUE model ####
 
-##  
+## okay, we need to put together one big model for CUE. 
+## we have a lot of predictor variables, biotic (ASVs) and abiotic
+## might be best to try some dimenionality reduction  
+## PCAs of our environmental variables. 
+
+## abiotic
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+str(sample_data(ps007_cleaned_sqrt_prop))
+
+## the basic palsa/thermokarst contrast and depth levels
+## are not possible to include in PCAs, obviously.
+
+## the humification indices are highly correlated, 
+## except for hi4, which has some independence from 
+## the others.  Same case with degree of decomp.
+
+## variables to include in PCA definition would then be:
+
+vars2red <- 
+  c("N","C","H","S","O","CN","CH","HC","OC","pH","hi1","hi4",
+  "holocellulose_content_2","klason_lignin_content_2",
+  "phosphorus_content_1","bulk_density_1",
+  "macroporosity_1","degree_of_decomposition_1",
+  "eac","edc")
+
+ps007_cleaned_sqrt_prop
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+str(data.frame(sample_data(ps007_cleaned_sqrt_prop)))
+
+for (i in vars2red){
+  print(i)
+  aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,i]
+  hist(aa,breaks=40)
+  readline()
+}
+
+abiotic4pca <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,vars2red]
+
+## they mostly look ~normal, with some exceptions that could something 
+## else (C...). Maybe some lognormals with the ratios (CN)
+## But gaussian looks okay, can probably work. 
+
+print(aa)
+
+dev.new()
+plot(aa)
+abline(h = mean(aa$sdev^2), col = "red")
+## 
+
+aa$loadings
+
+
+aa <- princomp(abiotic4pca, cor=TRUE)
+
+abioticPCAloadings <- loadings(aa)
+
+abioticScores <- data.frame(aa$scores)
+
+## looks like we can take PC1 and PC2, maybe 3, as 
+## predictors. 
+
+
+adonis2(darl.PCA.scores$Comp.1 ~ site,
+data = darl.PCA.scores,
+method = "euc")
+
+adonis2(dune ~ Management*A1, data = dune.env)
+
+## for our data:
+
+otuTable <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
+
+adonis2(otuTable ~ abioticScores$Comp.1) ##R2= ~.10, p = 0.002
+
+adonis2(otuTable ~ abioticScores$Comp.2) ##R2= ~.07, p = 0.009
+
+## okay, they at least have an effect 
+
+## but not 3rd
+adonis2(otuTable ~ abioticScores$Comp.3) ##R2= ~.02, p = 0.648
+
+## put these into a model. Even though I have no idea how to really interpret them...
+
+head(dune,2)
+
+## then maybe do something similar with the biotic predictors
+## transform abundances, or something. Think about it. 
+
+## but put this on hold, prep a lecture
+
+## and back...
+
+##
