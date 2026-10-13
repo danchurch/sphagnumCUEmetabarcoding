@@ -13,6 +13,7 @@ library(indicspecies)
 library(taxplore)
 library(phylogram)
 library(dendextend)
+library(vegan)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
 
@@ -957,18 +958,93 @@ adonis2(otuTable ~ abioticScores$Comp.2) ##R2= ~.07, p = 0.009
 
 ## okay, they at least have an effect 
 
-## but not 3rd
+## but not 3rd (which is mostly pH, as far as I can tell):
 adonis2(otuTable ~ abioticScores$Comp.3) ##R2= ~.02, p = 0.648
 
 ## put these into a model. Even though I have no idea how to really interpret them...
+## I am guessing that we may have to do some stepwise regression anyway.
 
-head(dune,2)
 
-## then maybe do something similar with the biotic predictors
-## transform abundances, or something. Think about it. 
+## biotic predictors (OTU) of CUE
 
-## but put this on hold, prep a lecture
+## so we have way too many taxa that seem to indicate high 
+## CUE to include in a model. Another paper that is referred to 
+## a lot (McCalley 2014 et al.) used relative abundance of their
+## methanogens to pick important OTUs for modeling.
 
-## and back...
+## We let's rank them by abundance.
 
-##
+highCUEindSpecResults_corrected
+
+highCUEasvs <- rownames((highCUEindSpecResults_corrected))
+
+otu_table(ps007_cleaned_sqrt_prop)
+
+## do we want highest abundance, from the total study?
+colSums(otu_table(ps007_cleaned_sqrt_prop)[,highCUEasvs])
+
+sortedHiCUEallSamp <- sort( colSums(otu_table(ps007_cleaned_sqrt_prop)[,highCUEasvs]), decreasing=TRUE)
+
+ps007_highCUE
+
+## or do we want highest abundence in just the high CUE sites?
+
+## just checking...
+all(highCUEasvs %in% colnames(otu_table(ps007_highCUE)))
+all(colnames(otu_table(ps007_highCUE)) %in% highCUEasvs)
+## yup...
+
+colSums(otu_table(ps007_highCUE))
+
+sortedHiCUEonlyHiCUE <- sort(colSums(otu_table(ps007_highCUE)), decreasing=TRUE)
+
+## is there a difference?:
+
+names(sortedHiCUEallSamp) == names(sortedHiCUEonlyHiCUE)
+
+cbind(names(sortedHiCUEallSamp), names(sortedHiCUEonlyHiCUE))
+
+cbind(sortedHiCUEallSamp, sortedHiCUEonlyHiCUE)
+
+sortedHiCUEallSamp 
+sortedHiCUEonlyHiCUE
+
+## yup, actually pretty big differences
+## maybe, since our analysis will involve the CUE values 
+## from all samples, it would be better to take the 
+## ASVs that are generally more abundant across the 
+## study. 
+
+## so we take the 10 most abundant ASVs that are 
+## indicator species for high CUE sites:
+
+ASVsforCUEmodel <- names(sortedHiCUEallSamp[1:10])
+
+
+ASVsforCUEmodel
+
+ASVsforCUEmodel %in% rownames(asvMAG) 
+## ah, good, four of these have a mag associated. 
+
+asvMAG[rownames(asvMAG) %in% ASVsforCUEmodel,]
+
+tax_table(ps007_cleaned_sqrt_prop)[ ASVsforCUEmodel,]
+
+## anyway, their abundances go into the model, and we'll 
+## reduce with stepwise regression.
+
+## so we have some abiotic predictors (geomorphology, depth, 2 PCAs from soil properties)
+## and some biotic predictors (ten species that are associated with Hi CUE sites, but
+## not restricted to them).
+
+## I think we don't really want a hierarchical or mixed model,
+## except maybe for core?
+## the main grouping factors are core, geomorphology, and depth. 
+## I don't want to assign any of these as random factors except
+## maybe core.
+
+## okay, actually, a GLMM with core as a grouping/random factor 
+## makes sense...
+
+
+ 
