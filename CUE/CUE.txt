@@ -14,6 +14,9 @@ library(taxplore)
 library(phylogram)
 library(dendextend)
 library(vegan)
+library(fitdistrplus)
+library(glmmLasso)
+library(glmnet)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
 
@@ -929,18 +932,51 @@ plot(aa)
 abline(h = mean(aa$sdev^2), col = "red")
 ## 
 
-aa$loadings
 
 
-aa <- princomp(abiotic4pca, cor=TRUE)
+PCAabio <- princomp(abiotic4pca, cor=TRUE)
 
-abioticPCAloadings <- loadings(aa)
+abioticPCAloadings <- loadings(PCAabio)
 
-abioticScores <- data.frame(aa$scores)
+abioticPCAloadings
 
-## looks like we can take PC1 and PC2, maybe 3, as 
+abioticScores <- data.frame(PCAabio$scores)
+
+
+biplot(PCAabio)
+
+## looks like we can take PC1 and PC2, maybe PC3, as 
 ## predictors. 
 
+## PCA1 is essentially a vector of decay. Ligninification, decomposition, C/H ratio, 
+## on a positive. Cellulose, HC, O/C, in the other direction:
+
+## PCA2 is most strongly influenced by H
+
+## PCA3 is an electron accepter (eac and sulfur)
+
+abioticScores
+
+data.frame(sample_data(ps007_cleaned_sqrt_prop))["DepthSection"]
+
+rm(aa)
+aa <- merge(abioticScores[,1:4], data.frame(sample_data(ps007_cleaned_sqrt_prop))["DepthSection"], by="row.names")
+rownames(aa) <- aa$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]; aa$Row.names <- NULL
+PCAswithDepth_df <- aa; rm(aa)
+
+## with depth, PCA1 clearly increases
+ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.1)) +
+  geom_point() + geom_smooth(method = lm)
+
+## and PCA2 decreases with depth
+ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.2)) +
+  geom_point() + geom_smooth(method = lm)
+
+## and PCA3 has no real relationship with depth.
+ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.3)) +
+  geom_point() + geom_smooth(method = lm) 
 
 adonis2(darl.PCA.scores$Comp.1 ~ site,
 data = darl.PCA.scores,
@@ -958,7 +994,7 @@ adonis2(otuTable ~ abioticScores$Comp.2) ##R2= ~.07, p = 0.009
 
 ## okay, they at least have an effect 
 
-## but not 3rd (which is mostly pH, as far as I can tell):
+## but not 3rd (which is mostly eac, as far as I can tell):
 adonis2(otuTable ~ abioticScores$Comp.3) ##R2= ~.02, p = 0.648
 
 ## put these into a model. Even though I have no idea how to really interpret them...
@@ -1046,5 +1082,394 @@ tax_table(ps007_cleaned_sqrt_prop)[ ASVsforCUEmodel,]
 ## okay, actually, a GLMM with core as a grouping/random factor 
 ## makes sense...
 
+## our response variable is CUE. It is always positive, never
+## zero, and highly skewed.  
 
+oxCUE$CUE
+
+hist(oxCUE$CUE, breaks=100)
+
+## could be modeled as a half-normal or maybe log-normal 
+
+## what is possible with the lmer package?
+## it doesn't support lognormal distributions, 
+## I remember this from the qPCR project.
+## but a general transformation of the response data, prior
+## to fitting the model, is okay and basically the 
+## same thing, according to some:
+
+https://stackoverflow.com/questions/57628338/applying-lognormal-distribution-to-my-data-using-glm-function-in-r
+https://stats.stackexchange.com/questions/21447/how-to-specify-a-lognormal-distribution-in-the-glm-family-argument-in-r
  
+## just setting a log link function would theoretically work,
+## but only for the mean/moment, and the residuals 
+## would somehow still be on a normal dist, I think. So 
+## the whole response dataset needs to be transformed.
+
+fit_g  <- fitdist(oxCUE$CUE, "gamma")
+fit_ln <- fitdist(oxCUE$CUE, "lnorm")
+fit_w <- fitdist(oxCUE$CUE, "weibull")
+
+## all of these distributions work 
+## of course all of these have a problem with the
+## surprising abundance of high CUE values. 
+##  
+
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+
+dev.new()
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend, breaks=20)
+
+## not sure. Let's try a lognormal approach.
+
+## make a dataframe to support the model...
+
+oxCUE["CUE"]
+data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("DepthSection", "Core", "Subsite")]
+abioticScores[,c("Comp.1","Comp.2")]
+data.frame(otu_table(ps007_cleaned_sqrt_prop)[,ASVsforCUEmodel])
+
+## this is not elegant:
+aa <- merge(oxCUE["CUE"],data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("DepthSection", "Core", "Subsite")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+aa <- merge(aa, abioticScores[,c("Comp.1","Comp.2","Comp.3","Comp.4")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+aa <- merge(aa, data.frame(otu_table(ps007_cleaned_sqrt_prop)[,ASVsforCUEmodel]), by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]
+fullModCUEdf <- aa; rm(aa)
+
+
+head(fullModCUEdf,2)
+
+
+#fullModCUEdf$DepthSection <- factor(fullModCUEdf$DepthSection, ordered=TRUE) ## seems to cause problems with some of the modeling algs
+fullModCUEdf$DepthSection <- as.numeric(fullModCUEdf$DepthSection, ordered=TRUE)
+fullModCUEdf$Core <- as.factor(fullModCUEdf$Core )
+fullModCUEdf$Subsite <- as.factor(fullModCUEdf$Subsite)
+
+## ultimately, these are the variables we want to look at:
+CUE          DepthSection Core         Subsite      Comp.1
+Comp.2       ASV371       ASV301       ASV474       ASV1364
+ASV318       ASV271       ASV378       ASV1178      ASV1794
+ASV896
+
+## test the syntax
+model <- lmer(log(CUE) ~ DepthSection + (DepthSection| Core ), data=fullModCUEdf) ## syntax okay, but some singularity, as usual 
+model <- lmer(log(CUE) ~ DepthSection + ( 1 | Core ), data=fullModCUEdf)  ## not sure if this is more approp? results are the same. 
+ 
+## we can set up a model, it seems, but for selection of 
+## variables, we probably want some sort of model selection, 
+## maybe via ridge or lasso regression. 
+
+## glmnet might be the package to use here. 
+
+## example here
+## https://www.geeksforgeeks.org/r-language/lasso-regression-in-r-programming/
+## https://stats.stackexchange.com/questions/188753/lasso-regression-for-predicting-continuous-variable-variable-selection
+
+## but can we have random effects?
+
+## looks like there is a package for lasso on glmm, might work:
+https://cran.r-project.org/web/packages/glmmLasso/refman/glmmLasso.html
+
+## ugh. Avoiding Bayesian models, because no around me likes them. 
+## but none of this would be a problem in a hierarchical bayesian model. 
+
+## tomorrow - try the glmm lasso package. If it doesn't work,
+## ignore random effects, use lasso to reduce the model,
+## then rebuild with random effects. 
+
+## an example from the cran glmmlasso package:
+https://cran.r-project.org/web/packages/glmmLasso/refman/glmmLasso.html#glmmLasso
+
+data("soccer")
+
+soccer[,c(4,5,9:16)]<-scale(soccer[,c(4,5,9:16)],center=TRUE,scale=TRUE)
+soccer<-data.frame(soccer)
+
+## with random effects:
+
+lm1 <- glmmLasso(points ~ transfer.spendings + ave.unfair.score 
+       + ball.possession + tackles 
+       + ave.attend + sold.out, rnd = list(team=~1), 
+       lambda=50, data = soccer)
+
+## making the model is simple. But the optimal lamda value is not 
+## really known, so some people propose testing several 
+## different lamda values. I don't really see a function
+## for this with the glmmLasso package. But the glmnet package
+## has cross-validation for models without random effects.
+## We can start there. 
+
+https://www.r-bloggers.com/2020/05/quick-tutorial-on-lasso-regression-with-example/
+https://rpubs.com/Momo2019/1184100 ## we'll follow this for a moment.
+
+set.seed(42)  # for reproducibility
+n <- 100  # number of samples
+p <- 100  # number of variables
+X <- matrix(rnorm(n * p), n, p)
+beta <- c(rep(1, 10), rep(0, p-10))  # only first 10 are informative
+y <- X %*% beta + rnorm(n)
+
+cv.lasso <- cv.glmnet(X, y, alpha=1)  # alpha=1 for Lasso
+
+plot(cv.lasso)
+
+best.lambda <- cv.lasso$lambda.min
+## can find the lambda with the lowest MSE
+print(best.lambda)
+## then rebuild the lasso model with this. 
+lasso.model <- glmnet(X, y, alpha=1, lambda=best.lambda)
+## I guess we would use glmmlasso instead.  
+
+## check the coefficients. 
+coef(lasso.model)
+
+## down to maybe 25%, still a lot of noise (should be just ten predictors)
+
+## try our data:
+
+rm(X, y, cv.lasso, lasso.model, best.lambda )
+
+head(fullModCUEdf)
+
+xx <- fullModCUEdf[, !colnames(fullModCUEdf) %in% c("CUE", "CORE")]
+X <- model.matrix(~., data=xx)
+y <- log(fullModCUEdf$CUE)
+
+cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=3)  # alpha=1 for Lasso
+
+cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=4)  # alpha=1 for Lasso
+
+
+plot(cv.lasso)
+
+best.lambda <- cv.lasso$lambda.min
+
+rm(best.lambda)
+
+## cruising across a couple different numbers of folds
+## for cross validation:
+
+lambdas <- vector()
+for (i in 3:10){
+  cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=i)  # alpha=1 for Lasso
+  best.lambda <- cv.lasso$lambda.min
+  plot(cv.lasso)
+  print(paste("n=",i)) ## 
+  print(paste("best lambda =",best.lambda)) ## 
+  lambdas <- c(lambdas, best.lambda) 
+  readline()
+}
+
+mean(lambdas)
+
+## if we run this several times, the different means of the lambs:
+## 0.27, 0.23, 0.23, 0.23, 0.195, 0.297 ...
+
+## seems to me  the best lambda value is somewhere around 0.25
+
+
+
+## not sure if this is perfect for our model with random effects.
+## but let's try:
+
+
+xx <- fullModCUEdf[, !colnames(fullModCUEdf) %in% c("CUE", "CORE")]
+
+colnames(fullModCUEdf)
+
+lm1 <- glmmLasso(CUE ~ DepthSection + Subsite + Comp.1 + Comp.2 + Subsite + ASV371+ASV301+ASV474+ASV1364+ASV318+ASV271+ASV378+ASV1178+ASV1794+ASV896,
+                 data = fullModCUEdf,
+                 rnd = list(Core=~1),
+                 lambda=1,
+                 final.re=TRUE
+                 )
+
+
+summary(lm1)
+
+lm1 <- glmmLasso(CUE ~ Subsite + Comp.1 + Comp.2 + Subsite + ASV371+ASV301+ASV474+ASV1364+ASV318+ASV271+ASV378+ASV1178+ASV1794+ASV896,
+                 data = fullModCUEdf,
+                 rnd = list(Core=~1),
+                 lambda=0.25,
+                 final.re=TRUE
+                 )
+
+lm1 <- glmmLasso(CUE ~ Subsite + Comp.1 + Comp.2,
+                 data = fullModCUEdf,
+                 rnd = list(Core=~1),
+                 lambda=0.25 
+                 )
+
+lm1 <- glmmLasso(CUE ~ Subsite + Comp.1 + Comp.2,
+                 data = fullModCUEdf,
+                 rnd = NULL,
+                 lambda=0.25 
+                 )
+
+## interesting example here: https://davidabugaber.com/blog/f/find-the-optimal-mixed-model-for-your-data-with-glmmlasso
+
+## ugh. Back up. How does a normal glm behave?:
+
+model <- lmer(log(CUE) ~ . + ( 1 | Core ), data=fullModCUEdf) ## a lot of warnings 
+
+model <- lmer(log(CUE) ~ . - DepthSection + ( 1 | Core ), data=fullModCUEdf) ## it's not just depth section causing the problem. 
+
+## try scaling vars:
+
+head(fullModCUEdf, 2)
+
+dim(fullModCUEdf)
+
+colnames(fullModCUEdf)
+
+rm(aa)
+## let's remake our dataframe with the numeric predictors scaled:
+numPreds <- c("DepthSection","Comp.1","Comp.2","ASV371","ASV301","ASV474","ASV1364","ASV318","ASV271","ASV378","ASV1178","ASV1794","ASV896")
+scaledNumPreds <- scale(fullModCUEdf[,numPreds],center=TRUE,scale=TRUE)
+aa <- merge( fullModCUEdf[,!(colnames(fullModCUEdf) %in% numPreds)],
+              data.frame(scaledNumPreds), by="row.names")
+rownames(aa) <- aa$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]; aa$Row.names <- NULL
+fullModCUEdf_scaled <- aa
+rm(aa)
+
+head(fullModCUEdf, 2)
+
+fullModCUEdf_scaled
+
+model <- lmer(log(CUE) ~ DepthSection + ( 1 | Core ), data=fullModCUEdf) 
+
+model <- lmer(log(CUE) ~ Subsite + ( 1 | Core ), data=fullModCUEdf) 
+
+model <- lmer(log(CUE) ~ Subsite + DepthSection + ( 1 | Core ), data=fullModCUEdf) 
+## adding the random intercept effect doesn't change anything
+
+## random slope not really either:
+
+model <- lmer(log(CUE) ~ DepthSection + ( 1 | Core ) + (1 | Subsite), data=fullModCUEdf) 
+
+model <- lmer(log(CUE) ~ Subsite*DepthSection + ( DepthSection | Core ), data=fullModCUEdf) 
+
+model <- lm(log(CUE) ~ Subsite*DepthSection, data=fullModCUEdf) 
+
+model <- lm(log(CUE) ~ Subsite*DepthSection, data=fullModCUEdf) 
+
+model <- lm(log(CUE) ~ Comp.1, data=fullModCUEdf) 
+
+lm(log(CUE) ~ DepthSection*Comp.2, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ Subsite*DepthSection + Comp.2, data=fullModCUEdf) |> summary()
+
+glm1 <- lm(log(CUE) ~ DepthSection + Comp.1 + Comp.2 + Subsite + ASV371+ASV301+ASV474+ASV1364+ASV318+ASV271+ASV378+ASV1178+ASV1794+ASV896, data=fullModCUEdf)
+
+
+model <- lmer(log(CUE) ~ ASV371+ASV301+ASV474+ASV1364+ASV318+ASV271+ASV378+ASV1178+ASV1794+ASV896 + ( 1 | Core ), data=fullModCUEdf) 
+
+model <- lmer(log(CUE) ~ Subsite*DepthSection + ASV371+ASV301+ASV474+ASV1364+ASV318+ASV271+ASV378+ASV1178+ASV1794+ASV896 + ( 1 | Core ), data=fullModCUEdf_scaled)
+
+summary(model)
+
+## depth is an indicator, for sure. 
+## But to address the ASVs, maybe we try again with lasso
+## glmmlasso sucked, too many quirks and poor documentation.
+## try again with glmnet, this time with just the 
+## the ASVs
+
+head(fullModCUEdf, 2)
+
+asvs <- c("ASV371","ASV301","ASV474","ASV1364","ASV318","ASV271","ASV378","ASV1178","ASV1794","ASV896")
+
+## find lambda, again, but just with the ASVs:
+
+xx <- fullModCUEdf[,asvs]
+X <- model.matrix(~., data=xx)
+y <- log(fullModCUEdf$CUE)
+
+lambdas <- vector()
+for (i in 3:10){
+  cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=i)  # alpha=1 for Lasso
+  best.lambda <- cv.lasso$lambda.min
+  plot(cv.lasso)
+  print(paste("n=",i)) ## 
+  print(paste("best lambda =",best.lambda)) ## 
+  lambdas <- c(lambdas, best.lambda) 
+  readline()
+}
+
+mean(lambdas)
+
+## .15 .15 .13
+
+## huh, pretty low. Is it different if we scale?
+
+xx <- fullModCUEdf_scaled[,asvs]
+X <- model.matrix(~., data=xx)
+y <- log(fullModCUEdf$CUE)
+
+lambdas <- vector()
+for (i in 3:10){
+  cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=i)  # alpha=1 for Lasso
+  best.lambda <- cv.lasso$lambda.min
+  plot(cv.lasso)
+  print(paste("n=",i)) ## 
+  print(paste("best lambda =",best.lambda)) ## 
+  lambdas <- c(lambdas, best.lambda) 
+  readline()
+}
+
+mean(lambdas) ## nope. Still around 0.15
+
+justASVmodelDF <- fullModCUEdf_scaled[,c("CUE", asvs)]
+
+lmer(log(CUE) ~ ., data=justASVmodelDF) |> summary()
+
+lm(log(CUE) ~ ., data=justASVmodelDF) |> summary()
+
+head(justASVmodelDF, 2)
+
+abioticPCAloadings
+
+head(fullModCUEdf,2)
+
+biplot(PCAabio)
+
+lm(log(CUE) ~ Comp.1 + Comp.2 + Comp.3 + Comp.4, data=fullModCUEdf) |> summary() 
+
+lm(log(CUE) ~ Comp.4, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ Comp.2 + Comp.3 + Comp.4, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ Comp.2 + Comp.3 , data=fullModCUEdf) |> summary() 
+
+lm(log(CUE) ~ Comp.2 + DepthSection, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ Subsite, data=fullModCUEdf) |> summary() 
+
+lm(log(CUE) ~ DepthSection + Comp.2 + Comp.3 + Comp.4, data=fullModCUEdf) |> summary()
+
+## right now, it looks like depth, subsite, and hydrogen are the best predictors 
+## of CUE. But they are highly correlated, so they stat confidence drops in 
+## in individual terms 
+
+lm(log(CUE) ~ DepthSection + Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ DepthSection + Subsite + Comp.2, data=fullModCUEdf) |> summary()
+
+lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
+
+## so as far as I can tell, the two principle components of our environmental
+## data explain same the variation that is explained by depth. 
+
+## tomorrow - catch up the notebook, make the official model the Subsite + PCA1 + PCA2. 
+
+## but what about the indicator species?
