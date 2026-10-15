@@ -1391,6 +1391,8 @@ asvs <- c("ASV371","ASV301","ASV474","ASV1364","ASV318","ASV271","ASV378","ASV11
 
 ## find lambda, again, but just with the ASVs:
 
+fullModCUEdf
+
 xx <- fullModCUEdf[,asvs]
 X <- model.matrix(~., data=xx)
 y <- log(fullModCUEdf$CUE)
@@ -1472,4 +1474,187 @@ lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
 
 ## tomorrow - catch up the notebook, make the official model the Subsite + PCA1 + PCA2. 
 
-## but what about the indicator species?
+## but what about the indicator species? still not done with that half of things
+
+## let's back up, and try making PCAs out of a community matrix that consists of all indicator species. 
+## I forget if we need to match the number of rows (sites) and colums (species...),
+
+## the full community of high CUE indicator OTUs:
+
+## sort our indicator species by general abundance
+highCUEindSpecResults_corrected
+highCUEasvAll <- rownames(highCUEindSpecResults_corrected)
+
+## get community matrix of these:
+aa <- data.frame(otu_table(ps007_cleaned_sqrt_prop)[,highCUEasvAll ])
+bb <- names(sort(colSums(aa), decreasing=TRUE))
+cc <- data.frame(otu_table(ps007_cleaned_sqrt_prop)[,bb])
+## we are missing CUE data for a lot of sites. Reduce to ones for which we have CUE values:
+dd <- cc[rownames(oxCUE),]
+## drop ASVs down to number of samples, classic PCA can't handle more.
+ee <- dd[,1:nrow(dd)-1]
+## but then we have to get of some rows, that now have no ASVs in them:
+samplesNoHighCUEasvFilt <- !(rowSums(ee) == 0) ## get rid of samples without these ASVs
+ff <- ee[samplesNoHighCUEasvFilt,] 
+## so we again have too many ASVs:
+gg <- ff[,1:nrow(ff)-1]
+## do we have any new empty rows again from dropping ASVs?
+any(rowSums(gg) == 0) ## no
+## does it make a big difference if we transform again?
+hh <- decostand(gg, "hellinger") 
+comm4bioticCUEpca <- hh
+rm(aa, bb, cc, dd, ee, ff, gg, hh)
+
+comm4bioticCUEpca
+
+comm4bioticCUEpca[1:5,1:5] ## looks okay
+
+dim(comm4bioticCUEpca)
+
+
+PCAbio <- princomp(comm4bioticCUEpca, cor=TRUE)
+
+plot(PCAbio)
+abline(h = mean(PCAbio$sdev^2), col = "red")
+
+## scree plot shows most variance explained by far in the first PC.
+## not so clear after that, maybe to PC7
+
+barplot(PCAbio$sdev^2,las=2)
+abline(h = mean(PCAbio$sdev^2), col = "red")
+
+## after the first, the next 6 or so might be useful, but that is a lot.
+## can we select among them somehow?
+
+bioticPCAloadings <- loadings(PCAbio)
+bioticScores <- data.frame(PCAbio$scores)
+
+## maybe try lasso regression again?:
+
+rownames(bioticScores) %in% rownames(oxCUE)
+
+## there are a few CUE scores that we now don't have rows for in our biotic PCA:
+CUEinBioPCAfilt <- rownames(oxCUE) %in% rownames(bioticScores)
+
+## what are these?
+oxCUE[!CUEinBioPCAfilt,] ## S25 and S35
+sample_data(ps007_cleaned_sqrt_prop)[c("S25","S35"),] 
+## deep thermokarst, section 5, AT1 and AT3, makes sense.
+
+xx <- bioticScores[,1:7]
+X <- model.matrix(~., data=xx)
+y <- log(oxCUE[CUEinBioPCAfilt,"CUE"])
+cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=3)  # alpha=1 for Lasso
+
+## just checking:
+all(rownames(xx) == rownames(log(oxCUE[CUEinBioPCAfilt,"CUE", drop=FALSE]))) ## yup
+
+lambdas <- vector()
+for (i in 3:10){
+  cv.lasso <- cv.glmnet(X, y, alpha=1, nfolds=i)  # alpha=1 for Lasso
+  best.lambda <- cv.lasso$lambda.min
+  plot(cv.lasso)
+  print(paste("n=",i)) ## 
+  print(paste("best lambda =",best.lambda)) ## 
+  lambdas <- c(lambdas, best.lambda) 
+  readline()
+}
+
+mean(lambdas)
+
+## as before, very low. lambda ~ .35
+## maybe we just ignore it put lambda higher.
+## anyway, run the regression:
+
+lasso.model <- glmnet(X, y, alpha=1, lambda=0.35)
+
+coef(lasso.model) 
+
+## even with this low lambda, looks like only the first Comp.1 is recommended 
+
+lasso.model0 <- glmnet(X, y, alpha=1, lambda=0)
+
+coef(lasso.model0) 
+
+## how does a classic lm look, using just this PC1?:
+
+(y ~ bioticScores$bioticScores)
+
+summary(lm(y ~ bioticScores[,1]))
+summary(lm(y ~ bioticScores[,1] + bioticScores[,2]))
+summary(lm(y ~ bioticScores[,1] + bioticScores[,2] + bioticScores[,3]))
+
+## etc. Seems accurate. 
+## this points to the following species as important, in order of 
+## importance:
+
+
+bioticPCAloadings[,"Comp.1", drop=F ]
+
+## this looks like a cluster of the following species that maybe 
+## important to predicting CUE in our system:
+
+cuePCA1asvs <- 
+c("ASV371", "ASV301", "ASV474", "ASV1364", "ASV271", "ASV378",
+  "ASV1178", "ASV896", "ASV226", "ASV128", "ASV856", "ASV182",
+  "ASV354", "ASV716", "ASV2755", "ASV1594", "ASV1122", "ASV1537")
+
+## how is it when we put this into our larger model, with abiotic predictors?:
+
+bioticScores <- data.frame(PCAbio$scores)
+
+
+
+## our full abiotic model from yesterday looks like this:
+lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
+
+
+dim(fullModCUEdf) ## we used a larger dataset (2 more samples) for this model.
+## how is it without these samples?:
+rownames(fullModCUEdf) %in% rownames(bioticScores)
+rownames(bioticScores) %in% rownames(fullModCUEdf)
+
+
+
+
+
+
+lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
+######################################################################
+lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf[rownames(bioticScores),]) |> summary()
+
+## we lose some power to tell the difference among thermokarst and palsa, but still 
+## a strong model
+
+## combine and clean up a bit
+aa <- merge(fullModCUEdf[rownames(bioticScores),], bioticScores[,'Comp.1', drop=F], by="row.names")
+rownames(aa) <- aa$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+bb <- aa[rowsInOrder,];
+cc <- bb[,c("CUE","DepthSection","Core","Subsite","Comp.1.x","Comp.2","Comp.3","Comp.4","Comp.1.y")]
+bioAbioCUEdf <- cc
+rm(aa,bb,cc)
+
+lm(log(CUE) ~ Subsite + Comp.1.x + Comp.2, data=bioAbioCUEdf) |> summary()
+
+lm(log(CUE) ~ Subsite + Comp.1.x + Comp.2 + Comp.1.y, data=bioAbioCUEdf) |> summary()
+
+## they don't seem to be explaining additional variance. Alone they are highly significant
+## and explain a lot of variance:
+
+lm(log(CUE) ~  Comp.1.y, data=bioAbioCUEdf) |> summary()
+
+## but I assume they are collinear with the other predictors.
+
+## like the other predictors that matter, it is heavily 
+## correlated with depth:
+ggplot(data=bioAbioCUEdf, aes(x=DepthSection, y=Comp.1.y)) +
+  geom_point() + geom_smooth(method = lm) 
+
+## so same issue as always. Enough to report here.  
+
+tax_table(ps007_cleaned_sqrt_prop)[cuePCA1asvs,]
+
+asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, Dormibacteria and Solirubrobacterales
+
+## enough time on this, update notebook and move onto community function analysis.
