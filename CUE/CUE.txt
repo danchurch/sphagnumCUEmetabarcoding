@@ -933,12 +933,22 @@ abline(h = mean(aa$sdev^2), col = "red")
 ## 
 
 
+summary(PCAabio)
 
 PCAabio <- princomp(abiotic4pca, cor=TRUE)
 
+class(PCAabio[])
+
+barplot(PCAabio[]$sdev^2, las=2)
+abline(h = mean(PCAabio$sdev^2), col = "red") ## scaled to 1
+
+
+barplot(PCAbio$sdev^2,las=2)
+
+
 abioticPCAloadings <- loadings(PCAabio)
 
-abioticPCAloadings
+abioticPCAloadings[,1:3]
 
 abioticScores <- data.frame(PCAabio$scores)
 
@@ -970,9 +980,14 @@ PCAswithDepth_df <- aa; rm(aa)
 ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.1)) +
   geom_point() + geom_smooth(method = lm)
 
+pc1depth <- ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.1)) +
+             geom_point() + geom_smooth(method = lm)
+
 ## and PCA2 decreases with depth
-ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.2)) +
-  geom_point() + geom_smooth(method = lm)
+pc2depth <- ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.2)) +
+             geom_point() + geom_smooth(method = lm)
+
+pc1depth + pc2depth
 
 ## and PCA3 has no real relationship with depth.
 ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.3)) +
@@ -1139,8 +1154,8 @@ aa <- merge(oxCUE["CUE"],data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("De
 rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
 aa <- merge(aa, abioticScores[,c("Comp.1","Comp.2","Comp.3","Comp.4")], by="row.names")
 rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
-aa <- merge(aa, data.frame(otu_table(ps007_cleaned_sqrt_prop)[,ASVsforCUEmodel]), by="row.names")
-rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+#aa <- merge(aa, data.frame(otu_table(ps007_cleaned_sqrt_prop)[,ASVsforCUEmodel]), by="row.names")
+#rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
 aa <- aa[rowsInOrder,]
 fullModCUEdf <- aa; rm(aa)
@@ -1657,4 +1672,9 @@ tax_table(ps007_cleaned_sqrt_prop)[cuePCA1asvs,]
 
 asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, Dormibacteria and Solirubrobacterales
 
-## enough time on this, update notebook and move onto community function analysis.
+## if time repeat our CUE graph, with these interesting PCAs.
+
+## but for now, update notebook and keep moving.
+
+
+
