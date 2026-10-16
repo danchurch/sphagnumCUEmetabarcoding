@@ -15,7 +15,7 @@ library(phylogram)
 library(dendextend)
 library(vegan)
 library(fitdistrplus)
-library(glmmLasso)
+#library(glmmLasso)
 library(glmnet)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
@@ -1641,6 +1641,7 @@ lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf[rownames(bioticScores
 ## we lose some power to tell the difference among thermokarst and palsa, but still 
 ## a strong model
 
+
 ## combine and clean up a bit
 aa <- merge(fullModCUEdf[rownames(bioticScores),], bioticScores[,'Comp.1', drop=F], by="row.names")
 rownames(aa) <- aa$Row.names
@@ -1668,6 +1669,50 @@ ggplot(data=bioAbioCUEdf, aes(x=DepthSection, y=Comp.1.y)) +
 
 ## so same issue as always. Enough to report here.  
 
+## coming back to this as I update the notebook on 16.10.26
+## interestingly, the second PC is really important if we include
+## interactions:
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+oxCUE <- read.csv("oxCUE.csv", row.names=1, check.names=FALSE)
+
+vars2red <-
+  c("N","C","H","S","O","CN","CH","HC","OC","pH","hi1","hi4",
+  "holocellulose_content_2","klason_lignin_content_2",
+  "phosphorus_content_1","bulk_density_1",
+  "macroporosity_1","degree_of_decomposition_1",
+  "eac","edc")
+
+abiotic4pca <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,vars2red]
+PCAabio <- princomp(abiotic4pca, cor=TRUE)
+abioticPCAloadings <- loadings(PCAabio)
+abioticScores <- data.frame(PCAabio$scores)
+
+
+
+aa <- merge(oxCUE[,"CUE", drop=F],data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("DepthSection", "Core", "Subsite")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+aa <- merge(aa, abioticScores[,c("Comp.1","Comp.2","Comp.3","Comp.4")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]
+fullModCUEdf <- aa; rm(aa)
+
+head(fullModCUEdf)
+
+lm(log(CUE) ~ DepthSection + Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
+
+## so the simplest model with the most explanatory power is:
+lm(log(CUE) ~ Subsite + Comp.1*Comp.2, data=fullModCUEdf) |> summary()
+
+## need to think about the biological interpretation. Seems like 
+## the availability of electrons, probably in the form of cellulose
+## is important to predicting the CUE.
+
+## while we are here, check correlations with CUE directly of these 
+## abiotic PCs...
+
+
 tax_table(ps007_cleaned_sqrt_prop)[cuePCA1asvs,]
 
 asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, Dormibacteria and Solirubrobacterales
@@ -1675,6 +1720,5 @@ asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, D
 ## if time repeat our CUE graph, with these interesting PCAs.
 
 ## but for now, update notebook and keep moving.
-
 
 
