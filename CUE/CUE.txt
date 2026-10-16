@@ -205,6 +205,7 @@ write.csv(anoxCUE, "anoxCUE.csv")
 write.csv(oxCUE, "oxCUE.csv")
 
 oxCUE <- read.csv("oxCUE.csv", row.names=1, check.names=FALSE)
+
 anoxCUE <- read.csv("anoxCUE.csv", row.names=1, check.names=FALSE)
 
 #anoxCUE <- read.csv("anoxCUE.csv", row.names=1)
@@ -695,10 +696,9 @@ new_scale_color() + els + elCS + hiCUEmdsPts
 
 ## ok, so use these run some indicator species analysis:
 
-##
 #tax <- data.frame(tax_table(ps007_cleaned_sqrt_prop))
 otutab <- as.data.frame(otu_table(ps007_cleaned_sqrt_prop))
-envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+sampData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 
 ## add column indicating high/low CUE:
 
@@ -706,25 +706,29 @@ envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
 ## run the indicator species analysis:
 
 highOxCUEfilt <- sampData$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+
 aa <- as.character(highOxCUEfilt * 1)
 cueMap <- c("high","low"); names(cueMap) <- c("1","0")
-envData$highOxCUE <- cueMap[aa]
 
-envData$highOxCUE
+sampData$highOxCUE <- cueMap[aa]
+
+sampData$highOxCUE
 
 ## probably good to save this into our phyloseq obj:
-all(rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(envData))
+all(rownames(sample_data(ps007_cleaned_sqrt_prop)) == rownames(sampData))
 
-sample_data(ps007_cleaned_sqrt_prop)$oxCUE <- envData$highOxCUE
+sample_data(ps007_cleaned_sqrt_prop)$oxCUE <- sampData$highOxCUE
 
-## doing this on 12.10.27, last git commit before it: 5a711587a08e9eb48792d70328cbe801ae8f942e 
-#save(ps007_cleaned_sqrt_prop, file="ps007_cleaned_sqrt_prop.rda")
+## doing this on 16.10.26, last git commit before it: c48812095b63707b9dd9509be75b3b21110f36ca 
+save(ps007_cleaned_sqrt_prop, file="../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 
-rownames(otutab) == rownames(envData)
+head(sample_data(ps007_cleaned_sqrt_prop))
+
+rownames(otutab) == rownames(sampData)
 
 ## this should allow a indicator species 
 
-indicHighCUE <- multipatt(otutab, envData$highOxCUE,
+indicHighCUE <- multipatt(otutab, sampData$oxCUE,
                     max.order=1,
                     control = how(nperm=999))
 
@@ -740,17 +744,19 @@ highCUEindSpecResults <- highCUEindSpecResults[ complete.cases(highCUEindSpecRes
 
 head(highCUEindSpecResults)
 
-## funny, the FDR seems binned, many (200) matches with fdr = 0.07693182, and none with lower
+(highCUEindSpecResults)
+
 ## FDR. Pvalues for all of these are quite low, 0.004-0.005. Let's keep them, explore a little.
 ## keeping only those with a very strong association metric (> 0.8):
 
-highCUEindSpecResults_corrected <- highCUEindSpecResults[highCUEindSpecResults$stat > 0.8 & highCUEindSpecResults$fdr < 0.08,]
+highCUEindSpecResults_corrected <- highCUEindSpecResults[highCUEindSpecResults$stat > 0.8 & highCUEindSpecResults$fdr < 0.1,]
 
 
 highCUEindSpecResults_corrected
 
 
-dim(highCUEindSpecResults_corrected) ## down to 197 OTUS
+dim(highCUEindSpecResults_corrected) ## down to 319 OTUS
+
 ## all are associated with CUE. So we have a sort of high-CUE community here.
 
 ## is it also necessary to do a DA? meh. 
@@ -769,13 +775,7 @@ highCUEmags <- highCUEasvs[highCUEmagsFilt]
 
 highCUEmags
 
-## these have MAGs:
-## ASV829 
-## ASV271 
-## ASV1794
-## ASV1178
-## ASV1364
-## ASV2328
+## a lot of these have MAGs. Might be useful later.
 
 highCUEindSpecResults_corrected[highCUEmags,]
 
@@ -783,6 +783,7 @@ highCUEindSpecResults_corrected[highCUEmags,]
 ## pretty different. 
 
 asvMAG[highCUEmags,]
+
 tax_table(ps007_cleaned_sqrt_prop)[highCUEmags,]
 
 ## actually, they essentially agree, but one has to 
@@ -803,7 +804,7 @@ tax_table(ps007_cleaned_sqrt_prop)[highCUEmags,]
 ## H2 consuming bacteria, but some have been observed to 
 ## fix CO2 with the calvin cycle using this energy.  
 
-## not sure how representative these are, just 6 ASVs our ~200
+## not sure how representative these are
 
 ## with the full 200 indicator OTUs, a Krona would be good 
 
@@ -811,10 +812,18 @@ tax_table(ps007_cleaned_sqrt_prop)[highCUEmags,]
 
 envData$highOxCUE
 
+highOxCUEfilt <- sampData$SampleID %in% oxCUE[oxCUE$CUE > 0.4,"Sample"]
+
+
+aa <- subset_samples( ps007_cleaned_sqrt_prop, oxCUE == "high")
+sample_data(aa)
+
 ps007_highCUE <- 
-  subset_samples( ps007_cleaned_sqrt_prop, highOxCUEfilt) |>
+  subset_samples( ps007_cleaned_sqrt_prop, oxCUE == "high") |>
   prune_taxa(highCUEasvs, x=_)
  
+ps007_highCUE
+
 make_krona(ps007_highCUE, outfile="../CUE/krona/ps007_highCUE_krona.html")
 
 ## the usual, lots of acidobacteria, lots of actinobacteria
@@ -823,7 +832,6 @@ make_krona(ps007_highCUE, outfile="../CUE/krona/ps007_highCUE_krona.html")
 highCUEindSpecResults_corrected
 
 ps007_highCUE_allSamps <- prune_taxa(highCUEasvs, ps007_cleaned_sqrt_prop)
-
 psObject <- ps007_highCUE_allSamps
 lastValue <- function(x)   tail(x[!is.na(x)], 1) ## useful for getting last level of tax id
 commBray <- vegdist(otu_table(ps007_cleaned_sqrt_prop))
@@ -851,6 +859,13 @@ tabasco(commData,
         ) 
 
 ## which are our high CUE samples?
+
+S3  AP1_3
+S6  AP4_1
+S7  AP2_2
+S12 AP3_2
+S16 AP2_1
+ 
 
 
 CUE[CUE$Treatment == "oxic" & CUE$CUE > 0.5,]
@@ -1498,6 +1513,7 @@ lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
 
 ## sort our indicator species by general abundance
 highCUEindSpecResults_corrected
+
 highCUEasvAll <- rownames(highCUEindSpecResults_corrected)
 
 ## get community matrix of these:
@@ -1535,6 +1551,8 @@ abline(h = mean(PCAbio$sdev^2), col = "red")
 ## scree plot shows most variance explained by far in the first PC.
 ## not so clear after that, maybe to PC7
 
+PCAbio$sdev
+
 barplot(PCAbio$sdev^2,las=2)
 abline(h = mean(PCAbio$sdev^2), col = "red")
 
@@ -1549,7 +1567,10 @@ bioticScores <- data.frame(PCAbio$scores)
 rownames(bioticScores) %in% rownames(oxCUE)
 
 ## there are a few CUE scores that we now don't have rows for in our biotic PCA:
+
 CUEinBioPCAfilt <- rownames(oxCUE) %in% rownames(bioticScores)
+
+CUEinBioPCAfilt
 
 ## what are these?
 oxCUE[!CUEinBioPCAfilt,] ## S25 and S35
@@ -1575,19 +1596,21 @@ for (i in 3:10){
   readline()
 }
 
-mean(lambdas)
+optLambda <- mean(lambdas)
 
 ## as before, very low. lambda ~ .35
 ## maybe we just ignore it put lambda higher.
 ## anyway, run the regression:
 
-lasso.model <- glmnet(X, y, alpha=1, lambda=0.35)
+lasso.model <- glmnet(X, y, alpha=1, lambda=optLambda)
 
 coef(lasso.model) 
 
 ## even with this low lambda, looks like only the first Comp.1 is recommended 
 
 lasso.model0 <- glmnet(X, y, alpha=1, lambda=0)
+
+lasso.model0
 
 coef(lasso.model0) 
 
@@ -1603,6 +1626,7 @@ summary(lm(y ~ bioticScores[,1] + bioticScores[,2] + bioticScores[,3]))
 ## this points to the following species as important, in order of 
 ## importance:
 
+## stopping here 16.10.2026 ##
 
 bioticPCAloadings[,"Comp.1", drop=F ]
 
@@ -1618,6 +1642,7 @@ c("ASV371", "ASV301", "ASV474", "ASV1364", "ASV271", "ASV378",
 
 bioticScores <- data.frame(PCAbio$scores)
 
+biplot(PCAbio)
 
 
 ## our full abiotic model from yesterday looks like this:
@@ -1688,8 +1713,6 @@ PCAabio <- princomp(abiotic4pca, cor=TRUE)
 abioticPCAloadings <- loadings(PCAabio)
 abioticScores <- data.frame(PCAabio$scores)
 
-
-
 aa <- merge(oxCUE[,"CUE", drop=F],data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("DepthSection", "Core", "Subsite")], by="row.names")
 rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
 aa <- merge(aa, abioticScores[,c("Comp.1","Comp.2","Comp.3","Comp.4")], by="row.names")
@@ -1712,8 +1735,14 @@ lm(log(CUE) ~ Subsite + Comp.1*Comp.2, data=fullModCUEdf) |> summary()
 ## while we are here, check correlations with CUE directly of these 
 ## abiotic PCs...
 
+abioPC1_CUE <- ggplot(data=fullModCUEdf, aes(x=Comp.1, y=CUE)) +
+                 geom_point()
 
-tax_table(ps007_cleaned_sqrt_prop)[cuePCA1asvs,]
+abioPC2_CUE <- ggplot(data=fullModCUEdf, aes(x=Comp.2, y=CUE)) +
+                 geom_point()
+
+abioPC1_CUE + abioPC2_CUE 
+
 
 asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, Dormibacteria and Solirubrobacterales
 
