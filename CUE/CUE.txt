@@ -1656,9 +1656,6 @@ rownames(bioticScores) %in% rownames(fullModCUEdf)
 
 
 
-
-
-
 lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf) |> summary()
 ######################################################################
 lm(log(CUE) ~ Subsite + Comp.1 + Comp.2, data=fullModCUEdf[rownames(bioticScores),]) |> summary()
@@ -1676,7 +1673,14 @@ cc <- bb[,c("CUE","DepthSection","Core","Subsite","Comp.1.x","Comp.2","Comp.3","
 bioAbioCUEdf <- cc
 rm(aa,bb,cc)
 
-lm(log(CUE) ~ Subsite + Comp.1.x + Comp.2, data=bioAbioCUEdf) |> summary()
+colNames(bioAbioCUEdf) <- 
+c("CUE","DepthSection","Core","Subsite","abioticPC1","abioticPC2","Comp.3","Comp.4","bioticPC1")
+
+bioAbioCUEdf$Comp.4 <- bioAbioCUEdf$Comp.3 <- NULL
+
+lm(log(CUE) ~ Subsite + abioticPC1 + abioticPC2, data=bioAbioCUEdf) |> summary()
+print("##################################################")
+lm(log(CUE) ~ Subsite + abioticPC1 + abioticPC2 + bioticPC1, data=bioAbioCUEdf) |> summary()
 
 lm(log(CUE) ~ Subsite + Comp.1.x + Comp.2 + Comp.1.y, data=bioAbioCUEdf) |> summary()
 
@@ -1746,8 +1750,10 @@ abioPC1_CUE + abioPC2_CUE
 
 asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, Dormibacteria and Solirubrobacterales
 
-## if time repeat our CUE graph, with these interesting PCAs.
+## if time:
+## 1.  repeat our CUE graph, with these interesting PCAs.
+## 2.  rerun pipeline for anaerobic CUE, might be interesting.
+
 
 ## but for now, update notebook and keep moving.
-
 
