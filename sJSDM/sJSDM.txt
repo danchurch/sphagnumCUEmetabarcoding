@@ -1,0 +1,311 @@
+## so far, community analysis has focused on patterns in
+## our general amplicon data, using taxonomic data from 
+## 16S matches to SILVA. The 16s matches to
+## annotated genomes from the Minnesota data
+## may allow a much more targeted functional analysis
+## so let's give it a run.
+
+## it would be nice to describe this in a JSDM.
+
+## let's look at some of the trends in space that
+## we see with the various groups, and how much of
+## a sample size we have with these groups.
+
+library(phyloseq)
+library(ape)
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## laptop
+
+## the general PS objects of interest are here:
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## somehow, we need to get to pseudocounts of OTUs that are MAGs. 
+## what makes sense here?
+
+## the matched ASVs are here:
+
+asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names="qseqid")
+
+## make a subsetted phyloseq object to just those we have MAGs for:
+
+rownames(asvMAG)
+
+ps007_cleaned_sqrt_prop
+
+sample_names(ps007_cleaned_sqrt_prop)
+
+PS_mag <- prune_taxa(rownames(asvMAG), ps007_cleaned_sqrt_prop)
+
+any(rowSums(otu_table(PS_mag)) == 0)
+any(colSums(otu_table(PS_mag)) == 0)
+
+barplot(rowSums(otu_table(PS_mag)), las=2) 
+
+barplot(sort(rowSums(otu_table(PS_mag))), las=2)
+
+barplot(rowSums(otu_table(PS_mag)), las=2) 
+
+
+rowSums(otu_table(PS_mag))
+
+
+barplot(rowSums(otu_table(PS_mag)), las=2) 
+
+## samples 1-20 are palsa, samples 21-40 are thermokarst. 
+## looks like we have most in common with the minnesota
+## dataset in the thermokarst, up to 30% of our 
+## log-transformed read abundances are from OTUs that align well
+## to a MAG from Minnesota. 
+
+ps007_cleaned_sqrt_prop
+
+## it looks like there is some real and some artificial 
+## diversity here. The artificial would be due to OTU splitting 
+
+## probably the best strategy here would be to combine
+## otus based on which MAG they aligned to. 
+
+## then develop some pseudo-count method, and use the community 
+## matrix for a JSDM model
+
+## maybe also a community matrix lumped by function? Methanogen, Acetogen, etc.  
+
+## start with with MAG-based approached, see what it looks like.
+
+## how to lump these...
+
+## curious, does the MAG assignment follow the phylogeny?
+
+plot_tree( PS_mag, color="Kingdom")
+
+is.rooted(phy_tree( PS_mag))
+
+## hard to say. Can we switch our taxonomy table for a moment to just show MAG names?:
+
+PS_mag <- prune_taxa(rownames(asvMAG), ps007_cleaned_sqrt_prop)
+aa <- data.frame(tax_table(PS_mag))
+aa$Species <- asvMAG[rownames(aa),"MAG_ID"]
+tax_table(PS_mag) <- as.matrix(aa)
+rm(aa)
+
+tax_table(PS_mag)
+
+## now, can we merge by species?:
+
+bb = tax_glom(PS_mag, "Species")
+
+dim(tax_table(bb))
+
+head(tax_table(bb))
+
+dim(tax_table(bb)[,"Species"])
+
+length(unique(tax_table(bb)[,"Species"]))
+
+dupFilt <- duplicated(data.frame(tax_table(bb))[,"Species"])
+
+tax_table(bb)[dupFilt] ## get the MAGs that appear more than once. Shouldn't...
+
+dupFilt <- tax_table(bb)[,"Species"] %in% c("SPRUCE 415", "SPRUCE 404","SPRUCE 451")
+tax_table(bb)[dupFilt] ## we have some strange assignments. 
+## some completely unrelated organisms, theoretically, assigned
+## to the same mag
+
+
+## what should these be?
+magDupFilt <- asvMAG[,"MAG_ID"] %in% c("SPRUCE 415", "SPRUCE 404","SPRUCE 451")
+asvMAG[magDupFilt,c(2,24:30)]
+
+## SPRUCE 415 Actinomycete Solirubrobacterales
+## SPRUCE 404 Desulfobacterota, Syntrophales 
+## SPRUCE 451 Myxococcota, Polyangiaceae
+
+## ASV541 is classified as Clostridium by our NBC/Silva, but its 16s blasts to a desulfobacterota/syntrophales MAG SPRUCE 404
+## ASV2065 is consistently classified Desulfobacterota/Syntrophales
+## ASV1096 and ASV1502 are classified consistently, to the same Actinobacterial, MAG SPRUCE 415.
+## They just have slightly different classifications by NBC/silva, the same except 
+## one is further classified to genus
+##  ASV2650 is classified as Acidobacteriota by NBC/silva but blasts to SPRUCE 451, Myxococcota
+## and ASV4559 is consistently classified to Myxoccocata 
+
+## so ASV541 is weird, probably and error somewhere, closer inspection needed
+## closer inspection done - this looks like it blasted to a mis-assigned second 16S in SPRUCE 404
+## get rid of it
+## so ASV2065 is fine
+## ASV1096 and ASV1502 could be merged, probably...maybe we leave it to see if they behave similarly, first.
+##  ASV2650 is also weird, closer inspection needed...
+## closer inspection done - this looks like it blasted to a mis-assigned second 16S in SPRUCE 451
+## get rid of it. 
+## ASV4559 is probably okay, could be left alone. 
+
+
+## seems unlikely, but are there duplicate genome names in the minnesota data set?
+
+## moving back to the searchgenomes script to investigate
+
+asvMAG["ASV541",c(2,24:30)] ## desulfobacterota, Syntrophales
+#######################################################
+tax_table(bb)["ASV541",] ## clostridium
+
+ASV2650 "SPRUCE 451"
+ASV4559 "SPRUCE 451"
+
+asvMAG["ASV2650", c(2,24:30)]
+#######################################################
+tax_table(bb)["ASV2650",]
+
+sum(otu_table(ps007_cleaned_sqrt_prop)[,"ASV2650"])
+
+
+
+asvMAG["ASV1096", c(2,24:30)]
+
+asvMAG["ASV541", c(2,24:30)]
+
+asvMAG["ASV2650",c(2,24:30)]
+###########################################################################
+asvMAG["ASV4559",c(2,24:30)]
+
+
+###########################################################################
+###########################################################################
+
+
+tax_table(bb)["ASV2650",]
+###########################################################################
+tax_table(bb)["ASV4559",]
+
+
+
+length(unique(asvMAG$MAG_ID))
+
+asvMAG
+
+## how to handle this?
+
+## the two problem ASVs after merging by SPRUCE mag are ASV541 and ASV2650, get rid of them
+
+rank_names(PS_mag) 
+
+PS_mag
+asvMAG
+
+tax_table(PS_mag)
+
+
+## repeat, and clean out these mags:
+
+PS_mag <- prune_taxa(rownames(asvMAG), ps007_cleaned_sqrt_prop)
+aa <- data.frame(tax_table(PS_mag))
+aa$Species <- asvMAG[rownames(aa),"MAG_ID"]
+tax_table(PS_mag) <- as.matrix(aa)
+bb = tax_glom(PS_mag, "Species")
+cc <- prune_taxa(!(taxa_names(bb) %in% c("ASV541","ASV2650")), bb)
+
+rm(aa, bb)
+
+
+sum(taxa_names(bb) %in% c("ASV541","ASV2650"))
+
+tax_table(bb)[c("ASV541","ASV2650"),]
+
+
+## can we check this taxonomy, we need a comparison of NBC/silva vs. gtdb of MAG:
+
+
+for (i in taxa_names(cc)){
+    print("")
+    print("#####################################################")
+    print(i)
+    print(asvMAG[i, c(2,24:30)])
+    print(tax_table(PS_mag)[i,])
+    readline()
+    print("#####################################################")
+    print("")
+}
+
+tax_table(PS_mag)["ASV2650",]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## checking sJSDM pipeline...
+## github repo is here: https://github.com/TheoreticalEcology/s-jSDM
+## has a tutorial there, we can start by running this.
+
+## get the package. Let's start with just the desktop, see how it performs:
+
+install.packages("sjSDM") 
+
+## dependencies
+
+sjSDM::install_sjSDM(version = "cpu")
+
+library(sjSDM)
+
+## didn't really work, no pytorch. As per their installation instructions:
+
+conda create --name r-sjsdm python=3.7
+
+conda activate r-sjsdm
+
+conda install pytorch torchvision cpuonly -c pytorch
+
+python -m pip install pyro-ppl torch_optimizer madgrad
+
+## make some data:
+
+library(sjSDM)
+
+set.seed(42)
+
+community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
+
+Env <- community$env_weights
+
+Occ <- community$response
+
+SP <- matrix(rnorm(200, 0, 0.3), 100, 2)
+
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1:X2), 
+               se = TRUE, family=binomial("probit"), 
+               sampling = 100L, 
+               verbose = FALSE)
+
+summary(model)
+
+plot(model)
+
+image(getCor(model))
+
+an = anova(model, verbose = FALSE)
+
+plot(an)
+
+results = internalStructure(an)
+
+plot(results)
+
+plotAssemblyEffects(results)
+
+## okay. Looks pretty simple. Can we run werners data through this? 
+

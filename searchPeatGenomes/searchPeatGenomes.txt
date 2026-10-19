@@ -523,5 +523,66 @@ asvMAG.to_csv("asvMAG.csv", index=False)
 ## still no knowledge of the ANME. How much time do we have to chase this
 ## down?
 
+#### looking for repeats #####
+
+## 19.10.26
+## for some reason, we have some redundancy in the theoretically 
+## unique names for genomes, in  
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/searchPeatGenomes")
+
+aa <- read.csv("file2Spruce.csv")
+
+dupFilt <- duplicated(aa$spruceNum)
+dupedGenomeNumbers <- aa[dupFilt,"spruceNum"]
+
+bb <- aa[aa$spruceNum %in% dupedGenomeNumbers,]
+
+bb[order(bb$spruceNum),]
+
+## looking at this, there are 14 duplicated genomes, 
+## a raw submitted one and a refseq assembly. 
+## but that didn't cause the issue with our 16 alignments. 
+## these come from the following: 
+
+#SPRUCE 415
+#SPRUCE 404
+#SPRUCE 451
+
+cc <- aa[aa$spruceNum %in% c("SPRUCE 415", "SPRUCE 404", "SPRUCE 451"),]
+
+## example:
+## SPRUCE 451, GCA_049521295, barrnap file GCA_049521295_bactrRNA.fna
+## labeled by the authors as "polyangian", so myxococcabacter
+## It has two very different 16s in it, probably erroneous assembly? 
+## this matches the taxonomic data in my asv2mag datasheet
+## so why did the ASV2650, which is classified by NBC/silva as 
+## acidobacterota, end up here? Must be the second 16S
+## which might erroneously included here, because this other 16s
+## indeed blasts to acidobacter things
+## Who knows. But one of these 16S sequences from this genome 
+## matches lots of Myxococcobacterota things
+## since their taxonomic assignment was gtdb-tk based, I trust 
+## that is the correct 16s. 
+
+## so in that case, I think we have dismiss ASV2650 from duty as ASV with a mag.
 
 
+c("SPRUCE 415", "SPRUCE 404", "SPRUCE 451")
+
+## example 2:
+## SPRUCE 404 , GCA_049523355, GCA_049523355_bactrRNA.fna
+## ASV541, which is classified as clostridium by NBC/silva
+## blasts to this MAG. However, this MAG is classified by
+## gtdb as a desulfobacterota, Syntrophales
+## This MAG also has two 16S versions.
+## the first indeed blasts to Syntrophales organisms
+## the second, as expected, mostly to Clostridium-type 
+## things.  
+## since the first fits the gtdb, it is almost certainly 
+## the right one. This means we need to throw out
+## ASV541 in our mag analysis. Unfortunate, this was one
+## the most numerous, I expect. 
+
+
+aa[aa$spruceNum == "SPRUCE 404",]
