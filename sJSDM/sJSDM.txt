@@ -12,9 +12,11 @@
 ## a sample size we have with these groups.
 
 library(phyloseq)
-library(ape)
+library(ggplot2)
+library(patchwork)
+#library(ape)
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## laptop
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
 
 ## the general PS objects of interest are here:
 
@@ -24,7 +26,6 @@ load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 ## what makes sense here?
 
 ## the matched ASVs are here:
-
 asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names="qseqid")
 
 ## make a subsetted phyloseq object to just those we have MAGs for:
@@ -99,9 +100,8 @@ dim(tax_table(bb))
 
 head(tax_table(bb))
 
-dim(tax_table(bb)[,"Species"])
-
-length(unique(tax_table(bb)[,"Species"]))
+length(unique(tax_table(bb)[,"Species"])) ## 62, but 
+ntaxa(bb) ## 65 OTUs...
 
 dupFilt <- duplicated(data.frame(tax_table(bb))[,"Species"])
 
@@ -210,9 +210,7 @@ sum(taxa_names(bb) %in% c("ASV541","ASV2650"))
 
 tax_table(bb)[c("ASV541","ASV2650"),]
 
-
 ## can we check this taxonomy, we need a comparison of NBC/silva vs. gtdb of MAG:
-
 
 for (i in taxa_names(cc)){
     print("")
@@ -225,26 +223,121 @@ for (i in taxa_names(cc)){
     print("")
 }
 
-tax_table(PS_mag)["ASV2650",]
+tax_table(PS_mag)["ASV1893",]
+
+asvMAG["ASV1893", c(2,24:30)]
+as.character(refseq(ps007_cleaned_sqrt_prop)["ASV1893"])
+
+## only one other weird result (mismatch between our 16S silva assignment and the MAG taxonomy):
+## ASV1893: NBC/silva give it "Candidatus Kryptonia","BSV26", but MAG tax = Bacteroidata, UBA10030
+## a general blast
+## blasting this gives us Ignavibacteriota, which used to be part of Bacteroidata.
+## makes sense. GTDB (https://gtdb.ecogenomic.org/searches?s=al&q=Kryptonia) says
+## ok, Kryptobacter and  Ignavibacteriota/Bacteroidetes make sense
+## keep it.
+
+## other than that, other matches seem at sensible. Just get rid of the 
+
+## one more time:
+
+PS_mag <- prune_taxa(rownames(asvMAG), ps007_cleaned_sqrt_prop)
+aa <- data.frame(tax_table(PS_mag))
+aa$Species <- asvMAG[rownames(aa),"MAG_ID"]
+tax_table(PS_mag) <- as.matrix(aa)
+bb = tax_glom(PS_mag, "Species")
+
+## as before
+length(unique(tax_table(bb)[,"Species"])) ## 62, but 
+ntaxa(bb) ## 65 OTUs
+
+## find the duplice MAGs
+dupFilt <- duplicated(data.frame(tax_table(bb))[,"Species"])
+dupedMags <- data.frame(tax_table(bb)[dupFilt,])$Species 
+## take a closer look at these
+cc <- prune_taxa(data.frame(tax_table(bb))$Species %in% dupedMags, bb)
+## just checking, how important were these two ASVs?
+colSums(otu_table(cc))
+colSums(otu_table(bb))
+
+barplot(colSums(otu_table(bb)), las=2)
+
+##  ASV541 / SPRUCE 404
+## ASV2650 / SPRUCE 451
+## middle-important. Anyway, get rid of them:
+dd <- prune_taxa((!taxa_names(bb) %in% c("ASV541", "ASV2650")), bb)
+length(unique(tax_table(dd)[,"Species"])) ## 62, but  
+ntaxa(dd) ## 63 OTUs. Makes sense, because for the moment we let the two versions of MAG SPRUCE 415 stay
+PS_mag <- dd
+rm(aa,bb,cc,dd)
+
+## just checking, did we lose any mags in the process?
+all(data.frame(tax_table(PS_mag))$Species %in% asvMAG$MAG_ID)
+all(asvMAG$MAG_ID %in% data.frame(tax_table(PS_mag))$Species)
+
+## none lost
+save(PS_mag, file="PS_mag.rda")
+
+## If we wanted to group these by function, how would we do this?
+
+## for instance, to map some spatial patterns. 
+## e.g. - sulfate reducers, how are they distributed?:
+
+
+## we need the MAG IDs, to subset out phyloseq obj:
+
+
+## make a plot function for these
+
+#psObject <- PS_magfunc
+#taxRank <- "Species"
+#graphYmax <- 0.02
+
+
+moop <- zoop("Sulfate_reduction","Species",0.02)
+
+## interesting, in the function below tried to use:
+#PS_magfunc <- subset_taxa(PS_mag, Species %in% whichFuncMAGs) 
+## doesn't work (https://github.com/joey711/phyloseq/issues/1522) 
+## subset_taxa has some sort of name space quirk in functions.
+
+
+colnames(asvMAG)
+
+moop <- zoop("Polyphenol_degradation","Species",0.025); moop
+
+moop <- zoop("Sulfate_reduction","Species",0.025); moop
+
+moop <- zoop("Sulfite_reduction","Species",0.025); moop
+
+zoop <- function( func, taxRank, graphYmax){
+                  whichFuncMAGs <- asvMAG[asvMAG[func] == 1,"MAG_ID"] 
+                  PS_magfunc <- prune_taxa(tax_table(PS_mag)[,"Species"] %in% whichFuncMAGs, PS_mag)
+                  ps.justPalsa <- subset_samples(PS_magfunc, Subsite=="Palsa")
+                  ps.justThermokarst <- subset_samples(PS_magfunc, Subsite=="Thermokarst")
+                  funcMAG.Pal <- plot_bar(ps.justPalsa, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                     geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                     theme(axis.text=element_text(size=12)) +
+                     #theme( axis.text.y=element_blank(),
+                     #       axis.ticks.y=element_blank(),
+                     #       legend.position="none") +
+                     labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+                  funcMAG.tk  <- plot_bar(ps.justThermokarst, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                     geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+                     theme(axis.text=element_text(size=12)) +
+                     theme( #axis.text.y=element_blank(),
+                            #axis.ticks.y=element_blank(),
+                            legend.text=element_text(size=20) ) +
+                     ylab(NULL) +
+                     labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+                  funcPlot <- funcMAG.Pal + funcMAG.tk
+                  funcPlot & ylim(min(0), max(graphYmax))
+                  }
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## actually, I never tested, maybe pseudocounts aren't necessary
+## let's run through sJSDM example pipeline. 
 
 ## checking sJSDM pipeline...
 ## github repo is here: https://github.com/TheoreticalEcology/s-jSDM
@@ -258,7 +351,6 @@ install.packages("sjSDM")
 
 sjSDM::install_sjSDM(version = "cpu")
 
-library(sjSDM)
 
 ## didn't really work, no pytorch. As per their installation instructions:
 
@@ -270,9 +362,13 @@ conda install pytorch torchvision cpuonly -c pytorch
 
 python -m pip install pyro-ppl torch_optimizer madgrad
 
+conda activate r-sjsdm
+
+R
+library(sjSDM)
+
 ## make some data:
 
-library(sjSDM)
 
 set.seed(42)
 
@@ -308,4 +404,11 @@ plot(results)
 plotAssemblyEffects(results)
 
 ## okay. Looks pretty simple. Can we run werners data through this? 
+
+
+
+## Extra notes:
+## - check out Nitrososphaeria archaea (ASV1219), they are ammonia oxidizers. 
+##   - could be recycling the NH3 to nitrate.
+
 
