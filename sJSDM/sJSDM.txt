@@ -16,14 +16,13 @@ library(ggplot2)
 library(patchwork)
 #library(ape)
 
-setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
+#setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
+setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
 
 ## the general PS objects of interest are here:
 
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 
-## somehow, we need to get to pseudocounts of OTUs that are MAGs. 
-## what makes sense here?
 
 ## the matched ASVs are here:
 asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names="qseqid")
@@ -275,7 +274,8 @@ all(data.frame(tax_table(PS_mag))$Species %in% asvMAG$MAG_ID)
 all(asvMAG$MAG_ID %in% data.frame(tax_table(PS_mag))$Species)
 
 ## none lost
-save(PS_mag, file="PS_mag.rda")
+#save(PS_mag, file="PS_mag.rda")
+load("PS_mag.rda")
 
 ## If we wanted to group these by function, how would we do this?
 
@@ -340,7 +340,7 @@ plotFuncMAGs <- function( func, taxRank, graphYmax){
                   funcPlot & ylim(min(0), max(graphYmax))
                   }
 
-asvMAG[,"Methane_oxidation"] ## funny, no methanotrophs have ASVs. 
+asvMAG[,"Methane_oxidation"] ## funny, no methanotrophs have ASVs.
 
 ## take a quick look at all functional categories:
 
@@ -371,17 +371,18 @@ plotFuncMAGs("Sulfite_reduction","Phylum",0.015)
 i="O2_respiration"
 cc <- plotFuncMAGs(i,"Phylum",bb)
 
+
+goodYs <- c()
 for (i in funCats){ 
   print(i)
-  aa <- plotFuncMAGs(i,"Phylum",1)
-  plot(aa)
-  bb <- readline("enter to go on or number to resize y-axis: ")
-  if(is.numeric(as.numeric(bb))){
-         cc <- plotFuncMAGs(i,"Phylum",bb)
-         plot(cc)
-         readline("hit enter")
-         }
-  rm(aa,bb)
+  Y1 <- plotFuncMAGs(i,"Phylum",1)
+  plot(Y1)
+  newY <- readline("enter number to resize y-axis: ")
+  newY <- as.numeric(newY)
+  goodYs <- c(goodYs, newY)
+  Ygood <- plotFuncMAGs(i,"Phylum",newY)
+  plot(Ygood)
+  readline("hit enter")
 }
 
 ## fix second plotting issue
