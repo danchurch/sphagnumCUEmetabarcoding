@@ -303,13 +303,18 @@ moop <- zoop("Sulfate_reduction","Species",0.02)
 
 colnames(asvMAG)
 
-moop <- zoop("Polyphenol_degradation","Species",0.025); moop
+moop <- plotFuncMAGs("Polyphenol_degradation","Species",0.025); moop
 
-moop <- zoop("Sulfate_reduction","Species",0.025); moop
+moop <- plotFuncMAGs("Sulfate_reduction","Species",0.025); moop
 
-moop <- zoop("Sulfite_reduction","Species",0.025); moop
+moop <- plotFuncMAGs("Sulfite_reduction","Species",0.015); moop
 
-zoop <- function( func, taxRank, graphYmax){
+dev.new()
+moop <- plotFuncMAGs("Sulfite_reduction","Phylum",0.015); moop
+
+asvMAG[asvMAG$MAG_ID == "SPRUCE 538",]
+
+plotFuncMAGs <- function( func, taxRank, graphYmax){
                   whichFuncMAGs <- asvMAG[asvMAG[func] == 1,"MAG_ID"] 
                   PS_magfunc <- prune_taxa(tax_table(PS_mag)[,"Species"] %in% whichFuncMAGs, PS_mag)
                   ps.justPalsa <- subset_samples(PS_magfunc, Subsite=="Palsa")
@@ -329,10 +334,65 @@ zoop <- function( func, taxRank, graphYmax){
                             legend.text=element_text(size=20) ) +
                      ylab(NULL) +
                      labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
-                  funcPlot <- funcMAG.Pal + funcMAG.tk
+                  funcPlot <- funcMAG.Pal + funcMAG.tk +
+                                   plot_annotation(title=func, 
+                                          theme = theme(plot.title = element_text(size = 18, hjust=0.5)))
                   funcPlot & ylim(min(0), max(graphYmax))
                   }
 
+asvMAG[,"Methane_oxidation"] ## funny, no methanotrophs have ASVs. 
+
+## take a quick look at all functional categories:
+
+dim(asvMAG)
+
+head(asvMAG,2)
+
+colnames(asvMAG)
+
+
+funCats <- c("O2_respiration_cbb3", "O2_respiration_cox",
+             "O2_respiration", "Methanogenesis",
+             "Methane_oxidation", "WLP_Bacteria",
+             "WLP_Archaea", "Acetogenesis",
+             "Acetate_fermentation", "Alcoholic_fermentation",
+             "Caffeate_respiration", "Polyphenol_degradation",
+             "Sulfate_reduction", "Sulfite_reduction",
+             "Sulfur_OM_cleveage", "DMSO_respiration",
+             "Denitrification", "N2O_producing",
+             "N2O_scavengers", "Dissimilatory_nitrate_reduction",
+             "Nitrogen_fixation")
+
+colSums(asvMAG[,funCats]) ## looks like no methanotroph MAGs. Too bad. 
+funCats <- funCats[funCats != "Methane_oxidation"]
+
+plotFuncMAGs("Sulfite_reduction","Phylum",0.015)
+
+i="O2_respiration"
+cc <- plotFuncMAGs(i,"Phylum",bb)
+
+for (i in funCats){ 
+  print(i)
+  aa <- plotFuncMAGs(i,"Phylum",1)
+  plot(aa)
+  bb <- readline("enter to go on or number to resize y-axis: ")
+  if(is.numeric(as.numeric(bb))){
+         cc <- plotFuncMAGs(i,"Phylum",bb)
+         plot(cc)
+         readline("hit enter")
+         }
+  rm(aa,bb)
+}
+
+## fix second plotting issue
+## save the corrected ymax for the notebook.
+
+## notes: 
+## cbb3 (high affinity cytochrome oxidases) seems to be 
+## everywhere but lower in permafrost. They're supposed 
+## to be mostly in the Proteobacteria, but they're 
+## predicted by the Minnesotans to be in some
+## Verrucomicriota MAGs. 
 
 
 
