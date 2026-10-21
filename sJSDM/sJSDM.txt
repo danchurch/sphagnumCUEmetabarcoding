@@ -368,6 +368,8 @@ funCats <- funCats[funCats != "Methane_oxidation"]
 
 plotFuncMAGs("Sulfite_reduction","Phylum",0.015)
 
+plotFuncMAGs("Nitrogen_fixation","Kingdom",0.1)
+
 i="O2_respiration"
 cc <- plotFuncMAGs(i,"Phylum",bb)
 
@@ -384,6 +386,10 @@ for (i in funCats){
   plot(Ygood)
   readline("hit enter")
 }
+
+funCats
+
+names(goodYs) <- funCats
 
 ## fix second plotting issue
 ## save the corrected ymax for the notebook.
@@ -472,4 +478,5 @@ plotAssemblyEffects(results)
 ## - check out Nitrososphaeria archaea (ASV1219), they are ammonia oxidizers. 
 ##   - could be recycling the NH3 to nitrate.
 
-
+## nitrogen fixation in deepest parts of thermokarst and palsa, 
+## from halobacteriota
