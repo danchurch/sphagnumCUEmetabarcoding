@@ -310,7 +310,14 @@ moop <- plotFuncMAGs("Sulfate_reduction","Species",0.025); moop
 moop <- plotFuncMAGs("Sulfite_reduction","Species",0.015); moop
 
 dev.new()
+
+dev.new()
 moop <- plotFuncMAGs("Sulfite_reduction","Phylum",0.015); moop
+
+dev.new()
+moop <- plotFuncMAGs("Sulfite_reduction","Species",0.015); moop
+
+ Duchesneau
 
 asvMAG[asvMAG$MAG_ID == "SPRUCE 538",]
 
@@ -322,16 +329,21 @@ plotFuncMAGs <- function( func, taxRank, graphYmax){
                   funcMAG.Pal <- plot_bar(ps.justPalsa, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
                      geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
                      theme(axis.text=element_text(size=12)) +
-                     #theme( axis.text.y=element_blank(),
+                     theme( 
+                     #       axis.text.y=element_blank(),
                      #       axis.ticks.y=element_blank(),
-                     #       legend.position="none") +
+                            legend.position="none",
+                            ) +
                      labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
                   funcMAG.tk  <- plot_bar(ps.justThermokarst, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
                      geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
                      theme(axis.text=element_text(size=12)) +
-                     theme( #axis.text.y=element_blank(),
-                            #axis.ticks.y=element_blank(),
-                            legend.text=element_text(size=20) ) +
+                     theme( 
+                            axis.text.y=element_blank(),
+                            axis.ticks.y=element_blank(),
+                            legend.text=element_text(size=20)
+                           ) +
+                           guides(color="none") +
                      ylab(NULL) +
                      labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
                   funcPlot <- funcMAG.Pal + funcMAG.tk +
@@ -389,6 +401,8 @@ for (i in funCats){
 
 funCats
 
+## add these to the notebook, so we can peruse...
+
 names(goodYs) <- funCats
 
 ## fix second plotting issue
@@ -400,6 +414,52 @@ names(goodYs) <- funCats
 ## to be mostly in the Proteobacteria, but they're 
 ## predicted by the Minnesotans to be in some
 ## Verrucomicriota MAGs. 
+
+
+plotFuncMAGs("O2_respiration_cox","Phylum",1.0)
+plotFuncMAGs("O2_respiration_cbb3", "Phylum",1.0)
+plotFuncMAGs("O2_respiration","Phylum",1.0)
+
+plotFuncMAGs("Methanogenesis","Phylum",1.0)
+
+methFilt <- asvMAG$MAG_ID %in% c("SPRUCE 183", "SPRUCE 336", "SPRUCE 366", "SPRUCE 443", "SPRUCE 510", "SPRUCE 556")
+aa <- asvMAG[ methFilt,c(2,24:30)]
+bb <- aa[!duplicated(aa),]
+rownames(bb) <- bb$MAG_ID; bb$MAG_ID <- NULL
+print(bb)
+
+plotFuncMAGs("WLP_Bacteria","Phylum",1.0)
+
+plotFuncMAGs("WLP_Archaea","Phylum",1.0)
+plotFuncMAGs("Acetogenesis","Phylum",1.0)
+plotFuncMAGs("Acetate_fermentation","Phylum",1.0)
+plotFuncMAGs("Alcoholic_fermentation","Phylum",1.0)
+plotFuncMAGs("Caffeate_respiration","Phylum",1.0)
+plotFuncMAGs("Polyphenol_degradation","Phylum",1.0)
+plotFuncMAGs("Sulfate_reduction","Phylum",1.0)
+plotFuncMAGs("Sulfite_reduction","Phylum",1.0)
+plotFuncMAGs("Sulfur_OM_cleveage","Phylum",1.0)
+plotFuncMAGs("DMSO_respiration","Phylum",1.0)
+plotFuncMAGs("Denitrification","Phylum",1.0)
+plotFuncMAGs("N2O_producing","Phylum",1.0)
+plotFuncMAGs("N2O_scavengers","Phylum",1.0)
+plotFuncMAGs("Dissimilatory_nitrate_reduction","Phylum",1.0)
+plotFuncMAGs("Nitrogen_fixation","Phylum",1.0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
