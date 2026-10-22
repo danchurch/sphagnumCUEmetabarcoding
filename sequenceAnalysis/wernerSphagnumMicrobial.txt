@@ -5347,3 +5347,15 @@ ggplot(cueByDepthdf, aes(x=DepthSection,
 ## so what happen here?
 
 ## moving this over to a separate script.
+
+
+### looking for high affinity methanotrophs ####
+
+## Werner would like to check our data for the high 
+## affinity methanotrophs that can oxidize atmospheric 
+## methane
+
+## so look for a 16s sequence. Paper that Werner found:
+https://doi.org/10.1073/pnas.1817812116
+
+## where is the 16S for this organism? 

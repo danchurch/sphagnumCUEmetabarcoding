@@ -430,7 +430,39 @@ print(bb)
 
 plotFuncMAGs("WLP_Bacteria","Phylum",1.0)
 
+plotFuncMAGs("WLP_Bacteria","Genus",0.06)
+
+plotFuncMAGs("WLP_Bacteria","Species",0.06)
+
+filt <- asvMAG$MAG_ID %in% c("SPRUCE 108", "SPRUCE 183", "SPRUCE 384", "SPRUCE 468", "SPRUCE 564", "SPRUCE 586")
+aa <- asvMAG[ filt,]
+#aa <- asvMAG[ filt,c(2,24:30)]
+bb <- aa[!duplicated(aa),]
+asvMAG[c("ASV1100", "ASV1185", "ASV1430", "ASV3121","ASV1845"),]
+#rownames(bb) <- bb$MAG_ID; bb$MAG_ID <- NULL
+print(bb)
+
+plotFuncMAGs("WLP_Archaea","Phylum",0.04)
+
+## are WLP archaea just methanogens?:
+ 
+filt <- asvMAG$Methanogenesis == 1
+
+aa <- asvMAG[filt,]
+bb <- aa[!duplicated(aa),]
+
+asvMAG[filt,c("WLP_Archaea", "Methanogenesis")]
+
+filt <- asvMAG$MAG_ID %in% c("SPRUCE 334", "SPRUCE 366", "SPRUCE 556")
+#aa <- asvMAG[filt,c(2,24:30)]
+aa <- asvMAG[filt,]
+bb <- aa[!duplicated(aa),]
+rownames(bb) <- bb$MAG_ID; bb$MAG_ID <- NULL
+bb
+
+
 plotFuncMAGs("WLP_Archaea","Phylum",1.0)
+
 plotFuncMAGs("Acetogenesis","Phylum",1.0)
 plotFuncMAGs("Acetate_fermentation","Phylum",1.0)
 plotFuncMAGs("Alcoholic_fermentation","Phylum",1.0)
