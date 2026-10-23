@@ -5359,3 +5359,98 @@ ggplot(cueByDepthdf, aes(x=DepthSection,
 https://doi.org/10.1073/pnas.1817812116
 
 ## where is the 16S for this organism? 
+
+## I have this sequence from 
+https://lpsn.dsmz.de/species/methylocapsa-gorgona
+
+## download link:
+cd /home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sequenceAnalysis/findMethanotrophs/findHighAffMethanotrophs
+
+wget https://lpsn.dsmz.de/fasta/104769.fasta
+
+## interesting, no close matches on NCBI
+
+
+## to look among our refseqs for a match:
+## go into R, get ref seqs from our cleaned up ps obj:
+
+cd /home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sequenceAnalysis
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+rs <- refseq(ps007_cleaned_sqrt_prop)
+writeXStringSet(rs,"findMethanotrophs/findHighAffMethanotrophs/wernerSphagnumRefSeqs.fa", format="fasta")
+
+cd findMethanotrophs/findHighAffMethanotrophs
+
+
+makeblastdb -in wernerSphagnumRefSeqs.fa -parse_seqids -dbtype nucl
+
+blastn -db wernerSphagnumRefSeqs.fa -query 104769.fasta \
+  -num_alignments 5 \
+  -out highAff_methanotrophs_maybe.txt 
+
+blastn -db wernerSphagnumRefSeqs.fa -query 104769.fasta \
+  -num_alignments 100 \
+  -out highAff_methanotrophs_maybe.csv \
+  -outfmt 10 
+
+sed -i '1i qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore' highAff_methanotrophs_maybe.csv
+
+## R, plot distribution
+
+setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sequenceAnalysis")
+
+highAffMT <- read.csv("findMethanotrophs/findHighAffMethanotrophs/highAff_methanotrophs_maybe.csv")
+highAffMT <- highAffMT[,c("sseqid","pident","length","mismatch","gapopen","evalue","bitscore")]
+
+head(highAffMT)
+
+## let's take a closer look at everything over 98% seq identity.
+
+
+maybeHighAffMT <- highAffMT[highAffMT$pident >98,"sseqid"] ## "ASV1013" "ASV3372" "ASV1891" "ASV1299"
+
+maybeHighAffMT
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+tax_table(ps007_cleaned_sqrt_prop)[maybeHighAffMT,]
+
+## plot these:
+
+graphYmax <- 0.01
+
+#taxRank <- "Phylum"
+#taxRank <- "Genus"
+taxRank <- "Family"
+#ps <- prune_taxa(maybeHighAffMT, ps007_cleaned_sqrt_prop)
+ps <- prune_taxa("ASV1013", ps007_cleaned_sqrt_prop)
+ps.justPalsa <- subset_samples(ps, Subsite=="Palsa")
+ps.justThermokarst <- subset_samples(ps, Subsite=="Thermokarst")
+ps.pal <- plot_bar(ps.justPalsa, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+   geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+   theme(axis.text=element_text(size=12)) +
+   theme(
+   #       axis.text.y=element_blank(),
+   #       axis.ticks.y=element_blank(),
+          legend.position="none",
+          ) +
+   labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+ps.tk  <- plot_bar(ps.justThermokarst, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+   geom_bar(aes(color=get(taxRank), fill=get(taxRank)), stat="identity", position="stack") +
+   theme(axis.text=element_text(size=12)) +
+   theme(
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.text=element_text(size=20)
+         ) +
+         guides(color="none") +
+   ylab(NULL) +
+   labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+funcPlot <- ps.pal + ps.tk +
+                 plot_annotation(title="Maybe high-affinity methanotrophs",
+                        theme = theme(plot.title = element_text(size = 18, hjust=0.5)))
+graphYmax <- 0.01
+funcPlot & ylim(min(0), max(graphYmax))
+
+
