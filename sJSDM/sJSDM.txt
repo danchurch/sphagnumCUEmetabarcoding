@@ -275,7 +275,7 @@ all(asvMAG$MAG_ID %in% data.frame(tax_table(PS_mag))$Species)
 
 ## none lost
 #save(PS_mag, file="PS_mag.rda")
-load("PS_mag.rda")
+load("../sJSDM/PS_mag.rda")
 
 ## If we wanted to group these by function, how would we do this?
 
@@ -459,15 +459,15 @@ aa <- asvMAG[filt,]
 bb <- aa[!duplicated(aa),]
 rownames(bb) <- bb$MAG_ID; bb$MAG_ID <- NULL
 bb
-
-
 plotFuncMAGs("WLP_Archaea","Phylum",1.0)
-
 plotFuncMAGs("Acetogenesis","Phylum",1.0)
-plotFuncMAGs("Acetate_fermentation","Phylum",1.0)
+plotFuncMAGs("Acetate_fermentation","Phylum",0.07)
+plotFuncMAGs("Acetate_fermentation","Order",0.07)
 plotFuncMAGs("Alcoholic_fermentation","Phylum",1.0)
 plotFuncMAGs("Caffeate_respiration","Phylum",1.0)
+
 plotFuncMAGs("Polyphenol_degradation","Phylum",1.0)
+
 plotFuncMAGs("Sulfate_reduction","Phylum",1.0)
 plotFuncMAGs("Sulfite_reduction","Phylum",1.0)
 plotFuncMAGs("Sulfur_OM_cleveage","Phylum",1.0)
@@ -477,6 +477,25 @@ plotFuncMAGs("N2O_producing","Phylum",1.0)
 plotFuncMAGs("N2O_scavengers","Phylum",1.0)
 plotFuncMAGs("Dissimilatory_nitrate_reduction","Phylum",1.0)
 plotFuncMAGs("Nitrogen_fixation","Phylum",1.0)
+
+
+
+#### O<sub>2</sub> respiration <a id=magO2></a>
+#### Methanogenesis <a id=magMethanogen></a>
+#### Wood-Ljungdahl Pathway, Bacteria <a id=WLP_Bacteria></a>
+#### Wood-Ljungdahl Pathway, Archaea <a id=WLP_Archaea></a>
+#### Acetogenesis <a id=acetogenesis></a>
+#### Acetate fermentation <a id=acetateFerm></a>
+#### Alcoholic fermentation <a id=alchoholFerm></a>
+#### Caffeate respiration <a id=caffResp></a>
+#### Polyphenol_degradation <a id=polyphDeg>
+
+## it really looks like it would be good to compare 
+## these abundances by clusters. 
+## each cluster might be profile by different functions.
+
+
+
 
 
 
