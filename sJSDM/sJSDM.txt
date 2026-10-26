@@ -495,6 +495,39 @@ plotFuncMAGs("Nitrogen_fixation","Phylum",1.0)
 ## each cluster might be profile by different functions.
 
 
+## how can we turn our columns into sums of all organisms that have a given function?
+## each column would be a function, each row would be a soil sample:
+
+## one function could be
+"O2_respiration_cbb3"
+
+## how do we sum the relative abundance of all ASVs from each site that
+## have this predicted function?
+
+## get all ASVs that have this function:
+
+asvMAG[,"O2_respiration_cbb3",drop=F]
+
+asvMAG[asvMAG$O2_respiration_cbb3 == 1,]
+
+func1asvs <- rownames((asvMAG[asvMAG$O2_respiration_cbb3 == 1,]))
+
+ps007_cleaned_sqrt_prop
+PS_mag
+
+otu_table(ps007_cleaned_sqrt_prop)[1:5,1:5]
+
+rowSums(otu_table(ps007_cleaned_sqrt_prop)[,func1asvs])
+
+otu_table(PS_mag)[1:5,1:5]
+
+[,func1asvs])
+
+otu_table(PS_mag)[,"ASV559"]
+
+asvMAG[,3]
+## stopping here 26.10.26
+
 
 
 
