@@ -14,13 +14,14 @@
 library(phyloseq)
 library(ggplot2)
 library(patchwork)
+library(vegan)
+library(ggordiplots)
 #library(ape)
 
 #setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
 setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
 
 ## the general PS objects of interest are here:
-
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 
 
@@ -519,6 +520,19 @@ otu_table(ps007_cleaned_sqrt_prop)[1:5,1:5]
 
 rowSums(otu_table(ps007_cleaned_sqrt_prop)[,func1asvs])
 
+barplot(rowSums(otu_table(ps007_cleaned_sqrt_prop)[,func1asvs]), las=2, main="O2respCBB")
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+head(sample_data(ps007_cleaned_sqrt_prop))[,1:5]
+
+sample_data(ps007_cleaned_sqrt_prop)[c("S13","S14","S15","S16","S17"),1:5]
+
+rowSums(otu_table(ps007_cleaned_sqrt_prop)[,func1asvs])[c("S13","S14","S15","S16","S17")]
+
+rowSums(otu_table(PS_mag)[,func1asvs])[c("S13","S14","S15","S16","S17")]
+
+otu_table(PS_mag)[1:5,1:5]
 otu_table(PS_mag)[1:5,1:5]
 
 [,func1asvs])
@@ -526,8 +540,286 @@ otu_table(PS_mag)[1:5,1:5]
 otu_table(PS_mag)[,"ASV559"]
 
 asvMAG[,3]
+
 ## stopping here 26.10.26
 
+## would be good to add in the possible additional functional groups that 
+## we have noted - high-affinity methanotrophy, possible anaerobic methanotrophy 
+## by methanomirabilis and if we can track down the bathyarchaea that may 
+## specialize on degrading lignins. 
+
+### find lignin degraders ###
+
+## how can we get some 16S data from these lignin-degraders?
+## the first big paper on this was Tiantian Yu 2018 (https://doi.org/10.1073/pnas.1718854115)
+
+## but also heavily analyzed in Hou et al. 2023 (https://doi.org/10.1126/sciadv.adf5069)
+## and Yu et al 2023 (https://onlinelibrary.wiley.com/doi/10.1002/mlf2.12082)
+
+## do we have these guys in our data? The group is called 
+## Baizosediminiarchaeum (formerly known as Bathyarchaiea lineage Bathy-8) 
+
+## is this already in our taxonomic assignments?:
+
+ps.Bathyarchaeia <- subset_taxa(ps007_cleaned_sqrt_prop, Class == "Bathyarchaeia")
+
+tax_table(ps.Bathyarchaeia) ## nope. These all have no taxonomy beyond class.
+
+## but we do have some WLP archaea that they note as having the genes for 
+## this lignotrophic gene cluster, PALSA-986
+
+asvMAG[asvMAG$Class=="Bathyarchaeia",] ## all PALSA-986
+
+asvMAG[asvMAG$Genera=="PALSA-986",]
+
+## this likely is mostly active in our palsas, by the name? Check:
+
+taxRank <- "Class"
+
+possibleLigASVs <- rownames(asvMAG[asvMAG$Genera=="PALSA-986",])
+
+possibleLigASVs
+
+ps.possibleLig <- prune_taxa(possibleLigASVs, ps007_cleaned_sqrt_prop)
+psObject <- ps.possibleLig
+
+ps.justPalsa <- subset_samples(psObject, Subsite=="Palsa")
+ps.justThermokarst <- subset_samples(psObject, Subsite=="Thermokarst")
+
+ggplotJustPalsa <- plot_bar(ps.justPalsa, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                          geom_bar(aes(color=Class, fill=get(taxRank)), stat="identity", position="stack") +
+                          theme(axis.text=element_text(size=12)) +
+                          #theme( axis.text.y=element_blank(),
+                          #       axis.ticks.y=element_blank(),
+                          #       legend.position="none") +
+                          labs(title='Palsa') + theme(plot.title = element_text(hjust = 0.5))
+
+ggplotJustThermokarst  <- plot_bar(ps.justThermokarst, x="DepthSection", fill = taxRank, facet_grid=~Core ) +
+                                geom_bar(aes(color=Class, fill=get(taxRank)), stat="identity", position="stack") +
+                                theme(axis.text=element_text(size=12)) +
+                                theme( #axis.text.y=element_blank(),
+                                       #axis.ticks.y=element_blank(),
+                                       legend.text=element_text(size=20) ) +
+                                ylab(NULL) +
+                                labs(title='Thermokarst') + theme(plot.title = element_text(hjust = 0.5))
+
+lignotrophPlot <- ggplotJustPalsa + ggplotJustThermokarst
+
+lignotrophPlot & ylim(min(0), max(0.03))
+
+## okay, ~1/2 of our bathyarchaeia probably have this methylotransferase 
+## gene cluster, and they are concentrated in our deep thermokarst.
+
+## next step - add high affinity methanotrophy and lignotrophy to our functions list
+## then create a "community matrix" of functional data, ordinate and 
+## plot the importance of the various functional types for differentiating the 
+## soil samples, and color by cluster. Should be a good summary, if it works.
+
+## 1 - make the matrix:
+## start with otu_table from our PS_mag
+
+aa <- data.frame(otu_table(PS_mag))
+
+colnames(aa)
+
+## each of these ASVs represents all the original ASVs
+## that match a MAG from the minnesota study. 
+## this "Species" can then be used to infer its
+## functions.  
+
+## for example:
+
+func <- "O2_respiration_cbb3"
+
+funcMAGs <- asvMAG[asvMAG[func] == 1,"MAG_ID"]
+
+aa <- prune_taxa( tax_table(PS_mag)[,"Species"] %in% funcMAGs, PS_mag)
+
+## so for abundance of this function in each soil sample
+rowSums(otu_table(aa))
+
+## are there any soil samples without this high-affinity COX? 
+all(rowSums(otu_table(aa)) > 0)
+rowSums(otu_table(aa)) == 0 ## S15
+otu_table(aa)[ rowSums(otu_table(aa)) == 0 ,] ## yup
+## this is a palsa AP3 depthsection 5, matches our figures
+
+## so get one column:
+
+func <- "O2_respiration_cbb3"
+funcMAGs <- asvMAG[asvMAG[func] == 1,"MAG_ID"]
+funcPS <- prune_taxa( tax_table(PS_mag)[,"Species"] %in% funcMAGs, PS_mag)
+funcAbund.i <- rowSums(otu_table(funcPS))
+
+## make a function:
+
+getFuncAbund <- function(func){
+                      funcMAGs <- asvMAG[asvMAG[func] == 1,"MAG_ID"]
+                      funcPS <- prune_taxa( tax_table(PS_mag)[,"Species"] %in% funcMAGs, PS_mag)
+                      funcAbund.i <- rowSums(otu_table(funcPS))
+                      return(funcAbund.i)
+                      }
+
+## our functions, minus the 
+
+getFuncAbund("O2_respiration_cbb3")
+
+getFuncAbund("Methanogenesis")
+
+## our functions of interest from the asvMAG dataframe:
+
+funCats <- c("O2_respiration_cbb3", "O2_respiration_cox",
+             "O2_respiration", "Methanogenesis",
+             "WLP_Bacteria",
+             "WLP_Archaea", "Acetogenesis",
+             "Acetate_fermentation", "Alcoholic_fermentation",
+             "Caffeate_respiration", "Polyphenol_degradation",
+             "Sulfate_reduction", "Sulfite_reduction",
+             "Sulfur_OM_cleveage", "DMSO_respiration",
+             "Denitrification", "N2O_producing",
+             "N2O_scavengers", "Dissimilatory_nitrate_reduction",
+             "Nitrogen_fixation")
+
+all(names(getFuncAbund("WLP_Bacteria")) == sample_names(PS_mag))
+
+funcAbundances
+
+funcAbundances <- matrix(, nrow = (nsamples(PS_mag)), ncol = 0)
+for (i in funCats){
+  print(i)
+  funcAbundances <- cbind(funcAbundances, getFuncAbund(i))
+  }
+colnames(funcAbundances) <- funCats
+funcAbundances <- data.frame(funcAbundances)
+
+## seems right. now, how do we add our extra two functions, 
+## trace (high-affinity) methanotrophy and lignin-degradation?
+
+## adding lignin-degradation
+possibleLigASVs <- rownames(asvMAG[asvMAG$Genera=="PALSA-986",])
+
+ps.possibleLig <- prune_taxa(possibleLigASVs, ps007_cleaned_sqrt_prop)
+
+funcAbundances["lignin_degradation"] <- rowSums(otu_table(ps.possibleLig))
+
+## adding high-aff methanotrophy
+highAffMT <- read.csv("../sequenceAnalysis/findMethanotrophs/findHighAffMethanotrophs/highAff_methanotrophs_maybe.csv")
+highAffMT <- highAffMT[,c("sseqid","pident","length","mismatch","gapopen","evalue","bitscore")]
+maybeHighAffMT <- highAffMT[highAffMT$pident >98,"sseqid"]
+ps.possibleHighAffMT <- prune_taxa(maybeHighAffMT, ps007_cleaned_sqrt_prop)
+funcAbundances["highAff_methanotrophy"] <- rowSums(otu_table(ps.possibleHighAffMT ))
+
+## this should be our functional "community" matrix:
+dim(funcAbundances)
+
+## now, how to deal with this in a multivariate way. 
+## let's try a classic nms, colored by cluster:
+
+funcNMS <- metaMDS(funcAbundances, try=40)
+
+funcAbundances
+
+sample_data(ps007_cleaned_sqrt_prop)[1:3,1:7]
+
+
+head(funcAbundances)
+
+all(rownames(funcAbundances) == rownames(data.frame(sample_data(ps007_cleaned_sqrt_prop))["cluster"]))
+
+clusters <- data.frame(sample_data(ps007_cleaned_sqrt_prop))["cluster"]
+
+plot(funcNMS)
+
+gg_ordiplot(ord = funcNMS,
+     groups = clusters$cluster,
+     ellipse = TRUE,
+     hull = FALSE,
+     spiders = FALSE)
+
+gg_ordiplot(ord = funcNMS,
+     groups = clusters$cluster,
+     ellipse = FALSE,
+     hull = FALSE,
+     spiders = FALSE)
+
+## if we want to keep this, we'll need to adjust colors
+
+## that's great, but we need an ordination that visualize the relative importance of these functions.
+
+## try a PCA, these are already +/- transformed (square root and normalized by per-sample abundance)
+
+
+dim(funcAbundances)
+
+PCAfuncAb <- princomp(funcAbundances, cor=TRUE)
+funcPCAloadings <- loadings(PCAfuncAb)
+funcPCAScores <- data.frame(PCAfuncAb$scores)
+
+barplot(PCAfuncAb[]$sdev^2, las=2)
+abline(h = mean(PCAfuncAb[]$sdev^2), col = "red") ## scaled to 1
+
+biplot(PCAfuncAb)
+
+gg_ordiplot(ord = PCAfuncAb,
+     groups = clusters$cluster,
+     ellipse = FALSE,
+     hull = FALSE,
+     spiders = FALSE)
+
+## it would be nice to show the "species" scores on the new axes:
+
+## code from google:
+
+## stopping here 27.10.26
+
+# 2. Extract species scores manually
+spp_scores <- as.data.frame(scores(ord, display = "species"))
+spp_scores$species <- rownames(spp_scores)
+
+# 3. Generate the base gg_ordiplot object but don't draw it yet (plot = FALSE)
+ord_plot <- gg_ordiplot(ord, groups = dune.env$Management, plot = FALSE)
+
+
+# Grab the base ggplot and add arrows pointing from the center (0,0)
+final_plot_arrows <- ord_plot$plot +
+  geom_segment(data = spp_scores, aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.2, "cm")), color = "darkred") +
+  geom_text(data = spp_scores, aes(x = NMDS1 * 1.1, y = NMDS2 * 1.1, label = species),
+            color = "darkred", fontface = "italic")
+
+# Print the plot
+print(final_plot_arrows)
+
+
+
+
+
+
+
+
+
+
+
+
+
+grep("PALSA", asvMAG$Genera, value=TRUE) 
+
+grep("Bog", asvMAG$Genera, value=TRUE) |> grep("99",x=_, value=TRUE)
+
+## the "model" organism seems to be:
+## Baizosediminiarchaeum ligniniphilus DL1YTT001 (Yu et al. 2023)
+ 
+## Yu et al. 2023 say PRJNA983078 for 16S data and PRJNA983059 for MAGs
+## they hav
+
+## their table supplementary table 5 gives a list of mags that they 
+## have found that have gene clusters for lignin degradation,
+## including two that come from peatlands "3300018064_12", "palsa_986"
+
+## 
+  
+  
+ 
 
 
 
@@ -624,3 +916,6 @@ plotAssemblyEffects(results)
 
 ## nitrogen fixation in deepest parts of thermokarst and palsa, 
 ## from halobacteriota
+
+
+
