@@ -16,6 +16,7 @@ library(ggplot2)
 library(patchwork)
 library(vegan)
 library(ggordiplots)
+#library(RColorBrewer)
 #library(ape)
 
 #setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
@@ -712,6 +713,13 @@ funcAbundances["highAff_methanotrophy"] <- rowSums(otu_table(ps.possibleHighAffM
 ## this should be our functional "community" matrix:
 dim(funcAbundances)
 
+#save(funcAbundances, file="funcAbundances.rda")
+
+## start here after R reset
+load("funcAbundances.rda")
+load("PS_mag.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 ## now, how to deal with this in a multivariate way. 
 ## let's try a classic nms, colored by cluster:
 
@@ -749,50 +757,110 @@ gg_ordiplot(ord = funcNMS,
 ## try a PCA, these are already +/- transformed (square root and normalized by per-sample abundance)
 
 
-dim(funcAbundances)
+dim(funcAbundances) ## we have enough data (more observations than predictors)
 
 PCAfuncAb <- princomp(funcAbundances, cor=TRUE)
 funcPCAloadings <- loadings(PCAfuncAb)
 funcPCAScores <- data.frame(PCAfuncAb$scores)
 
+dev.new()
 barplot(PCAfuncAb[]$sdev^2, las=2)
 abline(h = mean(PCAfuncAb[]$sdev^2), col = "red") ## scaled to 1
 
+dev.new()
 biplot(PCAfuncAb)
 
-gg_ordiplot(ord = PCAfuncAb,
-     groups = clusters$cluster,
-     ellipse = FALSE,
-     hull = FALSE,
-     spiders = FALSE)
 
-## it would be nice to show the "species" scores on the new axes:
-
-## code from google:
-
-## stopping here 27.10.26
-
-# 2. Extract species scores manually
-spp_scores <- as.data.frame(scores(ord, display = "species"))
-spp_scores$species <- rownames(spp_scores)
-
-# 3. Generate the base gg_ordiplot object but don't draw it yet (plot = FALSE)
-ord_plot <- gg_ordiplot(ord, groups = dune.env$Management, plot = FALSE)
+## it would be nice to show the "species" scores on the new axes
+## not built into the gg_ordiplot function.
 
 
-# Grab the base ggplot and add arrows pointing from the center (0,0)
-final_plot_arrows <- ord_plot$plot +
-  geom_segment(data = spp_scores, aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+
+dev.new()
+ord_plot <- gg_ordiplot(ord = PCAfuncAb,
+                     groups = clusters$cluster,
+                    scaling = 1,
+                    ellipse = TRUE,
+                       hull = FALSE,
+                    spiders = FALSE)
+
+
+## make some arrows
+aa <- scores(PCAfuncAb, tidy=T)
+rownames(aa) <- aa$label
+spp_scores <- aa[aa$score == "species", c("label","Comp.1","Comp.2")]
+rm(aa)
+scalingFactor <- 10
+plot_arrows <- ord_plot$plot +
+  geom_segment(data = spp_scores, aes(x = 0, y = 0, xend = Comp.1*scalingFactor, yend = Comp.2*scalingFactor),
                arrow = arrow(length = unit(0.2, "cm")), color = "darkred") +
-  geom_text(data = spp_scores, aes(x = NMDS1 * 1.1, y = NMDS2 * 1.1, label = species),
+  geom_text(data = spp_scores, aes(x = Comp.1 * 1.1 * scalingFactor, y = Comp.2 * 1.1 * scalingFactor, label = label),
             color = "darkred", fontface = "italic")
 
-# Print the plot
-print(final_plot_arrows)
+plot_arrows
+
+## this doesn't allow us to customize colors without practically rewriting the whole plot.
+
+## start over, build the biplot from scratch: ##
+
+head(sitePointsOrd_df); dim(sitePointsOrd_df)
+
+str(PCAfuncAb )
+
+scores(PCAfuncAb )[,c("Comp.1","Comp.2")]
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+
+#Make a dataframe for plotting. 
+sitePointsOrd_df <- as.data.frame(cbind(scores(PCAfuncAb )[,c("Comp.1","Comp.2")],
+                               data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+ord_plotEmpty <- ggplot(data=sitePointsOrd_df)
+PCApts <- geom_point(data=sitePointsOrd_df,
+                     aes(x=Comp.1, y=Comp.2,
+                         color=cluster,
+                         shape=Subsite),
+                     size=8)
+elCS <- scale_color_manual(values = clusterCols)
 
 
+els <- stat_ellipse(data=sitePointsOrd_df, aes(x=Comp.1, y=Comp.2,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
 
+## add arrows:
+aa <- scores(PCAfuncAb, tidy=T)
+rownames(aa) <- aa$label
+spp_scores <- aa[aa$score == "species", c("label","Comp.1","Comp.2")]
+rm(aa)
 
+scalingFactor <- 10
+arrows_sppScores <- geom_segment(data = spp_scores, aes(x = 0, y = 0, xend = Comp.1*scalingFactor, yend = Comp.2*scalingFactor),
+                      arrow = arrow(length = unit(0.2, "cm")), color = "darkred") 
+
+text_sppScores <- geom_text(data = spp_scores, aes(x = Comp.1 * 1.1 * scalingFactor, y = Comp.2 * 1.1 * scalingFactor, label = label),
+                      color = "darkred", fontface = "italic")
+
+head(sitePointsOrd_df)
+
+ord_plotEmpty + PCApts
+
+ord_plotEmpty + PCApts + els + elCS
+
+funcPCA_arrows <- ord_plotEmpty + PCApts + els + elCS + arrows_sppScores + text_sppScores
+
+print(funcPCA_arrows)
+
+## looks okay, but needs some manual help. Clean up with inkscape:
+
+ggsave(file="funcPCA_arrows.svg", plot=funcPCA_arrows, width=10, height=8)
+ 
+## next - finish notebook section of the individual functions
+## write sJSDM model? 
 
 
 
