@@ -467,12 +467,10 @@ plotFuncMAGs("Acetate_fermentation","Phylum",0.07)
 plotFuncMAGs("Acetate_fermentation","Order",0.07)
 plotFuncMAGs("Alcoholic_fermentation","Phylum",1.0)
 plotFuncMAGs("Caffeate_respiration","Phylum",1.0)
-
 plotFuncMAGs("Polyphenol_degradation","Phylum",1.0)
-
-plotFuncMAGs("Sulfate_reduction","Phylum",1.0)
-plotFuncMAGs("Sulfite_reduction","Phylum",1.0)
-plotFuncMAGs("Sulfur_OM_cleveage","Phylum",1.0)
+plotFuncMAGs("Sulfate_reduction","Phylum",0.02)
+plotFuncMAGs("Sulfite_reduction","Phylum",0.015)
+plotFuncMAGs("Sulfur_OM_cleveage","Phylum",0.04)
 plotFuncMAGs("DMSO_respiration","Phylum",1.0)
 plotFuncMAGs("Denitrification","Phylum",1.0)
 plotFuncMAGs("N2O_producing","Phylum",1.0)
@@ -480,7 +478,9 @@ plotFuncMAGs("N2O_scavengers","Phylum",1.0)
 plotFuncMAGs("Dissimilatory_nitrate_reduction","Phylum",1.0)
 plotFuncMAGs("Nitrogen_fixation","Phylum",1.0)
 
+asvMAG[asvMAG$Methanogenesis == 1,c("Methanogenesis","Nitrogen_fixation","Phylum","Class")]
 
+plotFuncMAGs("Nitrogen_fixation","Class",0.1)
 
 #### O<sub>2</sub> respiration <a id=magO2></a>
 #### Methanogenesis <a id=magMethanogen></a>
@@ -490,7 +490,42 @@ plotFuncMAGs("Nitrogen_fixation","Phylum",1.0)
 #### Acetate fermentation <a id=acetateFerm></a>
 #### Alcoholic fermentation <a id=alchoholFerm></a>
 #### Caffeate respiration <a id=caffResp></a>
-#### Polyphenol_degradation <a id=polyphDeg>
+#### Polyphenol_degradation <a id=polyphDeg></a>
+#### Sulfate_reduction <a id=sulfateRed></a>
+#### Sulfite_reduction <a id=sulfiteRed></a>
+#### Sulfur_OM_cleveage <a id=sulfCleav></a>
+#### DMSO_respiration <a id=DMSOresp></a>
+#### Denitrification <a id=denit></a>
+#### N2O_producing <a id=N2Oprod></a>
+#### N2O_scavengers <a id=N2Oscav></a>
+#### Dissimilatory nitrate reduction <a id=Nred></a>
+#### Nitrogen_fixation <a id=Nfix></a>
+#### Anaerobic lignin degradation <a id=ligDeg></a>
+
+#####################################################
+
+#### O<sub>2</sub> respiration <a id=magO2></a>
+#### Methanogenesis <a id=magMethanogen></a>
+#### Wood-Ljungdahl Pathway, Bacteria <a id=WLP_Bacteria></a>
+#### Wood-Ljungdahl Pathway, Archaea <a id=WLP_Archaea></a>
+#### Acetogenesis <a id=acetogenesis></a>
+#### Acetate fermentation <a id=acetateFerm></a>
+#### Alcoholic fermentation <a id=alchoholFerm></a>
+#### Caffeate respiration <a id=caffResp></a>
+#### Polyphenol_degradation <a id=polyphDeg></a>
+#### Sulfate_reduction <a id=sulfateRed></a>
+#### Sulfite_reduction <a id=sulfiteRed></a>
+#### Sulfur_OM_cleveage <a id=sulfCleav></a>
+#### DMSO_respiration <a id=DMSOresp></a>
+#### Denitrification <a id=denit></a>
+#### N2O_producing <a id=N2Oprod></a>
+#### N2O_scavengers <a id=N2Oscav></a>
+#### Dissimilatory nitrate reduction <a id=Nred></a>
+#### Nitrogen_fixation <a id=Nfix></a>
+#### Anaerobic lignin degradation <a id=ligDeg></a>
+
+
+
 
 ## it really looks like it would be good to compare 
 ## these abundances by clusters. 
@@ -807,6 +842,10 @@ head(sitePointsOrd_df); dim(sitePointsOrd_df)
 
 str(PCAfuncAb )
 
+PCAfuncAb$sdev[1:2]^2
+
+sum(PCAfuncAb$sdev)
+
 scores(PCAfuncAb )[,c("Comp.1","Comp.2")]
 
 clusterCols <- c("green","blue","red","black","brown")
@@ -851,7 +890,16 @@ ord_plotEmpty + PCApts
 
 ord_plotEmpty + PCApts + els + elCS
 
-funcPCA_arrows <- ord_plotEmpty + PCApts + els + elCS + arrows_sppScores + text_sppScores
+barplot(PCAfuncAb[]$sdev^2, las=2)
+
+barplot(PCAfuncAb$sdev^2, las=2)
+
+## how to find the variance explained?
+PCAfuncAb$sdev[1]^2/sum(PCAfuncAb$sdev^2) ## 0.459
+PCAfuncAb$sdev[2]^2/sum(PCAfuncAb$sdev^2) ## 0.260
+
+funcPCA_arrows <- ord_plotEmpty + PCApts + els + elCS + arrows_sppScores + text_sppScores +
+                 labs(x="PCA1 (45.9%)", y="PCA2 (26.0%)") 
 
 print(funcPCA_arrows)
 
@@ -872,7 +920,7 @@ ggsave(file="funcPCA_arrows.svg", plot=funcPCA_arrows, width=10, height=8)
 
 grep("PALSA", asvMAG$Genera, value=TRUE) 
 
-grep("Bog", asvMAG$Genera, value=TRUE) |> grep("99",x=_, value=TRUE)
+grep("BOG", asvMAG$Genera, value=TRUE) |> grep("99",x=_, value=TRUE)
 
 ## the "model" organism seems to be:
 ## Baizosediminiarchaeum ligniniphilus DL1YTT001 (Yu et al. 2023)
