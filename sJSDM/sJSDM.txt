@@ -938,6 +938,7 @@ anova(aa)
 autoplot(aa)
 
 
+
 ## how does this compare to the "untransformed" data?:
 
 
@@ -947,20 +948,253 @@ anova(bb)
 
 autoplot(bb)
 dev.new()
-autoplot(aa)
 
-## it makes a difference. I guess go with the textbook transformed 
-## abundances?
+aaPlot <- autoplot(aa)
+
+## it makes a small difference, not in variance explained but other ways - site scores, importance of 
+## rdas.
+
+## I guess go with the textbook transformed abundances?
+## needs more investigation - build plot from base again:
+
+## for reference
+plot(commHell_rda)
 
 
+str(commHell_rda$CCA, max.level=1)
+
+str(scores(commHell_rda), max.level=1)
+
+commHell_rda <- rda(commData_hell, envData)
+summary(commHell_rda)
+## Partitioning of variance:
+##               Inertia Proportion
+## Total          0.6865     1.0000
+## Constrained    0.5157     0.7512
+## Unconstrained  0.1708     0.2488
+
+##Accumulated constrained eigenvalues
+##                        RDA1   RDA2
+##Eigenvalue            0.1341 0.1152
+##Proportion Explained  0.2600 0.2235
+##Cumulative Proportion 0.2600 0.4835
+
+## and the untransformed?
+comm_rda <- rda(commData, envData)
+
+comm_rda <- rda(commData ~ ., data=envData)
+
+summary(comm_rda)
+
+## Partitioning of variance:
+##                Inertia Proportion
+## Total         0.002925     1.0000
+## Constrained   0.002121     0.7254
+## Unconstrained 0.000803     0.2746
+
+##Accumulated constrained eigenvalues
+##Importance of components:
+##                           RDA1      RDA2
+##Eigenvalue            0.0007227 0.0002756
+##Proportion Explained  0.3406588 0.1298856
+##Cumulative Proportion 0.3406588 0.4705443
 
 
+## let's compare plots:
+
+## plot df
+## need ord coordinates for sites...
+
+## transformed:
+#commHell_rda <- rda(commData_hell, envData)
+commHell_rda <- rda(commData_hell ~ ., data=envData)
+commHell_siteScores <- scores(commHell_rda)$sites
+rownames(commHell_siteScores) == rownames(data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")])
+commHellOrd_df <- as.data.frame(cbind(commHell_siteScores,
+                        data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+## also need a dataframe for our old predictors and placing them on the graphic
+predScores <- as.data.frame(scores(commHell_rda)$biplot)
+predScores ['label'] <- rownames(predScores)
+## plot components
+ord_plotEmpty <- ggplot(data=commHellOrd_df)
+## site coords in PCA space
+pts <- geom_point(data=commHellOrd_df,
+                     aes(x=RDA1, y=RDA2,
+                         color=cluster,
+                         shape=Subsite),
+                     size=8)
+## color scale to match previous cluster graphics
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+## ellipses
+els <- stat_ellipse(data=commHellOrd_df, aes(x=RDA1, y=RDA2,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
+scalingFactor <- 1 ## change to fit predictor scores to site-based scaling of the biplot
+arrows_predScores <- geom_segment(data = predScores, aes(x = 0, y = 0, xend = RDA1*scalingFactor, yend = RDA2*scalingFactor),
+                      arrow = arrow(length = unit(0.2, "cm")), color = "darkgrey")
+text_predScores <- geom_text(data = predScores, aes(x = RDA1 * 1.1 , 
+                                                   y = RDA2 * 1.1 , 
+                                               label = label),
+                                               color = "black", fontface = "italic")
+hellCommOrdPlot <- ord_plotEmpty + pts + els + elCS + arrows_predScores + text_predScores +
+                       labs(title='Hellinger-transformed',
+                                x="RDA1", y="RDA2") +
+                           theme(plot.title = element_text(hjust = 0.5)) 
+rm(predScores,ord_plotEmpty,pts,els,arrows_predScores,text_predScores)
+dev.new(); hellCommOrdPlot
+
+## untransformed:
+#comm_rda <- rda(commData, envData)
+comm_rda <- rda(commData ~ ., data=envData)
+comm_siteScores <- scores(comm_rda)$sites
+rownames(comm_siteScores) == rownames(data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")])
+commOrd_df <- as.data.frame(cbind(comm_siteScores,
+                        data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+## also need a dataframe for our old predictors and placing them on the graphic
+predScores <- as.data.frame(scores(comm_rda)$biplot)
+predScores ['label'] <- rownames(predScores)
+## plot components
+ord_plotEmpty <- ggplot(data=commOrd_df)
+## site coords in PCA space
+pts <- geom_point(data=commOrd_df,
+                     aes(x=RDA1, y=RDA2,
+                         color=cluster,
+                         shape=Subsite),
+                     size=8)
+## color scale to match previous cluster graphics
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+## ellipses
+els <- stat_ellipse(data=commOrd_df, aes(x=RDA1, y=RDA2,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
+scalingFactor <- 0.5 ## change to fit predictor scores to site-based scaling of the biplot
+arrows_predScores <- geom_segment(data = predScores, aes(x = 0, y = 0, xend = RDA1*scalingFactor, yend = RDA2*scalingFactor),
+                      arrow = arrow(length = unit(0.2, "cm")), color = "darkgrey")
+text_predScores <- geom_text(data = predScores, aes(x = RDA1 * 1.1 * scalingFactor, 
+                                                   y = RDA2 * 1.1 * scalingFactor, 
+                                               label = label),
+                                               color = "black", fontface = "italic")
+commOrdPlot <- ord_plotEmpty + pts + els + elCS + arrows_predScores + text_predScores +
+                       labs(title='untransformed',
+                                x="RDA1", y="RDA2") +
+                           theme(plot.title = element_text(hjust = 0.5)) 
+rm(predScores,ord_plotEmpty,pts,els,arrows_predScores,text_predScores)
+
+dev.new()
+commOrdPlot
+
+scores(commHell_rda)$biplot
+
+str(scores(commHell_rda))
+
+scores(commHell_rda)$sites
+
+dev.off()
+
+hellCommOrdPlot
+dev.new()
+commOrdPlot
+
+## testing for significance
+anova.cca(commHell_rda, step = 1000, by = "term")
+anova.cca(commHell_rda, step = 1000, by = "axis")
+
+commOrdPlot
+
+## it has an effect, but I can't really say which is better. 
+
+## makes me wonder if I should have hellinger transformed the functional data?
+## if there is time, repeat with transformation and check the results. 
+
+## anyway, this basically gives us two composite variables that together 
+## explain a lot of the total inertia in our community. 
+
+## how can we extract these as variables of interest? Should be the 
+## site scores:
+
+hellCommOrdPlot
+dev.new()
+plot(commHell_rda)
+
+dev.new()
+ordiplot(commHell_rda)
+
+commHell_siteScores <- as.data.frame(scores(commHell_rda)$sites)
+comm_siteScores <- as.data.frame(scores(comm_rda)$sites)
 
 
+## how do they compare?:
+aa <- merge(commHell_siteScores$RDA1,comm_siteScores$RDA1, by="row.names")
+ggplot(aa, aes(x=x, y=y)) + geom_point() ## weird, not sure.
 
+comm_siteScores <- scores(comm_rda)$sites
 
-## okay, let's actually get to a JSDM
+## and the loadings?
 
+## UW multivariate book says the "regression" data
+## is basically our loadings:
+scores(commHell_rda)$regression
+
+## but this doesn't really line up with our ordination 
+## plots
+
+summary(commHell_rda)
+
+str(commHell_rda$CCA)
+
+(commHell_rda)
+
+## not sure. 
+
+## let's try the hellinger scored RDAs.
+## the site scores for RDA1 and RDA2 should serve 
+## as variables, and the triplot will have to do for explaining the 
+## loadings. 
+
+## so for the JSDM, we have these two summary composite variables, 
+## one representing the general soil carbon quality and structure
+## the other incorporating electron accepter/donor capacity
+## maybe we should try the model just using EAC/EDC 
+
+## how do these correlate with depth?
+
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("Subsite","DepthSection","cluster")]
+all(rownames(aa) == rownames(commHell_siteScores))
+rdasDepth <- data.frame(cbind(aa, commHell_siteScores))
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+rm(aa)
+
+## interesting, pretty clear patterns with these RDAs:
+RDA1ggplot <- ggplot(rdasDepth, aes(x=DepthSection, y=RDA1, color=cluster, shape=Subsite)) + geom_point() + scale_color_manual(values = clusterCols)
+RDA2ggplot <- ggplot(rdasDepth, aes(x=DepthSection, y=RDA2, color=cluster, shape=Subsite)) + geom_point() + scale_color_manual(values = clusterCols)
+
+dev.off()
+
+## a good general overview set of graphs would be:
+
+dev.new()
+hellCommOrdPlot
+dev.new()
+RDA1ggplot
+dev.new()
+RDA2ggplot
+
+## okay, let's actually get to a JSDM. Use the two RDAs and ??
+
+## 
 
 ## actually, I never tested, maybe pseudocounts aren't necessary
 ## let's run through sJSDM example pipeline. 
@@ -976,7 +1210,6 @@ install.packages("sjSDM")
 ## dependencies
 
 sjSDM::install_sjSDM(version = "cpu")
-
 
 ## didn't really work, no pytorch. As per their installation instructions:
 
