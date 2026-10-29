@@ -15,11 +15,10 @@ library(phyloseq)
 library(ggplot2)
 library(patchwork)
 library(vegan)
-
 library(ggordiplots)
-
 #library(RColorBrewer)
 #library(ape)
+library("ggvegan")
 
 #setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
 setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
@@ -907,18 +906,51 @@ loadings(PCAfuncAb, tidy=T)
 ## - check out Nitrososphaeria archaea (ASV1219), they are ammonia oxidizers. 
 ##   - could be recycling the NH3 to nitrate.
 
+## while trying to narrow down predictors for the sJSDM, think it might 
+## good to see if any clear signals come out of a rda on the 
+## total community data, using the environmental data we have:
+
+otu_table(ps007_cleaned_sqrt_prop)
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+cVs <- c(
+"N","C", "H","S", "O","CN", "CH","HC", "OC","pH", 
+"hi1","hi2", "hi3","hi4",
+"holocellulose_content_2","klason_lignin_content_2",
+"phosphorus_content_1","bulk_density_1",
+"macroporosity_1","degree_of_decomposition_1",
+"degree_of_decomposition_2","degree_of_decomposition_3",
+"eac","edc"
+)
+
+commData <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,cVs]
+
+## transform data again?:
+
+commData_hell <- decostand(commData, "hellinger")
+commData[1:10,1:5]
+commData_hell[1:10,1:5]
+aa <- rda(commData_hell, envData)
+
+anova(aa)
+autoplot(aa)
 
 
+## how does this compare to the "untransformed" data?:
 
 
+bb <- rda(commData, envData)
 
-  
- 
+anova(bb)
 
+autoplot(bb)
+dev.new()
+autoplot(aa)
 
-
-
-
+## it makes a difference. I guess go with the textbook transformed 
+## abundances?
 
 
 
@@ -999,8 +1031,41 @@ plot(results)
 plotAssemblyEffects(results)
 
 ## okay. Looks pretty simple. Can we run werners data through this? 
+## our major predictors are depth, geomorphology, 
+## and the "soil quality" PCA of the FTIR data
 
-## check to see if pseudocounts are necessary
+## depth and the soil quality are heavily correlated, 
+## soil quality indicators should probably be prioritized
+## because it actually points to mechanisms
+
+## first check, just set up what we think would be a good model with 
+## the data as is?
+
+## this would incorporate all ASVs, with their current transformed relative 
+## abundances:
+
+R
+library(sjSDM)
+library(phyloseq)
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+community$response ## sites are rows. They use presence/absence data.
+
+class(community$response) ## matrix...
+
+## try our otu table
+Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
+
+## use  
+Env <- 
 
 
+SP <- matrix(rnorm(200, 0, 0.3), 100, 2)
 
+model <- sjSDM(Y = Occ, 
+               env = linear(data = Env, formula = ~X1+X2+X3), 
+               spatial = linear(data = SP, formula = ~0+X1:X2), 
+               se = TRUE, family=binomial("probit"), 
+               sampling = 100L, 
+               verbose = FALSE)
