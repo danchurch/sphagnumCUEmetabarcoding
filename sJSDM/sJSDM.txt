@@ -18,7 +18,8 @@ library(vegan)
 library(ggordiplots)
 #library(RColorBrewer)
 #library(ape)
-library("ggvegan")
+library(ggvegan)
+library(ggcorrplot)
 
 #setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
 setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
@@ -533,8 +534,6 @@ otu_table(PS_mag)[,"ASV559"]
 
 asvMAG[,3]
 
-## stopping here 26.10.26
-
 ## would be good to add in the possible additional functional groups that 
 ## we have noted - high-affinity methanotrophy, possible anaerobic methanotrophy 
 ## by methanomirabilis and if we can track down the bathyarchaea that may 
@@ -599,7 +598,7 @@ lignotrophPlot <- ggplotJustPalsa + ggplotJustThermokarst
 
 lignotrophPlot & ylim(min(0), max(0.03))
 
-## okay, ~1/2 of our bathyarchaeia probably have this methylotransferase 
+## okay, at least ~1/2 of our bathyarchaeia probably have this methylotransferase 
 ## gene cluster, and they are concentrated in our deep thermokarst.
 
 ## next step - add high affinity methanotrophy and lignotrophy to our functions list
@@ -720,11 +719,6 @@ funcNMS <- metaMDS(funcAbundances, try=40)
 
 ?adonis2
 
-data(dune)
-data(dune.env)
-## default is overall (omnibus) test
-adonis2(dune ~ Management*A1, data = dune.env)
-
 clusters <- data.frame(sample_data(ps007_cleaned_sqrt_prop))["cluster"]
 
 clusters$cluster
@@ -732,10 +726,6 @@ clusters$cluster
 adonis2(funcAbundances ~ clusters$cluster)
 
 adonis2(funcAbundances ~ clusters$cluster)
-
-head(dune)
-
-head(funcAbundances)
 
 all(rownames(clusters) == rownames(funcAbundances))
 
@@ -930,6 +920,7 @@ envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,cVs]
 ## transform data again?:
 
 commData_hell <- decostand(commData, "hellinger")
+
 commData[1:10,1:5]
 commData_hell[1:10,1:5]
 aa <- rda(commData_hell, envData)
@@ -967,6 +958,7 @@ str(scores(commHell_rda), max.level=1)
 
 commHell_rda <- rda(commData_hell, envData)
 summary(commHell_rda)
+
 ## Partitioning of variance:
 ##               Inertia Proportion
 ## Total          0.6865     1.0000
@@ -980,8 +972,8 @@ summary(commHell_rda)
 ##Cumulative Proportion 0.2600 0.4835
 
 ## and the untransformed?
-comm_rda <- rda(commData, envData)
 
+#comm_rda <- rda(commData, envData)
 comm_rda <- rda(commData ~ ., data=envData)
 
 summary(comm_rda)
@@ -1091,6 +1083,7 @@ commOrdPlot <- ord_plotEmpty + pts + els + elCS + arrows_predScores + text_predS
                                 x="RDA1", y="RDA2") +
                            theme(plot.title = element_text(hjust = 0.5)) 
 rm(predScores,ord_plotEmpty,pts,els,arrows_predScores,text_predScores)
+dev.new(); commOrdPlot
 
 dev.new()
 commOrdPlot
@@ -1145,10 +1138,18 @@ comm_siteScores <- scores(comm_rda)$sites
 
 ## UW multivariate book says the "regression" data
 ## is basically our loadings:
+
 scores(commHell_rda)$regression
 
 ## but this doesn't really line up with our ordination 
-## plots
+## plots. These are the coefficients of the various 
+## new rdas in predicting the species abundances
+## from the new PCAs of the predictor matrix. 
+## but how to extract the originial PCAs of the predictor
+## matrix? 
+
+## google AI says the biplot arrows are essentially this. 
+## but I can't confirm it anywhere. Seems right.  
 
 summary(commHell_rda)
 
@@ -1192,9 +1193,91 @@ RDA1ggplot
 dev.new()
 RDA2ggplot
 
-## okay, let's actually get to a JSDM. Use the two RDAs and ??
+## we can corroborate the RDA results pretty much 
+## exactly with a permanova of these results.
 
-## 
+rdasDepth 
+
+class(commHell_siteScores)
+
+commData
+
+adonis2(commData ~ commHell_siteScores[,"RDA1"])
+
+adonis2(commData ~ commHell_siteScores[,"RDA2"])
+
+adonis2(commData ~ ., data=as.data.frame(commHell_siteScores))
+
+adonis2(commData ~ RDA1 + S + edc, data=c(envData)
+
+## just checking, if RDA1 really is pretty much edc/eac, do eac and edc
+## directly explain a lot of variance?
+
+envData[,c("eac","edc")]
+
+adonis2(commData ~ eac, data=envData) ## nope, basically no effect
+adonis2(commData ~ edc, data=envData) ## same
+
+adonis2(commData ~ eac + edc, data=envData)
+
+adonis2(commData ~ eac*edc, data=envData)
+## something. a weak signal. 11% R2, p ~ 0.08 
+
+## so what is this variable?
+
+## the RDA by itself explains R2 ~ .28
+adonis2(commData ~ commHell_siteScores[,"RDA1"])
+
+## if we add S and edc, R2 does go up to ~0.40
+as.data.frame(cbind(commHell_siteScores, envData)) |>
+adonis2(commData ~ RDA1 + S + edc, data=_)
+
+## RDA and S (no edc), R2~37
+as.data.frame(cbind(commHell_siteScores, envData)) |>
+adonis2(commData ~ RDA1 + S, data=_)
+
+## RDA and edc (no S), R2~30
+as.data.frame(cbind(commHell_siteScores, envData)) |>
+adonis2(commData ~ RDA1 + edc, data=_)
+
+## S + edc alone R2 ~ 0.13
+adonis2(commData ~ S + edc, data=envData)
+
+## so not sure.
+
+str(commHell_rda)
+
+
+aa <- as.data.frame(cbind(commHell_siteScores, envData))
+
+cor_matrix <- cor(aa)
+
+cor_matrix_RDA <- cor_matrix[,c("RDA1","RDA2")]
+
+cor_matrix_RDA 
+
+## it looks like this RDA1 is most different from RDA2
+## by it's emphasis on edc and sulfur
+## which is lacking in RDA1
+
+adonis2(commData ~ S*edc, data=envData)
+adonis2(commData ~ S*edc, data=envData)
+adonis2(commData ~ S:edc, data=envData)
+
+ggcorrplot(cor_matrix) 
+
+ggcorrplot(cor_matrix_RDA) ## this 
+
+## so summarize this variable as a combination of sulfur abundances and the
+## electron donor capacity
+
+
+
+
+## okay, let's actually get to a JSDM. 
+## let's try several variables, 
+## Use the two RDAs, but also try combinations of 
+## environmental variables  
 
 ## actually, I never tested, maybe pseudocounts aren't necessary
 ## let's run through sJSDM example pipeline. 
@@ -1302,3 +1385,5 @@ model <- sjSDM(Y = Occ,
                se = TRUE, family=binomial("probit"), 
                sampling = 100L, 
                verbose = FALSE)
+
+
