@@ -1271,8 +1271,65 @@ ggcorrplot(cor_matrix_RDA) ## this
 ## so summarize this variable as a combination of sulfur abundances and the
 ## electron donor capacity
 
+## curious, our RDA2 looks a lot like the PCA1 we found before 
+## while modeling CUE. 
 
+## Are they correlated?
 
+## recreate the old PCA:
+vars2red <-
+  c("N","C","H","S","O","CN","CH","HC","OC","pH","hi1","hi4",
+  "holocellulose_content_2","klason_lignin_content_2",
+  "phosphorus_content_1","bulk_density_1",
+  "macroporosity_1","degree_of_decomposition_1",
+  "eac","edc")
+
+abiotic4pca <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,vars2red]
+
+PCAabio <- princomp(abiotic4pca, cor=TRUE)
+
+abioticPCAloadings <- loadings(PCAabio)
+abioticScores <- data.frame(PCAabio$scores)
+
+barplot(PCAabio[]$sdev^2, las=2)
+abline(h = mean(PCAabio$sdev^2), col = "red") ## scaled to 1
+
+commHell_siteScores
+
+RDAsPCAs <- as.data.frame(cbind(commHell_siteScores, abioticScores))
+
+cor_matrix <- cor(RDAsPCAs)
+
+cor_matrix_RDA <- cor_matrix[,c("RDA1","RDA2")]
+
+cor_matrix_RDA 
+
+ggcorrplot(cor_matrix) 
+
+ggcorrplot(cor_matrix_RDA) 
+
+## yup. It is most correlated with our old PCA1. 
+
+ggplot(data=RDAsPCAs) +
+geom_point( aes(x=RDA2, y=Comp.1,
+             size=6)
+
+## RDA1 is most correlated to PC10, PC6:
+RDAcorrUnsorted <- cor_matrix_RDA[,"RDA1"]
+sortedRDA1corrNames <- names(sort(abs(RDAcorrUnsorted), decreasing=T))
+RDAcorrUnsorted[ sortedRDA1corrNames]
+
+RDAsPCAs[,sortedRDA1corrNames]
+
+ggplot(data=RDAsPCAs) +
+geom_point( aes(x=RDA1, y=Comp.6,
+#geom_point( aes(x=RDA1, y=Comp.10,
+             size=6))
+
+## noise, not correlated really. This is some kind of new variable.
+
+## let's save these PCAs and RDAs for use later:
+save(RDAsPCAs, file= "RDAsPCAs.rda")
 
 ## okay, let's actually get to a JSDM. 
 ## let's try several variables, 
@@ -1307,7 +1364,9 @@ python -m pip install pyro-ppl torch_optimizer madgrad
 conda activate r-sjsdm
 
 R
+
 library(sjSDM)
+library(phyloseq)
 
 ## make some data:
 
@@ -1317,9 +1376,7 @@ set.seed(42)
 community <- simulate_SDM(sites = 100, species = 10, env = 3, se = TRUE)
 
 Env <- community$env_weights
-
 Occ <- community$response
-
 SP <- matrix(rnorm(200, 0, 0.3), 100, 2)
 
 model <- sjSDM(Y = Occ, 
@@ -1332,11 +1389,12 @@ model <- sjSDM(Y = Occ,
 summary(model)
 
 ?sjSDM
+
 plot(model)
 
 image(getCor(model))
 
-an = anova(model, verbose = FALSE)
+an = anova(model, verbose = T)
 
 plot(an)
 
@@ -1361,29 +1419,108 @@ plotAssemblyEffects(results)
 ## abundances:
 
 R
+
 library(sjSDM)
 library(phyloseq)
 
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+load("../sJSDM/RDAsPCAs.rda")
+
 
 community$response ## sites are rows. They use presence/absence data.
 
 class(community$response) ## matrix...
 
-## try our otu table
+## try our otu table.
+
 Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
 
-## use  
-Env <- 
+## tried it
+## Raw OTU table doesn't work, or at least, takes forever
+## I have a feeling that we need to downsize. 
+## just to get the model working, let's cut down 
+## to the 100 most abundant OTUs. We'll 
+## increase later.
 
+Occ <- as.matrix(data.frame(otu_table(ps007_cleaned_sqrt_prop)))
 
-SP <- matrix(rnorm(200, 0, 0.3), 100, 2)
+ncol(Occ) ## 3570 spp
 
-model <- sjSDM(Y = Occ, 
-               env = linear(data = Env, formula = ~X1+X2+X3), 
-               spatial = linear(data = SP, formula = ~0+X1:X2), 
-               se = TRUE, family=binomial("probit"), 
+highAbuASVs <- names(sort(colSums(Occ), decreasing=T)[1:100])
+
+all(rowSums(Occ[,highAbuASVs]) > 0)
+
+occ100 <- Occ[,highAbuASVs]
+
+## turn into pseudocounts?:
+
+minCell <- min(occ100[ occ100 > 0 ] ) ## 0.000188354 for top 100 ASVs
+pseudoOcc100 <- round(occ100 * 1/minCell)
+
+occ100[1:4,1:4]
+pseudoOcc100[1:4,1:4]
+
+occ100
+
+## as a first test, use our two rdas and a random choice o
+## will allow it:
+
+head(RDAsPCAs)
+
+head(sample_data(ps007_cleaned_sqrt_prop),1)
+
+Env <- cbind(sample_data(ps007_cleaned_sqrt_prop)[,"holocellulose_content_2"],
+             RDAsPCAs[,c("RDA1", "RDA2")])
+
+## test categorical
+Env <- cbind(sample_data(ps007_cleaned_sqrt_prop)[,"Subsite"],
+             RDAsPCAs[,c("RDA1", "RDA2")])
+
+## our spatial matrix - leave this out for now...
+SP <- NULL
+
+modelPois <- sjSDM(Y = pseudoOcc100, 
+               #env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
+               env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
+               #spatial = linear(data = SP, formula = ~0+X1:X2), 
+               se = TRUE, family=poisson("log"),
+               #se = TRUE, family="nbinom",  
+               #se = TRUE, 
                sampling = 100L, 
-               verbose = FALSE)
+               verbose = TRUE)
+
+modelBinom <- sjSDM(Y = pseudoOcc100, 
+               #env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
+               env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
+               #spatial = linear(data = SP, formula = ~0+X1:X2), 
+               #se = TRUE, family=poisson("log"),
+               se = TRUE, family="nbinom", 
+               #se = TRUE, 
+               sampling = 100L, 
+               verbose = TRUE)
+
+poisSum <- summary(modelPois)
+
+poisSum$logLik
+
+str(poisSum, max.level=1)
+
+binomSum <- summary(modelBinom)
+
+binomSum$logLik
+
+aa <- summary(model)
+
+summary(model)
+
+## questions for florian:
+##  - sampling -> what is "100L". 
+##  - negative binomial doesn't seem to work
+
+## there is a builtin variation partitioning function:
+
+an = anova(model, verbose = TRUE)
+## takes forever, then breaks. 
+
 
 
