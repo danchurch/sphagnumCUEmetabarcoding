@@ -17,6 +17,8 @@ backend: TkAgg
 
 ## let's take a look at the spatial scales we are dealing with with Werner's samples:
 
+sudo apt install python3-geopandas
+
 python3
 
 import pandas as pd
@@ -57,3 +59,8 @@ for x, y, label in zip(cities.geometry.x, cities.geometry.y, cities.name):
 for s, g in zip(stations, geometries):
     xy = g.coords[0]
     ax.text(xy[0], xy[1], s)
+
+## we need these UTM coords in a csv...
+
+gdf.to_csv("text.csv")
+

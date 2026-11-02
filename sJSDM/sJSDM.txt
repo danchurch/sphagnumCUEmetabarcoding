@@ -1418,10 +1418,14 @@ plotAssemblyEffects(results)
 ## this would incorporate all ASVs, with their current transformed relative 
 ## abundances:
 
+conda activate r-sjsdm
+
 R
 
 library(sjSDM)
 library(phyloseq)
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sJSDM")
 
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 load("../sJSDM/RDAsPCAs.rda")
@@ -1433,7 +1437,9 @@ class(community$response) ## matrix...
 
 ## try our otu table.
 
-Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
+
+#Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
+Occ <- as.matrix(data.frame(otu_table(ps007_cleaned_sqrt_prop)))
 
 ## tried it
 ## Raw OTU table doesn't work, or at least, takes forever
@@ -1442,25 +1448,18 @@ Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
 ## to the 100 most abundant OTUs. We'll 
 ## increase later.
 
-Occ <- as.matrix(data.frame(otu_table(ps007_cleaned_sqrt_prop)))
-
 ncol(Occ) ## 3570 spp
 
+Occ <- as.matrix(data.frame(otu_table(ps007_cleaned_sqrt_prop)))
 highAbuASVs <- names(sort(colSums(Occ), decreasing=T)[1:100])
-
 all(rowSums(Occ[,highAbuASVs]) > 0)
-
 occ100 <- Occ[,highAbuASVs]
-
-## turn into pseudocounts?:
-
+## turn into pseudocounts:
 minCell <- min(occ100[ occ100 > 0 ] ) ## 0.000188354 for top 100 ASVs
 pseudoOcc100 <- round(occ100 * 1/minCell)
 
 occ100[1:4,1:4]
 pseudoOcc100[1:4,1:4]
-
-occ100
 
 ## as a first test, use our two rdas and a random choice o
 ## will allow it:
@@ -1472,16 +1471,15 @@ head(sample_data(ps007_cleaned_sqrt_prop),1)
 Env <- cbind(sample_data(ps007_cleaned_sqrt_prop)[,"holocellulose_content_2"],
              RDAsPCAs[,c("RDA1", "RDA2")])
 
-## test categorical
-Env <- cbind(sample_data(ps007_cleaned_sqrt_prop)[,"Subsite"],
-             RDAsPCAs[,c("RDA1", "RDA2")])
-
+## or test categorical
+#Env <- cbind(sample_data(ps007_cleaned_sqrt_prop)[,"Subsite"],
+#             RDAsPCAs[,c("RDA1", "RDA2")])
 ## our spatial matrix - leave this out for now...
 SP <- NULL
 
 modelPois <- sjSDM(Y = pseudoOcc100, 
-               #env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
-               env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
+               env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
+               #env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
                #spatial = linear(data = SP, formula = ~0+X1:X2), 
                se = TRUE, family=poisson("log"),
                #se = TRUE, family="nbinom",  
@@ -1490,8 +1488,8 @@ modelPois <- sjSDM(Y = pseudoOcc100,
                verbose = TRUE)
 
 modelBinom <- sjSDM(Y = pseudoOcc100, 
-               #env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
-               env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
+               env = linear(data = Env, formula = ~RDA1+RDA2+holocellulose_content_2), 
+               #env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
                #spatial = linear(data = SP, formula = ~0+X1:X2), 
                #se = TRUE, family=poisson("log"),
                se = TRUE, family="nbinom", 
@@ -1501,26 +1499,74 @@ modelBinom <- sjSDM(Y = pseudoOcc100,
 
 poisSum <- summary(modelPois)
 
-poisSum$logLik
-
 str(poisSum, max.level=1)
 
 binomSum <- summary(modelBinom)
 
 binomSum$logLik
 
-aa <- summary(model)
+str(modelBinom, max.level=1)
 
-summary(model)
+## can't find the species cooccurrences 
+## that these were it, but the diagonal isn't 1.:
+binomSum$cov ## so some sort of covariance matrix for species-species interactions 
+
+## if that is the case, I would do:
+aa <- cov2cor(binomSum$cov)
+
+str(binomSum)
 
 ## questions for florian:
 ##  - sampling -> what is "100L". 
-##  - negative binomial doesn't seem to work
+##  - think I can find the species-species covariance matrix
+##    - would like to use it do some co-occurrence analysis
+##    - so in my ignorance I would simply do the rescaling with:
+        spspcorr <- cov2cor(binomSum$cov) 
+## even though I'm sure this makes a lot of unchecked-assumptions about distributions, etc.
+
 
 ## there is a builtin variation partitioning function:
+anBinom = anova(modelBinom, verbose = TRUE) ## takes some time
 
-an = anova(model, verbose = TRUE)
-## takes forever, then breaks. 
 
+summary(anBinom)
+
+plot(anBinom)
+
+anPois = anova(modelPois, verbose = TRUE)
+
+## here
+
+dev.new()
+plot(anBinom)
+## the same as the binomial model
+
+## add in spatial data, see how/if it changes things
+
+## if all that works, write two models:
+
+## one with the intuitive predictors, depth, geomorphology, maybe pH
+## one with the synthetic variables that give an idea of mechanism, and maybe pH
+
+## if interesting, update notebook with the above
+## then send the above questions
+
+## maybe set up the optiplex for this, might be faster. Or at least, can run it in the background.
+
+## computer setup, code seems to work
+
+## where is our spatial data?:
+
+
+## so, the most intuitive model would be one that includes depth, geomorphology, and the core from which it came
+
+c("Subsite DepthSection","EcoCont","Core")
+
+head(sample_data(ps007_cleaned_sqrt_prop), 2)
+
+sample_data(ps007_cleaned_sqrt_prop)
+
+Env <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("Subsite","DepthSection","Core")]
+Sp <-
 
 
