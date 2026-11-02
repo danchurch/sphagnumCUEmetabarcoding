@@ -1430,13 +1430,13 @@ setwd("/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/s
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 load("../sJSDM/RDAsPCAs.rda")
 
-
-community$response ## sites are rows. They use presence/absence data.
-
-class(community$response) ## matrix...
+spDF <- read.csv("../mapOfSamples/plotCoords.csv")
+## just checking, is X east/west and Y north/south?:
+plot(spDF$X, spDF$Y, asp=1)
+matrix(rnorm(200, 0, 0.3), 100, 2)
+## looks right
 
 ## try our otu table.
-
 
 #Occ <- as.matrix(otu_table(ps007_cleaned_sqrt_prop))
 Occ <- as.matrix(data.frame(otu_table(ps007_cleaned_sqrt_prop)))
@@ -1458,6 +1458,7 @@ occ100 <- Occ[,highAbuASVs]
 minCell <- min(occ100[ occ100 > 0 ] ) ## 0.000188354 for top 100 ASVs
 pseudoOcc100 <- round(occ100 * 1/minCell)
 
+minCell
 occ100[1:4,1:4]
 pseudoOcc100[1:4,1:4]
 
@@ -1535,9 +1536,10 @@ plot(anBinom)
 
 anPois = anova(modelPois, verbose = TRUE)
 
-## here
-
 dev.new()
+
+plot(anPois)
+
 plot(anBinom)
 ## the same as the binomial model
 
@@ -1567,6 +1569,158 @@ head(sample_data(ps007_cleaned_sqrt_prop), 2)
 sample_data(ps007_cleaned_sqrt_prop)
 
 Env <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("Subsite","DepthSection","Core")]
-Sp <-
 
+Env$Core
+
+Sp <- 
+
+## to find one x and y:
+
+rownames(spDF) <- gsub("C","", spDF$waypoint)
+
+rownames(spDF)
+
+Env$Core
+
+coords <- spDF[ Env$Core,c("X","Y")]
+rownames(coords) <- rownames(Env)
+## just checking
+cbind(coords, Env) ## seems right.
+
+## looks good. so our spatial would be:
+
+SP <- as.matrix(coords)
+Env <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c(
+
+modelB1 <- sjSDM(Y = pseudoOcc100, 
+               env = linear(data = Env, formula = ~RDA1+RDA2+Subsite), 
+               se = TRUE, family="nbinom", 
+               sampling = 100L, 
+               verbose = TRUE)
+
+modelBinom_noSP <- sjSDM(Y = pseudoOcc100, 
+                       env = linear(data = Env, formula = ~ Subsite + DepthSection + Core), 
+#                      spatial = linear(data = SP, formula = ~0+X:Y), ## trend surface breaks.
+#                      spatial = linear(SPV, ~0+.), ## runs, at least. 7 PCNMs, because 8 cores
+                       se = TRUE, family="nbinom", 
+                       sampling = 100L, 
+                       verbose = TRUE)
+
+modelBinom <- sjSDM(Y = pseudoOcc100, 
+               env = linear(data = Env, formula = ~ Subsite + DepthSection + Core), 
+#              spatial = linear(data = SP, formula = ~0+X:Y), ## trend surface breaks.
+               spatial = linear(SPV, ~0+.), ## runs, at least. 7 PCNMs, because 8 cores
+               se = TRUE, family="nbinom", 
+               sampling = 100L, 
+               verbose = TRUE)
+
+## the spatial component breaks this...
+## try the eigenvector approach:
+SPV = generateSpatialEV(SP) ## inserted above
+
+anBinom = anova(modelBinom, verbose = TRUE) ## takes some time
+
+summary(anBinom)
+
+plot(anBinom)
+
+
+anBinom_noSP = anova(modelBinom_noSP)
+
+dev.new()
+plot(anBinom_noSP)
+
+## whoah. Adding a spatial componenet drops the explanatory 
+## power of the model dramatically.
+
+anBinom_noSP = anova(modelB1)
+modelB1
+## what do we want from this model?
+
+## would be nice to have a cooccurrence graphic
+## a general summary of how important each predictor 
+## was to the community. Although, we already
+## have such estimates from the rest of the 
+## analysis. 
+
+## these models will allow us to 
+## 1. show some patterns of individual specials, if we are interested
+## 2. allow a variation partitioning analysis  
+
+## it seems to me that a nice approach might be
+## to apply this sjSDM to our functional groups 
+
+## so start again, using these groups
+
+## where are these groups again?
+load("../sJSDM/funcAbundances.rda")
+load("../sJSDM/PS_mag.rda")
+
+funcAbundances[1:4,1:4]
+
+funcOcc <- as.matrix(funcAbundances)
+
+## turn into pseudocounts:
+
+dim(funcOcc)
+
+minFuncCell <- min(funcOcc[ funcOcc > 0 ] ) ## 0.0001883543, weird, same as above for 100 top ASVs...
+
+pseudoFuncOcc <- round(funcOcc * 1/minFuncCell)
+
+min(pseudoFuncOcc[ pseudoFuncOcc > 0 ] )
+max(pseudoFuncOcc[ pseudoFuncOcc > 0 ] )
+dim(pseudoFuncOcc)
+
+## don't understand, can't be a coincidence. But 
+## everything seems fine.
+
+## okay, can we model with this matrix instead?
+
+modelBinom_func_noSP <- sjSDM(Y = pseudoFuncOcc, 
+                            env = linear(data = Env, formula = ~ Subsite + DepthSection + Core), 
+#                           spatial = linear(data = SP, formula = ~0+X:Y), ## trend surface breaks.
+#                           spatial = linear(SPV, ~0+.), ## runs, at least. 7 PCNMs, because 8 cores
+                            se = TRUE, family="nbinom", 
+                            sampling = 100L, 
+                            verbose = TRUE)
+
+
+dev.new()
+plot(modelBinom_func_noSP)
+
+anBinomFunc <- anova(modelBinom_func_noSP)
+
+anBinomFunc
+
+plot(anBinomFunc)
+
+## try it without core:
+modelBinom_func_noSP <- sjSDM(Y = pseudoFuncOcc, 
+                            env = linear(data = Env, formula = ~ Subsite + DepthSection), 
+                            se = TRUE, family="nbinom", 
+                            sampling = 100L, 
+                            verbose = TRUE)
+
+plot(modelBinom_func_noSP)
+
+## this does not look like our ordinations and plots of individual functions
+## they give a positive coefficient for the relationship
+## between depth and oxydative respiration, for example 
+
+## maybe our transformations are to blame. Check:
+
+aa <- cbind(
+pseudoFuncOcc[,"O2_respiration_cox", drop=F],
+Env[,"DepthSection", drop=F]
+)
+plot(O2_respiration_cox ~ DepthSection, data=aa)
+
+## that looks pretty clearly negative. 
+## ugh, no time for this. 
+
+
+anBinom_func_noSP <- anova(modelBinom_func_noSP)
+
+plot( anBinom_func_noSP )
 

@@ -62,5 +62,5 @@ for s, g in zip(stations, geometries):
 
 ## we need these UTM coords in a csv...
 
-gdf.to_csv("text.csv")
+gdf.to_csv("test.csv")
 
