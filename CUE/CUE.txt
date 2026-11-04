@@ -1757,3 +1757,237 @@ asvMAG[rownames(asvMAG) %in% cuePCA1asvs,] ## three ASVs pointing to two mags, D
 
 ## but for now, update notebook and keep moving.
 
+## 4 nov 2026
+
+## back. I would like to scratch the itch of running 
+## the anaerobic CUE through our modeling pipeline. 
+
+wd <- "/home/daniel/Documents/projects/wernerSphagnum/" ## desktop
+setwd(paste0(wd,"CUE"))
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+CUE <- read.xlsx("CUE_pH.xlsx", sheet="Incubation", rowNames=FALSE)
+anoxCUE <- read.csv("anoxCUE.csv", row.names=1, check.names=FALSE)
+sampData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+hist(anoxCUE$CUE, breaks=20) ## again some sort of skewed right dist...
+
+fit_g  <- fitdist(anoxCUE$CUE, "gamma")
+fit_ln <- fitdist(anoxCUE$CUE, "lnorm")
+fit_w <- fitdist(anoxCUE$CUE, "weibull")
+
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+
+## log normal is fine.  
+
+highCUEfilt <- sampData$SampleID %in% anoxCUE[anoxCUE$CUE > 0.4,"Sample"]
+
+## as before, classify all samples as hi/low anoxCUE
+
+aa <- sample_data(ps007_cleaned_sqrt_prop)
+
+bb <- rep("low", nrow(aa))
+names(bb) <- rownames(aa) 
+
+bb[highCUEfilt] <- "high"
+
+aa$anoxCUE <- bb
+
+## did that work?
+all(rownames(aa[aa[,"anoxCUE"] == "high"] ) %in% rownames(anoxCUE[anoxCUE$CUE > 0.4,]))
+
+anoxCUE[ rownames(aa[aa[,"anoxCUE"] == "high"] ),]
+
+dim(sample_data(ps007_cleaned_sqrt_prop) )
+
+head(sample_data(ps007_cleaned_sqrt_prop) )
+
+dim(aa)
+head(aa)
+
+sample_data(ps007_cleaned_sqrt_prop)  <- aa
+
+sampData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+## doing this on 4.11.26, last git commit before it: commit 8b1a902202b312cc3be8257fced2ebb8cf60984c
+#save(ps007_cleaned_sqrt_prop, file="../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## okay, try abiotic predictors 
+
+## we have our PCAs from previous analysis saved as:
+
+load("../sJSDM/RDAsPCAs.rda")
+
+## just curious, do they look right?:
+aa <- merge(RDAsPCAs[,c("Comp.1","Comp.2")], data.frame(sample_data(ps007_cleaned_sqrt_prop))["DepthSection"], by="row.names")
+rownames(aa) <- aa$Row.names
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]; aa$Row.names <- NULL
+PCAswithDepth_df <- aa; rm(aa)
+sampData[highCUEfilt,]
+pc1depth <- ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.1)) +
+             geom_point() + geom_smooth(method = "lm")
+pc2depth <- ggplot(data=PCAswithDepth_df, aes(x=DepthSection, y=Comp.2)) +
+             geom_point() + geom_smooth(method = "lm")
+pc1depth + pc2depth ## looks right, matches my notes
+
+## okay, try modeling with these:
+
+# not elegant. But I will never give into the tidy verse!!!!
+aa <- merge(anoxCUE["CUE"],data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("DepthSection", "Core", "Subsite","H")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+aa <- merge(aa, RDAsPCAs[,c("Comp.1","Comp.2")], by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]
+fullModanoxCUEdf <- aa; rm(aa)
+
+head(fullModanoxCUEdf)
+
+abioPC1_CUE <- ggplot(data=fullModanoxCUEdf, aes(x=Comp.1, y=CUE)) +
+                 geom_point()
+
+abioPC2_CUE <- ggplot(data=fullModanoxCUEdf, aes(x=Comp.2, y=CUE)) +
+                 geom_point()
+
+abioPC1_CUE + abioPC2_CUE ## this actually looks a little more useful than with oxic CUE
+
+
+abioPC1_CUE <- ggplot(data=fullModanoxCUEdf, aes(x=Comp.1, y=CUE, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC2_CUE <- ggplot(data=fullModanoxCUEdf, aes(x=Comp.2, y=CUE, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC1_CUE + abioPC2_CUE
+
+## PCA1 seems most important for the palsa samples?:
+
+head(fullModanoxCUEdf)
+
+rm(aa)
+
+## break it up a bit:
+
+##PCA1 anoxic CUE
+palsaFilter <- fullModanoxCUEdf$Subsite == "Palsa"
+palsaAnoxCUEdf <- fullModanoxCUEdf[palsaFilter,]
+thermokarstFilter <- fullModanoxCUEdf$Subsite == "Thermokarst"
+thermokarstAnoxCUEdf <- fullModanoxCUEdf[thermokarstFilter,]
+
+palsaAnoxCUE_PCA1 <- ggplot(data=palsaAnoxCUEdf, aes(x=Comp.1, y=CUE, color=DepthSection)) +
+                 geom_point(size=7, shape=16)
+thermokarstAnoxCUE_PCA1 <- ggplot(data=thermokarstAnoxCUEdf, aes(x=Comp.1, y=CUE, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7, shape=17)
+palsaAnoxCUE_PCA1 + thermokarstAnoxCUE_PCA1 & ylim(min(0), max(1.0))
+
+
+
+## PCA2
+palsaAnoxCUE_PCA2 <- ggplot(data=palsaAnoxCUEdf, aes(x=Comp.2, y=CUE, color=DepthSection)) +
+                 geom_point(size=7, shape=16)
+thermokarstAnoxCUE_PCA2 <- ggplot(data=thermokarstAnoxCUEdf, aes(x=Comp.2, y=CUE, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7, shape=17)
+dev.new()
+palsaAnoxCUE_PCA2 + thermokarstAnoxCUE_PCA2 & ylim(min(0), max(1.0))
+
+## basic predictors are depth and subsite
+lm(log(CUE) ~ DepthSection + Subsite, data=fullModanoxCUEdf) |> summary()
+## no surprise, depth and geopmorphology are important predictors,
+
+lm(log(CUE) ~ DepthSection*Subsite, data=fullModanoxCUEdf) |> summary() ## adding an interaction weakens model
+
+## dropping depth, keep geomorph only:
+lm(formula = log(CUE) ~ Subsite, data = fullModanoxCUEdf) |> summary() 
+## without depth, the model is not significant or explanatory
+
+## no geomorph, depth only:
+lm(formula = log(CUE) ~ DepthSection, data = fullModanoxCUEdf) |> summary() 
+## even worse
+
+## both PCAs, plus geomorph:
+lm(formula = log(CUE) ~ Subsite + Comp.1 + Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## PCAs alone are worthless.
+
+lm(formula = log(CUE) ~  Comp.1, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = log(CUE) ~  Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+
+lm(formula = CUE ~  Comp.1, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = CUE ~  Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = CUE ~  Comp.1 + Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = log(CUE) ~  Comp.1 + Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = CUE ~  Comp.1 + Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = log(CUE) ~  Comp.1*Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = log(CUE) ~  Comp.1:Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## PCA1, plus geomorph:
+lm(formula = log(CUE) ~ Subsite + Comp.1,
+    data = fullModanoxCUEdf) |> summary() ## non-sig
+
+## the strongest model is still the "full" one:
+lm(formula = log(CUE) ~ Subsite + DepthSection + Comp.1 + Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## dropping depth makes the model much weaker and non-sig:
+lm(formula = log(CUE) ~ Subsite + Comp.1*Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## this is the winner, for the moment, in terms of simplicity
+lm(formula = log(CUE) ~ Subsite + DepthSection + Comp.1*Comp.2, 
+    data = fullModanoxCUEdf) |> summary() ## 
+
+lm(formula = log(CUE) ~ Subsite*DepthSection + DepthSection*Comp.1 + Comp.1*Comp.2,
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## however, adding an interaction between  subsite and PCA1 helps the model,
+## makes sense, given the clear positive relationship between PCA1 and Palsa
+## this is the best performing model, but not the simplest:
+
+lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.1*Comp.2,
+    data = fullModanoxCUEdf) |> summary() ## 
+
+## dropping the PCA interaction hurts.
+lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.2,
+    data = fullModanoxCUEdf) |> summary() ## 
+
+
+## can we use simple H abundance instead of Comp.2?:
+lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.1*H,
+    data = fullModanoxCUEdf) |> summary() ## 
+## not really. Muddies up the model.
+
+head(fullModanoxCUEdf) 
+
+## just checking, above we plotted what looked like 
+## a clear positive relationship between Anaerobic CUE and
+## PCA1:
+
+palsaAnoxCUEdf
+
+lm(formula = log(CUE) ~ Comp.1, 
+    data = palsaAnoxCUEdf) |> summary() ## yes, Radj = 0.5, p = 0.02
+
+lm(formula = CUE ~ Comp.1, 
+    data = palsaAnoxCUEdf) |> summary() ## 
