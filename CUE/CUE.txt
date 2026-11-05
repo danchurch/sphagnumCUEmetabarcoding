@@ -1972,6 +1972,13 @@ lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.1*Comp.2,
 lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.2,
     data = fullModanoxCUEdf) |> summary() ## 
 
+## but dropping geomorph except for the interaction with PCA1 helps:
+lm(formula = log(CUE) ~ DepthSection + Subsite:Comp.1 + Comp.1*Comp.2,
+    data = fullModanoxCUEdf) |> summary()
+## that's ^^ the best, I think
+
+lm(formula = log(CUE) ~ DepthSection + Subsite:Comp.1 + Comp.2,
+    data = fullModanoxCUEdf) |> summary() ## 
 
 ## can we use simple H abundance instead of Comp.2?:
 lm(formula = log(CUE) ~ DepthSection + Subsite*Comp.1 + Comp.1*H,
