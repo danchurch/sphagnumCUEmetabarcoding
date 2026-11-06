@@ -17,6 +17,7 @@ library(vegan)
 library(fitdistrplus)
 #library(glmmLasso)
 library(glmnet)
+library(readxl)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/CUE")
 
@@ -766,6 +767,8 @@ dim(highCUEindSpecResults_corrected) ## down to 319 OTUS
 highCUEasvs <- rownames((highCUEindSpecResults_corrected))
 
 asvMAG <- read.csv("../searchPeatGenomes/asvMAG.csv", row.names=1)
+
+asvMAG
 
 highCUEasvs
 
@@ -1998,3 +2001,76 @@ lm(formula = log(CUE) ~ Comp.1,
 
 lm(formula = CUE ~ Comp.1, 
     data = palsaAnoxCUEdf) |> summary() ## 
+
+
+####### microbial growth ######
+
+## back up. Because the CUE measurements are obviously 
+## flawed and beyond the theoretical maximums,
+## it seems better to examine the microbial growth
+## and respiration patterns separately. 
+
+## then we can keep the error propagation to a mininum,
+## and still get information about level of microbial
+## activity 
+
+## so to me this means models of respiration and models 
+## of microbial growth.
+
+## microbial growth data is recently refreshed by werner 
+## here:
+
+dna <- as.data.frame(read_excel("../sampleData/DNA_Prod.xlsx"))[,1:5]
+colnames(dna) <- c("Sample","Type","Treatment","DNA_18O_uptake","DNA_prod")
+
+
+## tie these back to working S sample numbers:
+
+load("../sequenceAnalysis/ps007.rda")
+findWorkId <- function(x){
+   aa <- which(sample_data(ps007)$SampleID == x) 
+   return(rownames(sample_data(ps007))[aa])
+   }
+
+dna$workingID <- sapply(dna$Sample, findWorkId)
+
+## sanity check
+tail(dna)
+sample_data(ps007_cleaned_sqrt_prop)["S20",]
+sample_data(ps007_cleaned_sqrt_prop)["S9",]
+## looks okay.
+
+## split into aerobic, anaerobic
+oxdna <- dna[dna$Treatment == "aerobic",]
+anoxdna <- dna[dna$Treatment == "anaerobic",]
+rownames(oxdna) <- oxdna$workingID; oxdna$workingID <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(oxdna)))))
+oxdna <- oxdna[rowsInOrder,]
+rownames(anoxdna) <- anoxdna$workingID; anoxdna$workingID <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(anoxdna)))))
+anoxdna <- anoxdna[rowsInOrder,]
+
+
+head(oxdna)
+
+head(anoxdna)
+
+ggplot(sample_data(oxdna),
+        aes(x=DNA_18O_uptake, y=DNA_prod)) +
+       geom_point() + geom_smooth(method="lm")
+
+
+dev.new()
+ggplot(sample_data(anoxdna),
+         aes(x=DNA_18O_uptake, y=DNA_prod)) +
+        geom_point() + geom_smooth(method="lm")
+
+## interesting, there is a much tighter correlation here with the anoxic data
+
+## not sure why. I would have predicted the opposite. 
+
+## okay, we model them separately anyway.
+
+## let's follow the above pipeline for CUE, but with our new response variables.
+
+## so check our PCAs for predictive value

@@ -586,3 +586,93 @@ c("SPRUCE 415", "SPRUCE 404", "SPRUCE 451")
 
 
 aa[aa$spruceNum == "SPRUCE 404",]
+
+
+## back on 6 nov 2026
+## just checking on some functions
+## Smithella in cluster 1 - also sulfate reducers?
+## we have two "MAGs" of Smithella, one that can reduce 
+## sulfate, one that can't. which is this?
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+asvMAG <- read.csv("../sequenceAnalysis/asvMAG.csv")
+load("../sJSDM/PS_mag.rda")
+
+
+PS_mag
+
+aa <- 
+subset_samples(PS_mag, cluster==1) |>
+subset_taxa(physeq=_,Genus=="Smithella")
+
+tax_table(aa)
+## these smithella are close matches to SPRUCE 595 and SPRUCE 404
+## nope. These are fermenters only. 
+
+head(asvMAG, n=2)
+
+asvMAG[asvMAG$Species %in% c("SPRUCE 595","SPRUCE 404"),]
+
+asvMAG[ asvMAG$Genera %in% c("SPRUCE 595","SPRUCE 404","Smithella"),]
+
+asvMAG[ asvMAG$MAG_ID %in% c("SPRUCE 595","SPRUCE 404"),]
+
+asvMAG$Genera
+
+## keep checking indicator groups 
+
+aa <- 
+subset_samples(PS_mag, cluster==1) |>
+subset_taxa(physeq=_,Genus=="Smithella")
+
+## AD3/Dormibacteria?
+unique(asvMAG[ asvMAG$Phylum %in% c("Dormibacterota"),"MAG_ID"])
+
+aa <- 
+subset_samples(PS_mag, cluster==1) |>
+subset_taxa(physeq=_,Species %in% c("SPRUCE 50","SPRUCE 660"))
+tax_table(aa) #all Chloroflexota, Class AD3
+
+asvMAG[ asvMAG$MAG_ID %in% c("SPRUCE 50","SPRUCE 660"),]
+## both denitrifiers. One is also an etOH fermenter, one is maybe DNRA
+## both anaerobic. So anaerobic chemoorganoheterotroph?
+## funny that they don't have aerobic respiration
+## either way, kind of goes against the rule of thumbs 
+## = (denitrifiers usually facultive anaerobes, usually not fermenters)
+
+subset_taxa(physeq=PS_mag,Family=="Dormibacterota")
+asvMAG[ asvMAG$Phylum %in% c("Dormibacterota"),]
+subset_taxa(physeq=_,Family=="Pirellulaceae")
+
+asvMAG[ asvMAG$Dissimilatory_nitrate_reduction ==1 & asvMAG$Class %in% c("Alphaproteobacteria","Gammaproteobacteria"),]
+
+## just checking, can we "trust" the abundances of our krona plots?
+## example: krona for cluster1, Mycobacterium
+
+aa <- 
+subset_samples(ps007_cleaned_sqrt_prop, cluster==1) |>
+subset_taxa(physeq=_, Genus == "Mycobacterium")
+
+sum(otu_table(aa)) ## not really. our otu table says 0.035, their abundance reported is 3%, 0.028
+
+aa <- 
+subset_samples(ps007_cleaned_sqrt_prop, cluster==1) |>
+subset_taxa(physeq=_, Family == "Rice Cluster II")
+
+sum(otu_table(aa)) ## and our abundances reported is 0.28
+
+## I think neither is useful. Theirs is the proportion out
+## all the samples in just this cluster, but not read 
+## abundances. 
+
+## ours are the fractions from the total study, add
+## any way, they are indicators of importance but not 
+## directly interpretable 
+
+aa <- 
+subset_samples(ps007_cleaned_sqrt_prop, cluster==1) |>
+subset_taxa(physeq=_, Family == "Rice Cluster II")
+
+sum(otu_table(subset_samples(ps007_cleaned_sqrt_prop, cluster==1)))
+
+otu_table(subset_taxa(ps007_cleaned_sqrt_prop, Genus =="Mycobacterium"))
