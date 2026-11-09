@@ -2064,14 +2064,11 @@ head(oxdna)
 #write.csv(oxdna, file="oxdnaUptake.csv", row.names=TRUE)
 
 head(anoxdna)
-
-write.csv(anoxdna, file="anoxdnaUptake.csv", row.names=FALSE)
+#write.csv(anoxdna, file="anoxdnaUptake.csv", row.names=TRUE)
 
 ggplot(sample_data(oxdna),
         aes(x=DNA_18O_uptake, y=DNA_prod)) +
        geom_point() + geom_smooth(method="lm")
-
-
 dev.new()
 ggplot(sample_data(anoxdna),
          aes(x=DNA_18O_uptake, y=DNA_prod)) +
@@ -2085,4 +2082,92 @@ ggplot(sample_data(anoxdna),
 
 ## let's follow the above pipeline for CUE, but with our new response variables.
 
+## how is the distribution of this new response var, 
+
+head(oxdna)
+DNA_18O_uptake   DNA_prod
+
+dev.new()
+hist(oxdna$DNA_18O_uptake, breaks=20 )
+
+fit_g  <- fitdist(oxdna$DNA_18O_uptake, "gamma")
+fit_ln <- fitdist(oxdna$DNA_18O_uptake, "lnorm")
+fit_w <- fitdist(oxdna$DNA_18O_uptake, "weibull")
+
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend, breaks=20)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+## go for a lognormal again.
+
 ## so check our PCAs for predictive value
+load("../sJSDM/RDAsPCAs.rda")
+
+## make our graphing df:
+
+all(
+rownames(sample_data(ps007_cleaned_sqrt_prop)[,c("DepthSection", "Core", "Subsite")]) ==
+rownames(RDAsPCAs[,c("RDA1","RDA2","Comp.1","Comp.2")])
+)
+
+
+pcasSampData <- cbind(
+     sample_data(ps007_cleaned_sqrt_prop)[,c("DepthSection", "cluster", "Subsite")],
+     RDAsPCAs[,c("RDA1","RDA2","Comp.1","Comp.2")]
+)
+
+head(pcasSampData)
+
+head(oxdna)
+
+aa <- merge(oxdna, pcasSampData, by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]
+oxDNAgraphDF <- aa; rm(aa)
+
+head(oxDNAgraphDF, n=2)
+
+
+
+
+oxDNAgraphDF
+depthPalette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = depthPalette(100), limits=c(5, 0), trans="reverse")
+abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=DNA_18O_uptake, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+## actually, the inverse is probably more useful - directly map DNA uptake by depth:
+
+oxDNAgraphDF$Comp.1
+
+
+PCA1Palette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-5.5, 5), trans="reverse")
+abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=Comp.1, shape=Subsite)) +
+                    labs(title = "Oxic incubation 18O uptake") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+abioPC1_CUE + dCS
+
+
+abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=DepthSection, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+
+
+## by cluster
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+
+abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+                 geom_point(size=7)
+abioPC1_CUE + abioPC2_CUE + elCS
