@@ -21,8 +21,8 @@ library(ggordiplots)
 library(ggvegan)
 library(ggcorrplot)
 
-#setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
-setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sJSDM") ## desktop
+#setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM") ## laptop
 
 ## the general PS objects of interest are here:
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
@@ -1000,6 +1000,7 @@ summary(comm_rda)
 ## transformed:
 #commHell_rda <- rda(commData_hell, envData)
 commHell_rda <- rda(commData_hell ~ ., data=envData)
+
 commHell_siteScores <- scores(commHell_rda)$sites
 rownames(commHell_siteScores) == rownames(data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")])
 commHellOrd_df <- as.data.frame(cbind(commHell_siteScores,
@@ -1193,6 +1194,8 @@ RDA1ggplot
 dev.new()
 RDA2ggplot
 
+RDA1ggplot + RDA2ggplot
+
 ## we can corroborate the RDA results pretty much 
 ## exactly with a permanova of these results.
 
@@ -1256,12 +1259,15 @@ cor_matrix_RDA <- cor_matrix[,c("RDA1","RDA2")]
 
 cor_matrix_RDA 
 
+
 ## it looks like this RDA1 is most different from RDA2
 ## by it's emphasis on edc and sulfur
 ## which is lacking in RDA1
 
 adonis2(commData ~ S*edc, data=envData)
+
 adonis2(commData ~ S*edc, data=envData)
+
 adonis2(commData ~ S:edc, data=envData)
 
 ggcorrplot(cor_matrix) 
@@ -1312,7 +1318,23 @@ ggcorrplot(cor_matrix_RDA)
 
 ggplot(data=RDAsPCAs) +
 geom_point( aes(x=RDA2, y=Comp.1,
-             size=6)
+             size=6))
+
+all(rownames(RDAsPCAs) == rownames(sample_data(ps007_cleaned_sqrt_prop)))
+
+rdaPCAplotCorrDF <- cbind(RDAsPCAs[,c("RDA1","RDA2","Comp.1","Comp.2")],
+    sample_data(ps007_cleaned_sqrt_prop)[,c("cluster", "DepthSection", "Subsite")])
+
+
+## color scale to match previous cluster graphics
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+
+ggplot(data=rdaPCAplotCorrDF, aes(x=RDA2, y=Comp.1)) +
+             geom_point(size=6, aes(shape=Subsite, color=cluster)) + 
+             geom_smooth(method = "lm") + elCS
+
 
 ## RDA1 is most correlated to PC10, PC6:
 RDAcorrUnsorted <- cor_matrix_RDA[,"RDA1"]
@@ -1322,14 +1344,37 @@ RDAcorrUnsorted[ sortedRDA1corrNames]
 RDAsPCAs[,sortedRDA1corrNames]
 
 ggplot(data=RDAsPCAs) +
-geom_point( aes(x=RDA1, y=Comp.6,
-#geom_point( aes(x=RDA1, y=Comp.10,
+#geom_point( aes(x=RDA1, y=Comp.6,
+geom_point( aes(x=RDA1, y=Comp.10,
              size=6))
 
 ## noise, not correlated really. This is some kind of new variable.
 
 ## let's save these PCAs and RDAs for use later:
-save(RDAsPCAs, file= "RDAsPCAs.rda")
+#save(RDAsPCAs, file= "RDAsPCAs.rda")
+
+## 9.11.26
+## oops, reran the rdas on the notebook, order is now confused. 
+## save them in notebook, and correct
+
+load(file= "RDAsPCAs.rda")
+
+
+rm(commHell_siteScores)
+
+load("commHell_siteScores_9nov.rda")
+
+head(commHell_siteScores)
+
+## compare:
+cbind(commHell_siteScores, RDAsPCAs[,c("RDA1","RDA2")])
+
+## actually, they look ok, exactly the same. 
+## never mind. 
+
+## so why can't I repeat the above correlation in a way that 
+## makes sense?
+
 
 ## okay, let's actually get to a JSDM. 
 ## let's try several variables, 

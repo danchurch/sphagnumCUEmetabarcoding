@@ -2020,13 +2020,18 @@ lm(formula = CUE ~ Comp.1,
 ## microbial growth data is recently refreshed by werner 
 ## here:
 
+
+load("../sequenceAnalysis/ps007.rda")
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 dna <- as.data.frame(read_excel("../sampleData/DNA_Prod.xlsx"))[,1:5]
+
 colnames(dna) <- c("Sample","Type","Treatment","DNA_18O_uptake","DNA_prod")
+
+head(dna)
 
 
 ## tie these back to working S sample numbers:
-
-load("../sequenceAnalysis/ps007.rda")
 findWorkId <- function(x){
    aa <- which(sample_data(ps007)$SampleID == x) 
    return(rownames(sample_data(ps007))[aa])
@@ -2038,7 +2043,12 @@ dna$workingID <- sapply(dna$Sample, findWorkId)
 tail(dna)
 sample_data(ps007_cleaned_sqrt_prop)["S20",]
 sample_data(ps007_cleaned_sqrt_prop)["S9",]
+
 ## looks okay.
+rm(ps007)
+
+## save this format, it's better for us:
+write.csv(dna, file="dnaUptake.csv", row.names=FALSE)
 
 ## split into aerobic, anaerobic
 oxdna <- dna[dna$Treatment == "aerobic",]
@@ -2050,10 +2060,12 @@ rownames(anoxdna) <- anoxdna$workingID; anoxdna$workingID <- NULL
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(anoxdna)))))
 anoxdna <- anoxdna[rowsInOrder,]
 
-
 head(oxdna)
+#write.csv(oxdna, file="oxdnaUptake.csv", row.names=TRUE)
 
 head(anoxdna)
+
+write.csv(anoxdna, file="anoxdnaUptake.csv", row.names=FALSE)
 
 ggplot(sample_data(oxdna),
         aes(x=DNA_18O_uptake, y=DNA_prod)) +
