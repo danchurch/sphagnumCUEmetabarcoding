@@ -2131,6 +2131,14 @@ oxDNAgraphDF <- aa; rm(aa)
 head(oxDNAgraphDF, n=2)
 
 
+rm(aa)
+aa <- merge(anoxdna, pcasSampData, by="row.names")
+rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
+rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
+aa <- aa[rowsInOrder,]
+anoxDNAgraphDF <- aa; rm(aa)
+
+head(anoxDNAgraphDF)
 
 
 oxDNAgraphDF
@@ -2144,20 +2152,74 @@ abioPC1_CUE + dCS + abioPC2_CUE + dCS
 
 ## actually, the inverse is probably more useful - directly map DNA uptake by depth:
 
+range(oxDNAgraphDF$Comp.1)
+
+range(anoxDNAgraphDF$Comp.1)
+
 oxDNAgraphDF$Comp.1
 
 
+## oxic 18O uptake, by depth and by our PCAs
 PCA1Palette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
-dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-5.5, 5), trans="reverse")
+dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-9, 5), trans="reverse")
 abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=Comp.1, shape=Subsite)) +
                     labs(title = "Oxic incubation 18O uptake") +
                  geom_point(size=5, position=position_jitter(width = 0.15))
-abioPC1_CUE + dCS
+abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=Comp.2, shape=Subsite)) +
+                    labs(title = "Oxic incubation 18O uptake") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+dev.new(); abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+## oxic DNA_production, by depth and by our PCAs
+PCA1Palette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-9, 5), trans="reverse")
+abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_prod, color=Comp.1, shape=Subsite)) +
+                    labs(title = "Oxic incubation DNA production") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_prod, color=Comp.2, shape=Subsite)) +
+                    labs(title = "Oxic incubation DNA production") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+dev.new(); abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+## O2 uptake in oxic system seems a like cleaner story.
+
+## same with anoxic 18O uptake?
+
+## anoxic 18O uptake, by depth and by our PCAs
+PCA1Palette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-9, 5), trans="reverse")
+abioPC1_CUE <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=Comp.1, shape=Subsite)) +
+                    labs(title = "anoxic incubation 18O uptake") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+abioPC2_CUE <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=Comp.2, shape=Subsite)) +
+                    labs(title = "anoxic incubation 18O uptake") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+dev.new(); abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+## not sure what to say here. Looks like the main growth occurs in the upper two layers
+## when it comes to palsa/oxic incubations, but in the mid layers 
 
 
-abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=DepthSection, shape=Subsite)) +
-                 geom_point(size=7)
-abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+## anoxic DNA_prod, by depth and by our PCAs
+PCA1Palette <- colorRampPalette(rev(brewer.pal(8, "YlOrBr")))
+dCS <- scale_colour_gradientn(colours = PCA1Palette(100), limits=c(-9, 5), trans="reverse")
+abioPC1_CUE <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=DNA_prod, color=Comp.1, shape=Subsite)) +
+                    labs(title = "anoxic incubation DNA_prod") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+abioPC2_CUE <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=DNA_prod, color=Comp.2, shape=Subsite)) +
+                    labs(title = "anoxic incubation DNA_prod") +
+                 geom_point(size=5, position=position_jitter(width = 0.15))
+dev.new(); abioPC1_CUE + dCS + abioPC2_CUE + dCS
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2171,3 +2233,21 @@ abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=DNA_18O_uptake, color=c
 abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
                  geom_point(size=7)
 abioPC1_CUE + abioPC2_CUE + elCS
+
+
+
+
+## how does this compare to respiration?:
+oxCUE <- read.csv("../CUE/oxCUE.csv", row.names=1, check.names=FALSE)
+anoxCUE <- read.csv("../CUE/anoxCUE.csv", row.names=1, check.names=FALSE)
+
+
+oxDNAgraphDF$resp <- oxCUE[ rownames(oxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
+anoxDNAgraphDF$resp <- anoxCUE[ rownames(anoxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
+
+
+
+
+
+
+
