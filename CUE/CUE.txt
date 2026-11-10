@@ -2048,7 +2048,9 @@ sample_data(ps007_cleaned_sqrt_prop)["S9",]
 rm(ps007)
 
 ## save this format, it's better for us:
-write.csv(dna, file="dnaUptake.csv", row.names=FALSE)
+#write.csv(dna, file="dnaUptake.csv", row.names=FALSE)
+
+dna <- read.csv("dnaUptake.csv")
 
 ## split into aerobic, anaerobic
 oxdna <- dna[dna$Treatment == "aerobic",]
@@ -2062,6 +2064,11 @@ anoxdna <- anoxdna[rowsInOrder,]
 
 head(oxdna)
 #write.csv(oxdna, file="oxdnaUptake.csv", row.names=TRUE)
+
+head(read.csv("oxdnaUptake.csv"))
+
+oxdna <- read.csv("oxdnaUptake.csv", row.names=1)
+anoxdna <- read.csv("anoxdnaUptake.csv", row.names=1)
 
 head(anoxdna)
 #write.csv(anoxdna, file="anoxdnaUptake.csv", row.names=TRUE)
@@ -2127,9 +2134,6 @@ rownames(aa) <- aa$Row.names; aa$Row.names <- NULL
 rowsInOrder <- paste0("S",sort(as.numeric(sub("S","", rownames(aa)))))
 aa <- aa[rowsInOrder,]
 oxDNAgraphDF <- aa; rm(aa)
-
-head(oxDNAgraphDF, n=2)
-
 
 rm(aa)
 aa <- merge(anoxdna, pcasSampData, by="row.names")
@@ -2230,6 +2234,7 @@ elCS <- scale_color_manual(values = clusterCols)
 
 abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
                  geom_point(size=7)
+
 abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
                  geom_point(size=7) ## pretty positive relationship...
 abioPC1_CUE + abioPC2_CUE + elCS
@@ -2379,6 +2384,17 @@ dev.new()
 ggplot(data=anoxDNAgraphDF, aes(x=RDA1, y=resp, color=cluster, shape=Subsite)) +
          geom_point(size=7) + elCS
 
+
+## 
+aa <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+bb <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+aa + bb
+
+ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+
 dev.off()
 
 ## so update notebook. And the general signal here is the deep soils begin to respire 
@@ -2395,6 +2411,14 @@ dev.off()
 
 ## seems like the resp and 18o by depth, but limited to just those layers that
 ## were represented in both incubation types:
+
+aa <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + 
+         labs(title='aerobic incubation, respiration')
+bb <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + 
+         labs(title='aerobic incubation, respiration')
+dev.new(); aa + bb
 
 ## 18O takeup by depth, only layers 4/5, combined into a single figure
 
@@ -2415,14 +2439,44 @@ aa <- ggplot(data=oxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, color=c
          geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='aerobic inc') 
 bb <- ggplot(data=anoxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
          geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='anaerobic inc')
-aa + bb  & ylim(min(0), max(0.10))
+aa + bb + plot_annotation(title="18O uptake, deep layers",
+                        theme = theme(plot.title = element_text(size = 18, hjust=0.5))) &
+           ylim(min(0), max(0.10))
 
 ## how to combine into a single comparison between aerobic and anaerobic? 
 ## combine depths four and five together, t
 
+
 oxDNAgraphDF_45 <- oxDNAgraphDF[ oxDNAgraphDF$DepthSection %in% c(4,5),]
 oxDNAgraphDF_45$DepthSection <- as.factor(oxDNAgraphDF_45$DepthSection)
-
+oxDNAgraphDF_45$sNum <- rownames(oxDNAgraphDF_45)
+rownames(oxDNAgraphDF_45) <- NULL
 
 anoxDNAgraphDF_45 <- anoxDNAgraphDF[ anoxDNAgraphDF$DepthSection %in% c(4,5),]
 anoxDNAgraphDF_45$DepthSection <- as.factor(anoxDNAgraphDF_45$DepthSection)
+anoxDNAgraphDF_45$sNum <- rownames(anoxDNAgraphDF_45)
+rownames(anoxDNAgraphDF_45) <- NULL
+
+head(oxDNAgraphDF_45,n=2)
+head(anoxDNAgraphDF_45,n=2)
+
+oxanoxDNAgraphDF_45 <- rbind(oxDNAgraphDF_45, anoxDNAgraphDF_45)
+
+head(oxanoxDNAgraphDF_45)
+
+deep18Ouptake <- ggplot(oxanoxDNAgraphDF_45, aes(x=Treatment, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='') 
+
+deepResp <- ggplot(oxanoxDNAgraphDF_45, aes(x=Treatment, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='') +
+         scale_y_log10(guide = "axis_logticks") +
+         #labs(y = expression(paste("Respiration (", mu,"g C", O[2]," g ", Peat^{-1}, day^{-1}, ")")))
+         #labs(y = expression(paste("Respiration ", mu,"g C", O[2]," g ", Peat^{-1}, day^{-1}, )))
+         #labs(y = expression((paste("%", "18", O[2], " DNA",))))
+         labs(y = expression((paste("%", ""^18, "O in total ", O[DNA]))))
+#dev.new(); deepResp
+deepResp
+
+expression((paste("%", 18O[2], " DNA",)))
+
+## 
