@@ -2231,23 +2231,198 @@ elCS <- scale_color_manual(values = clusterCols)
 abioPC1_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
                  geom_point(size=7)
 abioPC2_CUE <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
-                 geom_point(size=7)
+                 geom_point(size=7) ## pretty positive relationship...
 abioPC1_CUE + abioPC2_CUE + elCS
 
+## clean this up this code. start over.
+
+## 18O takeup by RDAs
+dev.off()
+
+rm(aa,bb,cc,dd)
+aa <- ggplot(data=oxDNAgraphDF, aes(x=RDA1, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS + labs(title='aerobic inc') 
+bb <- ggplot(data=oxDNAgraphDF, aes(x=RDA2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS + labs(title='aerobic inc')
+cc <- ggplot(data=anoxDNAgraphDF, aes(x=RDA1, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS + labs(title='anaerobic inc')
+dd <- ggplot(data=anoxDNAgraphDF, aes(x=RDA2, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS + labs(title='anaerobic inc')
+( aa + bb ) / ( cc + dd )
+
+## 18O takeup by depth
+rm(aa,bb,cc,dd)
+aa <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='aerobic inc') 
+bb <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='anaerobic inc')
+dev.new(); aa + bb  & ylim(min(0), max(0.10))
 
 
+### revisiting respiration ####
 
-## how does this compare to respiration?:
+## how does these trends in 18O uptake compare to respiration?:
 oxCUE <- read.csv("../CUE/oxCUE.csv", row.names=1, check.names=FALSE)
 anoxCUE <- read.csv("../CUE/anoxCUE.csv", row.names=1, check.names=FALSE)
-
 
 oxDNAgraphDF$resp <- oxCUE[ rownames(oxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
 anoxDNAgraphDF$resp <- anoxCUE[ rownames(anoxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
 
 
+## oxic incubations, resp by depth or our soil quality PCA:
+
+
+head(oxDNAgraphDF)
+
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+
+## PCAs, respiration
+aa <- ggplot(data=oxDNAgraphDF, aes(x=Comp.1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+bb <- ggplot(data=oxDNAgraphDF, aes(x=Comp.2, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+cc <- ggplot(data=anoxDNAgraphDF, aes(x=Comp.1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+dd <- ggplot(data=anoxDNAgraphDF, aes(x=Comp.2, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+( aa + bb ) / ( cc + dd )
+
+## seems to me that the carbon quality (PCA1) doesn't matter much with aerobic
+## incubations. The anaerobic, it looks like some sort of (noisy) relationship. 
+
+## rdas, respiration
+rm(aa,bb,cc,dd)
+aa <- ggplot(data=oxDNAgraphDF, aes(x=RDA1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+bb <- ggplot(data=oxDNAgraphDF, aes(x=RDA2, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+cc <- ggplot(data=anoxDNAgraphDF, aes(x=RDA1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+dd <- ggplot(data=anoxDNAgraphDF, aes(x=RDA2, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+dev.new(); ( aa + bb ) / ( cc + dd )
+
+## again, anaerobic respiration is much more sensitive to electron acceptors and carbon quality
+## aerobic respiration is always ~10x higher and not affected much by soil  
+
+## resp, by depth
+
+head(oxDNAgraphDF)
+
+rm(aa,bb,cc,dd)
+aa <- ggplot(data=oxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+bb <- ggplot(data=anoxDNAgraphDF, aes(x=DepthSection, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+aa + bb & ylim(min(0), max(10000))
+
+## maybe best to limit this comparison to the lowest layers, where we have 
+## the ability to compare different resp and DNA uptakes in both 
+## incubations (depth section 4&5):
+
+
+## RDA2 (soil quality) and RDA1 are again important, in certain contexts. Predicts respiration in anoxic settings. 
+dev.new()
+ggplot(data=anoxDNAgraphDF, aes(x=RDA2, y=resp)) +
+         geom_point(size=7, aes(color=cluster, shape=Subsite)) + 
+         elCS +
+         geom_smooth(method = "lm") ## positive  correlation with resp, 
+
+dev.new()
+ggplot(data=oxDNAgraphDF, aes(x=RDA2, y=resp)) +
+         geom_point(size=7, aes(color=cluster, shape=Subsite)) + 
+         elCS +
+         geom_smooth(method = "lm")
+## flat line, except a few high-respiring low samples drive the negative correlation
+
+## does our other PCA, PCA1, show this trend of resp in anaerobic incubations? (but reversed)?:
+dev.new()
+ggplot(data=anoxDNAgraphDF, aes(x=Comp.1, y=resp)) +
+         geom_point(size=7, aes(color=cluster, shape=Subsite)) + 
+         elCS +
+         geom_smooth(method = "lm")
+## pretty much, yes
+
+## in model terms:
+########### ox #############
+lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() ## not useful, coef=-1435, but r2 ~ 0.08, p=0.08
+## as before, probably driven by a few low quality deep samples that respired heavily.
+
+########### anox #############
+lm(resp ~  RDA2, data=anoxDNAgraphDF) |> summary() ## useful, coef=87.65 r2 ~ 0.16, p=0.03
+lm(resp ~  Comp.1, data=anoxDNAgraphDF) |> summary() ## similar, coef=128, but r2 ~ 0.051, p=0.1443, too noisy
+
+## e- acceptor (RDA1):
+lm(resp ~  RDA1, data=anoxDNAgraphDF) |> summary() ## weak r2=0.08, not stat sig, p=0.08, but coef = 62, maybe import but too noisy
+
+lm(DNA_18O_uptake ~  RDA1, data=anoxDNAgraphDF) |> summary() ## completely useless.
+
+lm(DNA_18O_uptake ~  RDA1*RDA2, data=anoxDNAgraphDF) |> summary() ## still completely useless.
 
 
 
+dev.new()
+## remember it is probably the "same" as PCA1:
+ggplot(data=anoxDNAgraphDF, aes(x=Comp.1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+
+## it is RDA1 that seems to be the alternate terminal electron acceptor variable:
+
+## in oxic incubations, doesn't matter:
+ggplot(data=oxDNAgraphDF, aes(x=RDA1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+dev.new()
+## in anoxic incubations, does matter:
+ggplot(data=anoxDNAgraphDF, aes(x=RDA1, y=resp, color=cluster, shape=Subsite)) +
+         geom_point(size=7) + elCS
+
+dev.off()
+
+## so update notebook. And the general signal here is the deep soils begin to respire 
+## heavily upon exposure to oxygen, pretty much regardless of the carbon quality/
+## depth/age. The fungi and the aerobic heterotrophic bacteria seem to be ready to
+## go. In the case anaerobic respiration (not aerobic), carbon quality and electron
+## acceptors seem to matter, with higher quality 
+
+## but this is really only accompanied by growth in the case of the aerobic soil
+## layers (upper palsa). The lower layers don't really activate growth, in terms
+## of new DNA, when exposed to oxygen. 
+
+## which graphs/models do we use to summarize this?
+
+## seems like the resp and 18o by depth, but limited to just those layers that
+## were represented in both incubation types:
+
+## 18O takeup by depth, only layers 4/5, combined into a single figure
+
+rm(aa,bb,cc,dd)
+
+head(oxDNAgraphDF, n=2)
+
+oxDNAgraphDF_45 <- oxDNAgraphDF[ oxDNAgraphDF$DepthSection %in% c(4,5),]
+oxDNAgraphDF_45$DepthSection <- as.factor(oxDNAgraphDF_45$DepthSection)
+anoxDNAgraphDF_45 <- anoxDNAgraphDF[ anoxDNAgraphDF$DepthSection %in% c(4,5),]
+anoxDNAgraphDF_45$DepthSection <- as.factor(anoxDNAgraphDF_45$DepthSection)
+
+head(oxDNAgraphDF_45)
+
+head(anoxDNAgraphDF_45)
+
+aa <- ggplot(data=oxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='aerobic inc') 
+bb <- ggplot(data=anoxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+         geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='anaerobic inc')
+aa + bb  & ylim(min(0), max(0.10))
+
+## how to combine into a single comparison between aerobic and anaerobic? 
+## combine depths four and five together, t
+
+oxDNAgraphDF_45 <- oxDNAgraphDF[ oxDNAgraphDF$DepthSection %in% c(4,5),]
+oxDNAgraphDF_45$DepthSection <- as.factor(oxDNAgraphDF_45$DepthSection)
 
 
+anoxDNAgraphDF_45 <- anoxDNAgraphDF[ anoxDNAgraphDF$DepthSection %in% c(4,5),]
+anoxDNAgraphDF_45$DepthSection <- as.factor(anoxDNAgraphDF_45$DepthSection)
