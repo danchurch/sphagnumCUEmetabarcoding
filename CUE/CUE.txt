@@ -2353,21 +2353,83 @@ ggplot(data=anoxDNAgraphDF, aes(x=Comp.1, y=resp)) +
 
 ## in model terms:
 ########### ox #############
+
 lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() ## not useful, coef=-1435, but r2 ~ 0.08, p=0.08
 ## as before, probably driven by a few low quality deep samples that respired heavily.
 
-########### anox #############
+########### checking some models  #############
+
+## respiration 
+##  anox resp
 lm(resp ~  RDA2, data=anoxDNAgraphDF) |> summary() ## useful, coef=87.65 r2 ~ 0.16, p=0.03
 lm(resp ~  Comp.1, data=anoxDNAgraphDF) |> summary() ## similar, coef=128, but r2 ~ 0.051, p=0.1443, too noisy
-
-## e- acceptor (RDA1):
 lm(resp ~  RDA1, data=anoxDNAgraphDF) |> summary() ## weak r2=0.08, not stat sig, p=0.08, but coef = 62, maybe import but too noisy
+lm(resp ~  RDA1 + RDA2, data=anoxDNAgraphDF) |> summary() ## not useful 
+lm(resp ~  DepthSection, data=anoxDNAgraphDF) |> summary() ## not useful 
 
+lm(resp ~  Subsite, data=anoxDNAgraphDF) |> summary() ## informative, as per graphics. Thermokarsts anaerobically respire at higher rate.
+## R2=0.26, coef=74, p=0.005
+## this is probably the best we can do. Anox resp is +/- constant, except for a gap between the deep palsa and the thermokarst samples.
+
+##  ox resp
+lm(resp ~  Subsite, data=oxDNAgraphDF) |> summary() ## nope
+lm(resp ~  RDA1, data=oxDNAgraphDF) |> summary() ## nope
+lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() 
+## stat sig, but R2 low. This is just due to the outliers, the high respiring deep palsa samps
+lm(resp ~  Subsite + RDA1 + RDA2, data=oxDNAgraphDF) |> summary()  ## same, don't believe it.
+## generally, oxidative resp is just constant, and high.
+
+## growth:
+
+## anaerobic growth
 lm(DNA_18O_uptake ~  RDA1, data=anoxDNAgraphDF) |> summary() ## completely useless.
+lm(DNA_18O_uptake ~  RDA2, data=anoxDNAgraphDF) |> summary() ## completely useless.
+lm(DNA_18O_uptake ~  RDA1 + RDA2, data=anoxDNAgraphDF) |> summary() ## completely useless.
+lm(DNA_18O_uptake ~  DepthSection, data=anoxDNAgraphDF) |> summary() ## completely useless.
 
-lm(DNA_18O_uptake ~  RDA1*RDA2, data=anoxDNAgraphDF) |> summary() ## still completely useless.
 
 
+## aerobic growth
+lm(DNA_18O_uptake ~  RDA1, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.23, coef=-0.03, p=0.005
+
+lm(DNA_18O_uptake ~  RDA2, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.29, coef=0.04, p=0.005
+
+lm(DNA_18O_uptake ~  RDA1 + RDA2, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.46, coef=-0.03,0.03, p=0.0002
+
+## model is similar with depth instead of carbon quality:
+
+lm(DNA_18O_uptake ~  RDA1 + DepthSection, data=oxDNAgraphDF) |> summary() 
+
+lm(formula = DNA_18O_uptake ~ DepthSection, data = oxDNAgraphDF)
+
+hist(oxDNAgraphDF$DNA_18O_uptake, breaks=20)
+
+lm(formula = log(DNA_18O_uptake) ~ DepthSection, data = oxDNAgraphDF) |> summary()
+
+lm(formula = log(DNA_18O_uptake) ~ RDA2, data = oxDNAgraphDF) |> summary()
+
+lm(formula = log(DNA_18O_uptake) ~ DepthSection + RDA2, data = oxDNAgraphDF) |> summary()
+
+lm(formula = log(DNA_18O_uptake) ~ RDA1 + RDA2, data = oxDNAgraphDF) |> summary()
+
+lm(formula = log(DNA_18O_uptake) ~ RDA1 + RDA2 + DepthSection, data = oxDNAgraphDF) |> summary()
+
+lm(DNA_18O_uptake ~ DepthSection, data=oxDNAgraphDF) |> summary() 
+
+## R2 = 0.39, p = 0.0009
+
+lm(DNA_18O_uptake ~  RDA1 + RDA2 + DepthSection, data=oxDNAgraphDF) |> summary() ## doesn't add much to have both depth and RDA2 in there.
+
+## looks like the best model for growth in aerobic growth is:
+lm(DNA_18O_uptake ~  RDA1 + RDA2, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.46, coef=-0.03,0.03, p=0.0002
+
+lm(DNA_18O_uptake ~  RDA1 + RDA2, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.46, coef=-0.03,0.03, p=0.0002
+
+dna$DNA_18O_uptake
+
+hist(dna$DNA_18O_uptake, breaks=20)
+
+lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() ## informative, R2 = 0.46, coef=-0.03,0.03, p=0.0002
 
 dev.new()
 ## remember it is probably the "same" as PCA1:
@@ -2407,6 +2469,9 @@ dev.off()
 ## layers (upper palsa). The lower layers don't really activate growth, in terms
 ## of new DNA, when exposed to oxygen. 
 
+## methanogenesis is conspicuously absent and probably only occurs after 
+## exhaustion of other electron a 
+
 ## which graphs/models do we use to summarize this?
 
 ## seems like the resp and 18o by depth, but limited to just those layers that
@@ -2426,14 +2491,23 @@ rm(aa,bb,cc,dd)
 
 head(oxDNAgraphDF, n=2)
 
+## what do we need to know before we start writing again?:
+
+## MBC with depth, by Palsa and Thermokarst 
+## 18O uptake, by depth sections 4 and 5, colored aerobic/anaerobic
+
 oxDNAgraphDF_45 <- oxDNAgraphDF[ oxDNAgraphDF$DepthSection %in% c(4,5),]
 oxDNAgraphDF_45$DepthSection <- as.factor(oxDNAgraphDF_45$DepthSection)
 anoxDNAgraphDF_45 <- anoxDNAgraphDF[ anoxDNAgraphDF$DepthSection %in% c(4,5),]
 anoxDNAgraphDF_45$DepthSection <- as.factor(anoxDNAgraphDF_45$DepthSection)
 
 head(oxDNAgraphDF_45)
-
 head(anoxDNAgraphDF_45)
+
+dim(oxDNAgraphDF_45)
+dim(anoxDNAgraphDF_45)
+
+dev.off()
 
 aa <- ggplot(data=oxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
          geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='aerobic inc') 
@@ -2443,28 +2517,53 @@ aa + bb + plot_annotation(title="18O uptake, deep layers",
                         theme = theme(plot.title = element_text(size = 18, hjust=0.5))) &
            ylim(min(0), max(0.10))
 
-## how to combine into a single comparison between aerobic and anaerobic? 
-## combine depths four and five together, t
+## how to combine into a single comparison between aerobic and anaerobic, by depths 4 and 5
 
 
+## again, not elegant. but...
 oxDNAgraphDF_45 <- oxDNAgraphDF[ oxDNAgraphDF$DepthSection %in% c(4,5),]
 oxDNAgraphDF_45$DepthSection <- as.factor(oxDNAgraphDF_45$DepthSection)
 oxDNAgraphDF_45$sNum <- rownames(oxDNAgraphDF_45)
 rownames(oxDNAgraphDF_45) <- NULL
-
 anoxDNAgraphDF_45 <- anoxDNAgraphDF[ anoxDNAgraphDF$DepthSection %in% c(4,5),]
 anoxDNAgraphDF_45$DepthSection <- as.factor(anoxDNAgraphDF_45$DepthSection)
 anoxDNAgraphDF_45$sNum <- rownames(anoxDNAgraphDF_45)
 rownames(anoxDNAgraphDF_45) <- NULL
-
-head(oxDNAgraphDF_45,n=2)
-head(anoxDNAgraphDF_45,n=2)
-
 oxanoxDNAgraphDF_45 <- rbind(oxDNAgraphDF_45, anoxDNAgraphDF_45)
 
 head(oxanoxDNAgraphDF_45)
 
-deep18Ouptake <- ggplot(oxanoxDNAgraphDF_45, aes(x=Treatment, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
+## there's an outlier, what is it?:
+
+oxanoxDNAgraphDF_45[ oxanoxDNAgraphDF_45$DepthSection == 5 & oxanoxDNAgraphDF_45$DNA_18O_uptake > 0.04,]
+## Palsa, AP1_100-120, S5
+
+## this is also the outlier in our otherwise strong signal for decreasing growth by depth, in aerobic 
+## incubations.
+
+## I wonder if the DNA extracted from this is very low?...
+## it is low (7 ug, 0.86 ng/uL) , among the lowest, but not that different from 
+## numerous other low-yield samples that showed more modest growth.
+## can't throw it out. 
+ 
+dim(oxanoxDNAgraphDF_45)
+
+dim(dna)
+
+deep18Ouptake_depth <- ggplot(oxanoxDNAgraphDF_45, aes(x=DepthSection, y=DNA_18O_uptake, 
+                                                       alpha=0.7, 
+                                                       shape=Subsite)) +
+         geom_point(size=7, 
+                    position=position_jitter(width = 0.15),
+                    aes(fill=Treatment),
+                    color="black") +
+         labs(title='') +
+         scale_fill_manual(values=c("grey", "red")) +
+         scale_shape_manual(values = c(21, 24))
+
+deep18Ouptake_depth
+
+deep18Ouptake_treat <- ggplot(oxanoxDNAgraphDF_45, aes(x=Treatment, y=DNA_18O_uptake, color=cluster, shape=Subsite)) +
          geom_point(size=7, position=position_jitter(width = 0.15)) + elCS + labs(title='') 
 
 deepResp <- ggplot(oxanoxDNAgraphDF_45, aes(x=Treatment, y=resp, color=cluster, shape=Subsite)) +
@@ -2479,4 +2578,19 @@ deepResp
 
 expression((paste("%", 18O[2], " DNA",)))
 
-## 
+oxanoxDNAgraphDF
+
+hist(oxanoxDNAgraphDF$DNA_18O_uptake, breaks=20)
+
+## ugh, just found a paper confirming the ANME potential of 
+## our methanomirabilaceae OTUs.  
+
+## we should probably add this to our analysis, move over to 
+
+
+#### mbc by depth ####
+
+
+ [µg/g DW]
+
+y = expression(paste("Microbial biomass carbon (", mu,"g C", Peat^{-1}, ")"))

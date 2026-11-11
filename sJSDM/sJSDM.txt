@@ -700,16 +700,56 @@ maybeHighAffMT <- highAffMT[highAffMT$pident >98,"sseqid"]
 ps.possibleHighAffMT <- prune_taxa(maybeHighAffMT, ps007_cleaned_sqrt_prop)
 funcAbundances["highAff_methanotrophy"] <- rowSums(otu_table(ps.possibleHighAffMT ))
 
-## this should be our functional "community" matrix:
+
+## oops, coming back to this, looks like we should also have ANME on there, because of the new
+## paper confirming the methanatrophy of our Methylomirabilaceae OTU:
+
+load(file="funcAbundances.rda")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+ps.Methylomirabilota <- subset_taxa(ps007_cleaned_sqrt_prop, Phylum == "Methylomirabilota")
+
+ps.Methylomirabilota
+
+tax_table(ps.Methylomirabilota)
+
+otu_table(ps.Methylomirabilota)
+
+all(rownames(otu_table(ps.Methylomirabilota)) == rownames(funcAbundances))
+
+rowSums(otu_table(ps.Methylomirabilota )) == otu_table(ps.Methylomirabilota)
+
+## add to the functional community df
+funcAbundances$ANME <- data.frame(otu_table(ps.Methylomirabilota ))$ASV1842
+
+
+colnames(funcAbundances)
+
+head(funcAbundances)
+
+tail(funcAbundances)
+
 dim(funcAbundances)
+
 
 #save(funcAbundances, file="funcAbundances.rda")
 
 setwd("/home/daniel/Documents/projects/sphagnumCUEmetabarcoding/sJSDM")
 
 ## start here after R reset
+
 load("funcAbundances.rda")
+
+write.csv(funcAbundances, file="funcAbundances.csv", row.names=T)
+
+head(read.csv("funcAbundances.csv", row.names=1))
+## looks okay...
+
+
+
 load("PS_mag.rda")
+
 load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
 
 ## now, how to deal with this in a multivariate way. 
