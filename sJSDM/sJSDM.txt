@@ -732,6 +732,15 @@ tail(funcAbundances)
 
 dim(funcAbundances)
 
+#### also forgot methanotrophy ####
+
+## we found no strong matches to annotated methanotrophs 
+## from the Minnesota dataset. So methanotrophy wasn't 
+## included in our functions. 
+
+## but we detected some likely methanotrophs in our taxonomic 
+## searches early in this processL
+
 
 #save(funcAbundances, file="funcAbundances.rda")
 
