@@ -2588,9 +2588,4 @@ hist(oxanoxDNAgraphDF$DNA_18O_uptake, breaks=20)
 ## we should probably add this to our analysis, move over to 
 
 
-#### mbc by depth ####
 
-
- [µg/g DW]
-
-y = expression(paste("Microbial biomass carbon (", mu,"g C", Peat^{-1}, ")"))
