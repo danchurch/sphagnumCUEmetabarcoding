@@ -2269,7 +2269,6 @@ dev.new(); aa + bb  & ylim(min(0), max(0.10))
 ## how does these trends in 18O uptake compare to respiration?:
 oxCUE <- read.csv("../CUE/oxCUE.csv", row.names=1, check.names=FALSE)
 anoxCUE <- read.csv("../CUE/anoxCUE.csv", row.names=1, check.names=FALSE)
-
 oxDNAgraphDF$resp <- oxCUE[ rownames(oxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
 anoxDNAgraphDF$resp <- anoxCUE[ rownames(anoxDNAgraphDF) ,"Respiration.[ng.C/g/h]"]
 
@@ -2357,11 +2356,34 @@ ggplot(data=anoxDNAgraphDF, aes(x=Comp.1, y=resp)) +
 lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() ## not useful, coef=-1435, but r2 ~ 0.08, p=0.08
 ## as before, probably driven by a few low quality deep samples that respired heavily.
 
+
+
 ########### checking some models  #############
+
+lm(resp ~  DepthSection, data=anoxDNAgraphDF) |> summary() ## 
+
+lm(resp ~  RDA1*RDA2, data=anoxDNAgraphDF) |> summary() ## 
+
+lm(resp ~  RDA2, data=anoxDNAgraphDF) |> summary() ## 
+
+lm(resp ~  Subsite, data=anoxDNAgraphDF) |> summary() ## 
+
+lm(resp ~  RDA2 + Subsite, data=anoxDNAgraphDF) |> summary() ## 
+
+lm(resp ~  RDA2*Subsite, data=anoxDNAgraphDF) |> summary() ## 
+
+## I never checked the distributions for the respiration:
+
+hist(anoxDNAgraphDF$resp, breaks=20)
+hist(oxDNAgraphDF$resp, breaks=20)
+
+
 
 ## respiration 
 ##  anox resp
+
 lm(resp ~  RDA2, data=anoxDNAgraphDF) |> summary() ## useful, coef=87.65 r2 ~ 0.16, p=0.03
+
 lm(resp ~  Comp.1, data=anoxDNAgraphDF) |> summary() ## similar, coef=128, but r2 ~ 0.051, p=0.1443, too noisy
 lm(resp ~  RDA1, data=anoxDNAgraphDF) |> summary() ## weak r2=0.08, not stat sig, p=0.08, but coef = 62, maybe import but too noisy
 lm(resp ~  RDA1 + RDA2, data=anoxDNAgraphDF) |> summary() ## not useful 
