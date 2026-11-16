@@ -1070,6 +1070,18 @@ summary(commHell_rda)
 #comm_rda <- rda(commData, envData)
 comm_rda <- rda(commData ~ ., data=envData)
 
+## variance explained by the RDAs:
+aa <- c(0.13409,0.11523,0.04499,0.03731,0.02103,0.01912,0.01780,0.01672,0.01313,0.01224,
+0.01152,0.00998,0.00864,0.00842,0.00792,0.00725,0.00517,0.00461,0.00423,0.00392,
+0.00358,0.00314,0.00310,0.00254)
+
+sum(aa) ## our constrained analysis explained ~50% of the variation in microbial 
+## communities. 
+
+aa / sum(aa) ## of this, our first two explain 
+
+barplot(aa / sum(aa))
+
 summary(comm_rda)
 
 ## Partitioning of variance:
