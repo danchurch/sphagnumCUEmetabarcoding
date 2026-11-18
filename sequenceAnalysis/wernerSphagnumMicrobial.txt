@@ -5454,3 +5454,256 @@ graphYmax <- 0.01
 funcPlot & ylim(min(0), max(graphYmax))
 
 
+#### adding stuff as I write ####
+
+## now writing all this up. Small holes in the analysis...
+
+## permanova of clusters from hierarchical clustering? Or maybe 
+## a better model of some kind? rda?
+
+## get 
+
+library(phyloseq)
+library(vegan)
+
+setwd("/home/daniel/Documents/projects/wernerSphagnum/sequenceAnalysis/")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+aa <- sample_data(ps007_cleaned_sqrt_prop)
+bb <- otu_table(ps007_cleaned_sqrt_prop)
+adonis2(bb ~ aa$cluster) ## R2 ~ 0.58, p = 0.001
+
+## and models of RDA1 and RDA2 with soil depth. Do this in the sJSDM 
+## notes.
+
+
+## zone 1 upper tk characteristics
+
+## we probably need a function to quickly get the mean and range for
+## soil properties of interest. For example, zone 1 (upper tk)
+
+clust=1
+prop="pH"
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+bb <- aa[aa$cluster == clust, prop]
+mean(bb)
+range(bb)
+
+getProp <- function(clust, prop){
+                 aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+                 bb <- aa[aa$cluster == clust, prop]
+                 #print("depthsections are:")
+                 #print(unique(aa[aa$cluster == 1, "DepthSection"]))
+                 #print("mean/range of property:")
+                 #print(mean(bb))
+                 #print(range(bb))
+                 return(c(min(bb),mean(bb),max(bb)))
+}
+
+aa <- getProp(1, "pH")
+
+getProp(1, "holocellulose_content_2")
+
+
+getProp(1, "klason_lignin_content_2")
+
+## works. now we need a data table of soil properties for the paper.
+## rows are soil properties, columns are zones
+## at first, each zone needs 3-4 columns (min/mean/max/direction of trend with depth)
+
+## list of soil properties:
+
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+
+soilProp <- envData[,7:30]
+
+## what do we do with the redundant vars?
+## for example, humification and degree of decomposition indicators?
+## these are highly correlated with each other
+## the one exception would be hi4, 
+## from the decomp, and hi1/hi4
+## this table will be too big for the text,
+## make it supplementary.
+
+## how to start...
+## for example nitrogen 
+
+## to generate three columns for nitrogen, for all zones
+## but I think it would be easier to make this with zones as rows, then invert
+
+## not elegant, but...
+
+## for example nitrogen
+getProp(1, "N")
+
+aa <- c()
+bb <- c()
+cc <- c()
+for (i in 1:5){
+aa <-c(aa, getProp(i, "N")[1])
+bb <-c(bb, getProp(i, "N")[2])
+cc <-c(cc, getProp(i, "N")[3])
+}
+
+cbind(aa,bb,cc)
+
+
+## function for this
+
+getAllZoneProp <- function(soilprop){
+                     aa <- c(); bb <- c(); cc <- c()
+                     for (i in 1:5){
+                     aa <-c(aa, getProp(i, soilprop)[1])
+                     bb <-c(bb, getProp(i, soilprop)[2])
+                     cc <-c(cc, getProp(i, soilprop)[3])}
+                     dd <- cbind(aa,bb,cc)
+                     colnames(dd) <- c("min","mean","max")
+                     return(dd)
+}
+
+getProp(1, "N")
+getProp(5, "N")
+
+aa <- getAllZoneProp("N") ## looks good
+
+paste0("N_",colnames(aa))
+
+#allZoneProps <- matrix(, nrow=5,ncol=0)
+#for (j in colnames(soilProp)){
+#                     aa <- getAllZoneProp(j)
+#                     colnames(aa) <- paste0(j,"_",colnames(aa))
+#                     allZoneProps <- cbind(allZoneProps,aa)
+#}
+
+## works, but if want hierachical indexing for automatic merging for pandas?
+
+allZoneProps <- matrix(, nrow=5,ncol=0)
+for (j in colnames(soilProp)){
+                     aa <- getAllZoneProp(j)
+                     allZoneProps <- cbind(allZoneProps,aa)
+}
+allZoneProps <- rbind(rep(colnames(soilProp), each=3), allZoneProps)
+
+colnames(allZoneProps)
+
+allZoneProps[,1:4]
+
+rownames(allZoneProps) <- c("prop",paste0("zone",1:5))
+
+
+write.csv(allZoneProps, file="allZoneProps.csv", row.names=TRUE)
+
+## pick this up in python:
+
+import pandas as pd
+
+aa = pd.read_csv("allZoneProps.csv", header=None).T
+
+aa.iloc[:4,:4]
+
+bb = (aa.set_index([1,0])
+          .drop(labels=["prop"])
+          .round(2)
+       )
+
+## rounding doesn't work. don't know why.
+cc = (aa.set_index([1,0])
+          .drop(labels=["prop"])
+       )
+
+## anyway, can do the fine tuning in libreoffice:
+bb.to_excel("summarySoilPropByZone_raw.xlsx")
+
+
+#### ordination of samples by soil characteristics ####
+
+## just to confirm which soils are similar to each other
+
+## seems like a PCA on the soil variables would be good here.
+
+## repeating from our notebook (CUE modeling section)
+## our matrix of soil properties is here:
+
+vars2red <-
+  c("N","C","H","S","O","CN","CH","HC","OC","pH","hi1","hi4",
+  "holocellulose_content_2","klason_lignin_content_2",
+  "phosphorus_content_1","bulk_density_1",
+  "macroporosity_1","degree_of_decomposition_1",
+  "eac","edc")
+
+abiotic4pca <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,vars2red]
+
+PCAabio <- princomp(abiotic4pca, cor=TRUE)
+abioticPCAloadings <- loadings(PCAabio)
+abioticScores <- data.frame(PCAabio$scores)
+
+barplot(PCAabio[]$sdev^2, las=2)
+abline(h = mean(PCAabio$sdev^2), col = "red") ## scaled to 1
+
+abioticPCAloadings <- loadings(PCAabio); print(abioticPCAloadings[,1:3])
+
+dev.new()
+biplot(PCAabio)
+
+## standard plotter sucks. ggplot time
+##make a dataframe for plotting. 
+
+
+all(rownames(abioticScores) == rownames( data.frame(sample_data(ps007_cleaned_sqrt_prop))))
+
+sitePointsOrd_df <- as.data.frame(cbind(abioticScores[,c("Comp.1","Comp.2")],
+                               data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+
+
+ord_plotEmpty <- ggplot(data=sitePointsOrd_df)
+
+## site coords in PCA space
+PCApts <- geom_point(data=sitePointsOrd_df,
+                     aes(x=Comp.1, y=Comp.2,
+                         color=cluster,
+                         shape=Subsite),
+                     size=8)
+
+## color scale to match previous cluster graphics
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+elCS <- scale_color_manual(values = clusterCols)
+
+## ellipses
+els <- stat_ellipse(data=sitePointsOrd_df, aes(x=Comp.1, y=Comp.2,
+                                            group=cluster,
+                                            color=cluster),
+                                        type="norm",
+                                        linetype=2,
+                                        lwd=1,
+                                        level=0.80)
+
+## old "species" (functions) scores as arrows:
+aa <- scores(PCAabio, tidy=T)
+rownames(aa) <- aa$label
+spp_scores <- aa[aa$score == "species", c("label","Comp.1","Comp.2")]
+rm(aa)
+
+scalingFactor <- 10 ## change to fit species scores to site-based scaling of the biplot
+
+arrows_sppScores <- geom_segment(data = spp_scores, aes(x = 0, y = 0, xend = Comp.1*scalingFactor, yend = Comp.2*scalingFactor),
+                      arrow = arrow(length = unit(0.2, "cm")), color = "darkred")
+
+## label arrows
+text_sppScores <- geom_text(data = spp_scores, aes(x = Comp.1 * 1.1 * scalingFactor, 
+                                                   y = Comp.2 * 1.1 * scalingFactor, 
+                                               label = label),
+                                               color = "darkred", fontface = "italic")
+
+## find the variance explained
+
+print(PCAabio$sdev[1]^2/sum(PCAabio$sdev^2)) ## 0.63
+
+print(PCAabio$sdev[2]^2/sum(PCAabio$sdev^2)) ## 0.13
+
+# put it all together
+soilPCA_arrows <- ord_plotEmpty + PCApts + els + elCS + arrows_sppScores + text_sppScores +
+                 labs(x="PCA1 (63%)", y="PCA2 (13%)")
+
+soilPCA_arrows

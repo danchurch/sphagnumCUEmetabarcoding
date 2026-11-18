@@ -1573,8 +1573,11 @@ conda activate r-sjsdm
 
 R
 
-library(sjSDM)
+#library(sjSDM)
 library(phyloseq)
+library(lmerTest)
+library(report)
+library(performance)
 
 setwd("/home/daniel/Documents/projects/wernerSphagnum/sphagnumCUEmetabarcoding/sJSDM")
 
@@ -1874,4 +1877,190 @@ plot(O2_respiration_cox ~ DepthSection, data=aa)
 anBinom_func_noSP <- anova(modelBinom_func_noSP)
 
 plot( anBinom_func_noSP )
+
+
+### addons while writing ###
+
+## back here nov 17 2026 
+## pluggin small holes in the analysis as I write
+
+## would be good to get an explict model of our rdas 
+## with depth:
+
+cVs <- c(
+"N","C", "H","S", "O","CN", "CH","HC", "OC","pH",
+"hi1","hi2", "hi3","hi4",
+"holocellulose_content_2","klason_lignin_content_2",
+"phosphorus_content_1","bulk_density_1",
+"macroporosity_1","degree_of_decomposition_1",
+"degree_of_decomposition_2","degree_of_decomposition_3",
+"eac","edc"
+)
+commData <- data.frame(otu_table(ps007_cleaned_sqrt_prop))
+envData <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,cVs]
+## not sure if we need another transformation, but to just to be sure:
+commData_hell <- decostand(commData, "hellinger")
+commHell_rda <- rda(commData_hell ~ ., data=envData)
+aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))[,c("Subsite","DepthSection","cluster")]
+commHell_siteScores <- scores(commHell_rda)$sites
+
+all(rownames(aa) == rownames(commHell_siteScores))
+
+
+rdasDepth <- data.frame(cbind(aa, commHell_siteScores))
+
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+rm(aa)
+
+## interesting, pretty clear patterns with these RDAs:
+RDA1ggplot <- ggplot(rdasDepth, aes(x=DepthSection, y=RDA1, color=cluster, shape=Subsite)) + geom_point(size=5) + scale_color_manual(values = clusterCols)
+RDA2ggplot <- ggplot(rdasDepth, aes(x=DepthSection, y=RDA2, color=cluster, shape=Subsite)) + geom_point(size=5) + scale_color_manual(values = clusterCols)
+
+RDA1ggplot + RDA2ggplot
+
+## to make models, need 4 models, 
+## RDA1 x depth - Palsa
+## RDA1 x depth - Thermokarst
+## RDA2 x depth - Palsa
+## RDA2 x depth - Thermokarst
+
+## RDA1 x depth - Palsa
+
+
+head(rdasDepth)
+
+rdasDepth_palsa <- rdasDepth[rdasDepth$Subsite == "Palsa",]
+rdasDepth_tk <- rdasDepth[rdasDepth$Subsite == "Thermokarst",]
+
+rdasDepth_palsa
+
+hist(rdasDepth_palsa$RDA1, breaks=40)  
+
+hist(rdasDepth_tk$RDA1, breaks=40)  
+
+## 
+
+lm(rdasDepth_palsa$RDA1 ~ rdasDepth_palsa$DepthSection) |> summary()
+
+lm(rdasDepth_tk$RDA1 ~ rdasDepth_tk$DepthSection) |> summary()
+
+## both are highly significant, but together it is too noisy.
+## this might be better as a mixed model? 
+## subsite as random effect, depth section as fixed:
+
+## I always forget how to formulate the random effects, 
+## this is a "between" palsa vs. thermokarst comparison, not "within"...
+## so...I think...
+
+str(rdasDepth)
+
+summary(lmerTest::lmer(RDA1 ~ DepthSection  + (1|Subsite), data = rdasDepth))
+
+## alternative would be:
+#summary(lmerTest::lmer(RDA1 ~ DepthSection  + (DepthSection|Subsite), data = rdasDepth))
+## but I think this is for paired comparisons...not sure. 
+## or maybe?:
+#lmm_RDA1 <- lmerTest::lmer(RDA1 ~ DepthSection  + (1 + DepthSection|Subsite), data = rdasDepth)
+## I think this last allows the group slopes to vary, and the intercept. We lose 
+## some statistical power, but works
+
+## RDA1 
+#lmm_RDA1 <- lmerTest::lmer(RDA1 ~ DepthSection  + (1|Subsite), data = rdasDepth)
+#lmm_RDA1 <- lmerTest::lmer(RDA1 ~ DepthSection  + (DepthSection|Subsite), data = rdasDepth))
+lmm_RDA1 <- lmerTest::lmer(RDA1 ~ DepthSection  + (1 + DepthSection|Subsite), data = rdasDepth)
+
+summary(lmm_RDA1)
+coef(lmm_RDA1)
+ranova(lmm_RDA1)
+
+head(rdasDepth)
+
+rdasDepth$predicted_RDA1 <- predict(lmm_RDA1)
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+ggplot(rdasDepth, aes(x=DepthSection,y=RDA1, group=Subsite)) +
+  geom_line(aes(y=predicted_RDA1), color="black", linetype=2) +
+  geom_point(aes(color=cluster, shape=Subsite), size=4) + 
+  labs(title="PCA1 (RDA1) with depth", x="Depth Section", y="RDA1") + 
+  scale_color_manual(values = clusterCols)
+
+## repeat with RDA2:
+
+#lmm_RDA2 <- lmerTest::lmer(RDA2 ~ DepthSection  + (1|Subsite), data = rdasDepth) ## sig. I don't see how this is different from a simple lm.
+#lmm_RDA2 <- lmerTest::lmer(RDA2 ~ DepthSection  + (DepthSection|Subsite), data = rdasDepth)
+lmm_RDA2 <- lmerTest::lmer(RDA2 ~ DepthSection  + (1 + DepthSection|Subsite), data = rdasDepth) ## not stat sig, but gives us estimates of slopes by group
+summary(lmm_RDA2)
+
+## the multi-level model seems a little to complex for RDA2, unnecessary
+lm_RDA2 <- lm(RDA2 ~ DepthSection*Subsite, data = rdasDepth) ## I don't see how this is different from a simple lm
+
+summary(lm_RDA2)
+
+summary(lmm_RDA2)
+
+coef(lmm_RDA2)
+
+ranova(lmm_RDA2)
+
+
+
+## if we want a different slope for each group:
+rdasDepth$predicted_RDA2 <- predict(lmm_RDA2)
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+ggplot(rdasDepth, aes(x=DepthSection,y=RDA2, group=Subsite)) +
+  geom_line(aes(y=predicted_RDA2), color="black", linetype=2) +
+  geom_point(aes(color=cluster, shape=Subsite), size=4) + 
+  labs(title="PCA1 (RDA2) with depth", x="Depth Section", y="RDA2") + 
+  scale_color_manual(values = clusterCols)
+
+## if we want just slope line for the dataset...
+## seems better, not overfitting
+
+rdasDepth$predicted_RDA2 <- predict(lm(RDA2 ~ DepthSection, data = rdasDepth))
+clusterCols <- c("green","blue","red","black","brown")
+names(clusterCols) <- as.character(1:5)
+ggplot(rdasDepth, aes(x=DepthSection,y=RDA2)) +
+  geom_line(aes(y=predicted_RDA2), color="black", linetype=2) +
+  geom_point(aes(color=cluster, shape=Subsite), size=4) + 
+  labs(title="PCA1 (RDA2) with depth", x="Depth Section", y="RDA2") + 
+  scale_color_manual(values = clusterCols)
+
+## try report package:
+
+anova(lmm_RDA1)
+
+drop1(lmm_RDA1)
+
+r2(lmm_RDA1) ## because of singularity, can't estimate random r2s
+summary(lmm_RDA1)
+report(lmm_RDA1)
+
+report(lm_RDA2)
+
+lm_RDA2
+
+
+## checkin on lower palsa (zone/cluster 5)
+## which functions are present there?
+
+load("../sJSDM/PS_mag.rda")
+funcAbundances <- read.csv("../sJSDM/funcAbundances.csv", row.names=1)
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
+## so if we want zone5 ....
+
+getFuncsByZone <- function(zone){
+                      aa <- data.frame(sample_data(ps007_cleaned_sqrt_prop))
+                      return(
+                         funcAbundances[rownames(aa[aa$cluster==zone,]),])
+                      }
+
+getFuncsByZone(5)
+
+
+
+
+
 
