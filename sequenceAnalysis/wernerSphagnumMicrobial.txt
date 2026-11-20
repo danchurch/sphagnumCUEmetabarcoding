@@ -5707,3 +5707,198 @@ soilPCA_arrows <- ord_plotEmpty + PCApts + els + elCS + arrows_sppScores + text_
                  labs(x="PCA1 (63%)", y="PCA2 (13%)")
 
 soilPCA_arrows
+
+######## 
+
+## it would be good to have a statistical overview of which groups 
+## are more abundant in the thermokarst vs. palsa generally. 
+## somehow I guess I missed this. 
+
+## let's try to reuse our pipeline for the pairwise-depth comparisons:
+
+library(phyloseq)
+library(ggplot2)
+library(patchwork)
+library(vegan)
+library(ANCOMBC) ## not available for laptop
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+load("../sequenceAnalysis/ps007_cleaned.rda")
+
+# function for the ANCOMB test
+pairwiseDepthAncomb <- function(ps,taxRank){
+         ancombRes <- ancombc2(data = ps,
+                        assay_name = "counts",
+                        taxa_are_rows = FALSE,
+                        tax_level = taxRank,
+                        p_adj_method = "fdr",
+                        pseudo_sens = FALSE,
+                        fix_formula = "Subsite",
+                        prv_cut = 0.10,
+                        group = "Subsite",
+                        struc_zero = TRUE, neg_lb = TRUE,
+                        alpha = 0.05, n_cl = 2, verbose = TRUE,
+                        global = TRUE, pairwise = FALSE, dunnet = FALSE, trend = FALSE,
+                        iter_control = list(tol = 1e-2, max_iter = 20,
+                                            verbose = TRUE),
+                        mdfdr_control = list(fwer_ctrl_method = "holm", B = 500))
+         return(ancombRes)}
+
+#### vars ####
+## try to set these to get bars as close to 100% as possible, but still readable
+howManyOTUsPalsa <- 10
+howManyOTUsTK <- 10
+## also have to change lines below for coloring graphs
+taxRank="Phylum" 
+#taxRank="Order" 
+#taxRank="Genus" 
+#### ^^ vars ^^ ####
+
+## run test
+print(paste("rank is:", taxRank))
+output <- pairwiseDepthAncomb(ps007_cleaned, taxRank)
+
+## for graphing, make subsets of the cleaned, transformed ps objects:
+ps.taxRank <- tax_glom(ps007_cleaned_sqrt_prop, taxrank=taxRank)
+ps.taxRank.palsa <- subset_samples(ps.taxRank, Subsite=="Palsa")
+ps.taxRank.tk <- subset_samples(ps.taxRank, Subsite=="Thermokarst")
+
+## find the top _ phyla for each geomorphology
+topOTUs.palsa <- names(sort(colSums(otu_table(ps.taxRank.palsa)), decreasing=TRUE)[1:howManyOTUsPalsa])
+topOTUs.tk <- names(sort(colSums(otu_table(ps.taxRank.tk)), decreasing=TRUE)[1:howManyOTUsTK])
+comboTopOTUs <- unique(c(topOTUs.palsa, topOTUs.tk))
+
+## overall plot of top taxa in each geomorphology type ##
+
+## change taxonomy setting above to get each set of plots
+
+## subset to these, make plot
+## faceting doesn't work well, make them separate and patch together:
+ps.taxRank.palsa.topOTUs <- prune_taxa(comboTopOTUs, ps.taxRank.palsa)
+aa <- plot_bar(ps.taxRank.palsa.topOTUs) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa")
+ps.taxRank.tk.topOTUs <- prune_taxa(comboTopOTUs, ps.taxRank.tk)
+bb <- plot_bar(ps.taxRank.tk.topOTUs) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+bb$layers[[1]] <- NULL
+aa$layers[[1]] <- NULL
+
+
+## and for viewing the diff abund test results:
+
+diffAbund <- output$res[output$res$diff_SubsiteThermokarst == TRUE,]
+diffAbundTaxa <- diffAbund$taxon
+
+## for tabasco heat map:
+ps.Depth.diffAbund <- ps007_cleaned_sqrt_prop |>
+                        subset_taxa(get(taxRank) %in% diffAbundTaxa) |>
+                        tax_glom(taxrank=taxRank, NArm=FALSE)
+
+commData <- data.frame(otu_table(ps.Depth.diffAbund))
+colnames(commData) <- data.frame(tax_table(ps.Depth.diffAbund))[colnames(commData),taxRank]
+
+
+## for ggplot of LFCs:
+diffAbund <- diffAbund[ order(diffAbund$lfc_SubsiteThermokarst),]
+diffAbund$direct <- ifelse(diffAbund$lfc_SubsiteThermokarst > 0, "Positive LFC", "Negative LFC")
+diffAbund$taxon <- as.factor(diffAbund$taxon)
+tit <- paste("differentally abundant OTUs at", taxRank,"level\nLog fold changes in thermokarst, compared to palsa")
+
+lfcPlot <- ggplot(diffAbund, aes(x = reorder(taxon, lfc_SubsiteThermokarst), y = lfc_SubsiteThermokarst, fill = direct)) +
+               geom_bar(stat = "identity", width = 0.7, color = "black") +
+               geom_errorbar(aes(ymin = lfc_SubsiteThermokarst - se_SubsiteThermokarst, 
+                                 ymax = lfc_SubsiteThermokarst + se_SubsiteThermokarst), 
+                                     width = 0.2,  color = "black") +
+               labs(x = NULL, y = "Log fold change", title = tit) +
+               theme(plot.title = element_text(hjust = 0.5),
+                     panel.grid.minor.y = element_blank(),
+                     axis.text.x = element_text(angle = 60, hjust = 1, size=20))
+
+
+dev.new()
+lfcPlot
+
+## for barplot comparisons of % abundance, with just the diff abund taxa:
+daTax <- as.character(diffAbund$taxon)
+ps.SigDiffTax <-
+  ps007_cleaned_sqrt_prop |>
+  tax_glom(taxrank=taxRank) |>
+  subset_taxa(physeq=_, get(taxRank) %in% daTax)
+
+ps.diffAbu.taxRank.palsa <- subset_samples(ps.SigDiffTax, Subsite=="Palsa")
+ps.diffAbu.taxRank.tk <- subset_samples(ps.SigDiffTax, Subsite=="Thermokarst")
+
+cc <- plot_bar(ps.diffAbu.taxRank.palsa) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      theme(legend.position="none") + ## comment/uncomment for checking legends
+      labs(title="Palsa")
+
+dd <- plot_bar(ps.diffAbu.taxRank.tk) +
+      geom_bar(aes(fill=get(taxRank)), stat="identity", position="stack", width=0.7, color="black") +
+      labs(title="Thermokarst") +
+      theme( axis.text.y=element_blank(),
+             axis.ticks.y=element_blank() ) +
+      ylab(NULL)
+## get rid of the old gray bars hiding underneath, these are plotted by the original function.
+cc$layers[[1]] <- NULL
+dd$layers[[1]] <- NULL
+
+dev.off()
+
+## to generate all the visuals:
+
+print("###################################################################")
+print(diffAbund)
+print("###################################################################")
+
+dev.new()
+aa + bb + 
+plot_annotation(title = paste("top", as.character(length(comboTopOTUs)),
+                             "OTUs \n(Palsa =", howManyOTUsPalsa, 
+                              ", thermokarst =", howManyOTUsTK, "), tax level =", taxRank), 
+               theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+ylim(min(0), max(1))
+dev.new()
+cc + dd  + plot_annotation(title = paste("Differentially abundant OTUs, tax level = ", taxRank),
+                             theme = theme(plot.title = element_text(size = 18, hjust =0.5))) &
+                              ylim(min(0), max(1)) ## may need to change y-max
+dev.new()
+lfcPlot
+dev.new()
+
+dev.new()
+par(oma=(c(0, 0, 0, 15)))
+tabasco(commData) ## not that useful, but hey, why not.
+
+## that all works. Notebook updated. 
+
+## but it would be nice to have the full taxonomy of these diffabu
+## orgs to link up the different results from phylum/order/genus
+
+## for palsa vs. thermokarst, phylum, nothing more needed:
+abundPhyl <- diffAbund$taxon
+
+##  order and genus:
+taxRank="Order" 
+print(paste("rank is:", taxRank))
+output <- pairwiseDepthAncomb(ps007_cleaned, taxRank)
+
+diffAbund <- output$res[output$res$diff_SubsiteThermokarst == TRUE,]
+diffAbund <- diffAbund[ order(diffAbund$lfc_SubsiteThermokarst),]
+abundOrd <- diffAbund$taxon
+
+abundOrd 
+
+rank_names(ps007_cleaned)
+
+ordFilt <- tax_table(ps007_cleaned)[,'Order'] %in% abundOrd 
+aa <- data.frame(tax_table(ps007_cleaned)[ordFilt,c("Kingdom","Phylum","Class","Order")] )
+bb <- aa[!duplicated(aa), ]
+print(bb)
