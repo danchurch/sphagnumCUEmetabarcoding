@@ -920,9 +920,20 @@ scores(PCAfuncAb )[,c("Comp.1","Comp.2")]
 clusterCols <- c("green","blue","red","black","brown")
 names(clusterCols) <- as.character(1:5)
 
+## here
+load("../sJSDM/RDAsPCAs.rda")
+
+load("PS_mag.rda")
+
+load("../sequenceAnalysis/ps007_cleaned_sqrt_prop.rda")
+
 #Make a dataframe for plotting. 
 sitePointsOrd_df <- as.data.frame(cbind(scores(PCAfuncAb )[,c("Comp.1","Comp.2")],
                                data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+
+#sitePointsOrd_df <- as.data.frame(cbind(scores(PCAfuncAb )[,c("Comp.1","Comp.2")],
+#                               data.frame(sample_data(ps007_cleaned_sqrt_prop))[c("cluster","DepthSection","Subsite")]))
+
 ord_plotEmpty <- ggplot(data=sitePointsOrd_df)
 PCApts <- geom_point(data=sitePointsOrd_df,
                      aes(x=Comp.1, y=Comp.2,
