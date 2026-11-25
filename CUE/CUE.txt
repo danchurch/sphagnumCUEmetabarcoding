@@ -2362,21 +2362,53 @@ lm(resp ~  RDA2, data=oxDNAgraphDF) |> summary() ## not useful, coef=-1435, but 
 
 lm(resp ~  DepthSection, data=anoxDNAgraphDF) |> summary() ## 
 
+lm(log(resp) ~  DepthSection, data=anoxDNAgraphDF) |> summary() ## 
+
 lm(resp ~  RDA1*RDA2, data=anoxDNAgraphDF) |> summary() ## 
 
-lm(resp ~  RDA2, data=anoxDNAgraphDF) |> summary() ## 
+lm(log(resp) ~  RDA2, data=anoxDNAgraphDF) |> summary() ## R2 = 0.266, p = 0.0049
 
-lm(resp ~  Subsite, data=anoxDNAgraphDF) |> summary() ## 
+lm(log(resp) ~  Subsite, data=anoxDNAgraphDF) |> summary() ## R2 = 0.3988, p = 0.0004
 
-lm(resp ~  RDA2 + Subsite, data=anoxDNAgraphDF) |> summary() ## 
+lm(log(resp) ~  RDA2 + Subsite, data=anoxDNAgraphDF) |> summary() ##  not better, R2 = 0.3744, p=0.0022, RDA2 not sig
 
-lm(resp ~  RDA2*Subsite, data=anoxDNAgraphDF) |> summary() ## 
+lm(log(resp) ~  RDA2:Subsite, data=anoxDNAgraphDF) |> summary() ## interaction between Palsa and RDA2 explains it all
+
+lm(log(resp) ~  RDA2*Subsite, data=anoxDNAgraphDF) |> summary() ## interaction between Palsa and RDA2
+
 
 ## I never checked the distributions for the respiration:
 
+par(mfrow=c(1,2))
 hist(anoxDNAgraphDF$resp, breaks=20)
 hist(oxDNAgraphDF$resp, breaks=20)
 
+fit_g  <- fitdist(anoxDNAgraphDF$resp, "gamma")
+fit_ln <- fitdist(anoxDNAgraphDF$resp, "lnorm")
+fit_w <- fitdist(anoxDNAgraphDF$resp, "weibull")
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend, breaks=20)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+
+hist(oxDNAgraphDF$resp, breaks=20)
+
+#fit_g  <- fitdist(oxDNAgraphDF$resp, "gamma") ## don't work
+
+fit_ln <- fitdist(oxDNAgraphDF$resp, "lnorm")
+fit_w <- fitdist(oxDNAgraphDF$resp, "weibull")
+
+par(mfrow=c(2,2))
+
+dev.new()
+
+plot.legend <- c("Weibull",  "lognormal")
+denscomp(list(fit_w, fit_ln), legendtext = plot.legend, breaks=20)
+cdfcomp (list(fit_w, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_ln), legendtext = plot.legend)
 
 
 ## respiration 
